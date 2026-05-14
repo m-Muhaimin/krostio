@@ -12,9 +12,11 @@
     "@supabase/ssr": "^0.10.3",
     "clsx": "^2.1.1",
     "next": "16.2.6",
+    "plaid": "^42.2.0",
     "posthog-js": "^1.373.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-plaid-link": "^4.1.1",
     "stripe": "^22.1.1",
     "tailwind-merge": "^3.6.0"
   },

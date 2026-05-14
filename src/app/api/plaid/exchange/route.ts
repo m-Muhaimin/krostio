@@ -1,0 +1,110 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { plaid } from '@/lib/plaid'
+import { fetchGigIncomeForItem } from '@/lib/plaid-sync'
+import { calculateCreditScore } from '@/lib/scoring-engine'
+
+/**
+ * POST /api/plaid/exchange
+ * Body: { public_token: string, institution?: { name, institution_id } }
+ *
+ * 1. Exchanges public_token for an access_token
+ * 2. Stores it on platform_connections (one row per platform detected)
+ * 3. Pulls 90 days of transactions, writes income_records
+ * 4. Recalculates credit_score
+ */
+export async function POST(request: NextRequest) {
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { public_token, institution } = await request.json()
+  if (!public_token) {
+    return NextResponse.json({ error: 'public_token required' }, { status: 400 })
+  }
+
+  // 1. Exchange
+  let accessToken: string
+  let itemId: string
+  try {
+    const ex = await plaid.itemPublicTokenExchange({ public_token })
+    accessToken = ex.data.access_token
+    itemId = ex.data.item_id
+  } catch (err: any) {
+    const msg = err?.response?.data?.error_message || err?.message || 'Plaid exchange failed'
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+
+  // 2. Pull income data
+  let incomeRows
+  try {
+    incomeRows = await fetchGigIncomeForItem(accessToken, user.id, 90)
+  } catch (err: any) {
+    const msg = err?.response?.data?.error_message || err?.message || 'Plaid sync failed'
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+
+  // 3. Detect which gig platforms this item produced
+  const platforms = Array.from(new Set(incomeRows.map((r) => r.platform)))
+
+  // If no gig income detected, still record the connection so the user can retry
+  // (some sandbox institutions don't seed gig deposits)
+  const platformsToRecord = platforms.length > 0 ? platforms : ['other' as const]
+
+  // 4. Upsert platform_connections — one row per detected platform, all sharing the same item
+  for (const platform of platformsToRecord) {
+    await supabase.from('platform_connections').upsert(
+      {
+        user_id: user.id,
+        platform,
+        platform_user_id: `${user.id}_${platform}`,
+        access_token: accessToken,
+        item_id: itemId,
+        institution_id: institution?.institution_id ?? null,
+        institution_name: institution?.name ?? null,
+        provider: 'plaid',
+        is_active: true,
+        last_sync_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,platform' }
+    )
+  }
+
+  // 5. Insert income records (RLS allows this since user_id = auth.uid())
+  if (incomeRows.length > 0) {
+    await supabase.from('income_records').insert(incomeRows)
+  }
+
+  // 6. Recalculate score from ALL the user's income records (not just this item's)
+  const { data: allIncome } = await supabase
+    .from('income_records')
+    .select('*')
+    .eq('user_id', user.id)
+
+  let score = null
+  if (allIncome && allIncome.length > 0) {
+    try {
+      const calc = calculateCreditScore(allIncome as any, user.id)
+      const expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+
+      // Upsert credit_scores (unique on user_id)
+      await supabase
+        .from('credit_scores')
+        .upsert({ ...calc, expires_at }, { onConflict: 'user_id' })
+
+      score = calc
+    } catch (err) {
+      // not enough data for a score — that's fine, leave score=null
+    }
+  }
+
+  return NextResponse.json({
+    success: true,
+    item_id: itemId,
+    platforms_connected: platformsToRecord,
+    income_records_added: incomeRows.length,
+    score,
+  })
+}

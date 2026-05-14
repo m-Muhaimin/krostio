@@ -1,29 +1,149 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { usePlaidLink } from 'react-plaid-link'
 
-const platforms = [
-  { id: 'uber', name: 'Uber', initial: 'U', connected: false },
-  { id: 'lyft', name: 'Lyft', initial: 'L', connected: false },
-  { id: 'doordash', name: 'DoorDash', initial: 'D', connected: false },
-  { id: 'fiverr', name: 'Fiverr', initial: 'F', connected: false },
-  { id: 'upwork', name: 'Upwork', initial: 'U', connected: false },
-  { id: 'instacart', name: 'Instacart', initial: 'I', connected: false },
-  { id: 'taskrabbit', name: 'TaskRabbit', initial: 'T', connected: false },
-  { id: 'amazonflex', name: 'Amazon Flex', initial: 'A', connected: false },
-]
+type Connection = {
+  id: string
+  platform: string
+  institution_name: string | null
+  is_active: boolean
+  last_sync_at: string | null
+  provider: string | null
+}
+
+const PLATFORM_LABELS: Record<string, { name: string; initial: string }> = {
+  uber: { name: 'Uber', initial: 'U' },
+  lyft: { name: 'Lyft', initial: 'L' },
+  doordash: { name: 'DoorDash', initial: 'D' },
+  ubereats: { name: 'Uber Eats', initial: 'U' },
+  grubhub: { name: 'Grubhub', initial: 'G' },
+  fiverr: { name: 'Fiverr', initial: 'F' },
+  upwork: { name: 'Upwork', initial: 'U' },
+  freelancer: { name: 'Freelancer', initial: 'F' },
+  instacart: { name: 'Instacart', initial: 'I' },
+  turo: { name: 'Turo', initial: 'T' },
+  airbnb: { name: 'Airbnb', initial: 'A' },
+  amazon_flex: { name: 'Amazon Flex', initial: 'A' },
+  other: { name: 'Other deposits', initial: 'O' },
+}
+
+function platformLabel(p: string) {
+  return PLATFORM_LABELS[p] ?? { name: p, initial: p.charAt(0).toUpperCase() }
+}
+
+function formatSync(iso: string | null) {
+  if (!iso) return 'Never'
+  const d = new Date(iso)
+  const mins = Math.floor((Date.now() - d.getTime()) / 60000)
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  if (mins < 60 * 24) return `${Math.floor(mins / 60)}h ago`
+  return d.toLocaleDateString()
+}
 
 export function ConnectionsUI() {
-  const [conns, setConns] = useState(platforms)
+  const [linkToken, setLinkToken] = useState<string | null>(null)
+  const [connections, setConnections] = useState<Connection[]>([])
+  const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [lastResult, setLastResult] = useState<{
+    platforms: string[]
+    records: number
+    score: number | null
+  } | null>(null)
 
-  const toggle = (id: string) => {
-    setConns((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, connected: !p.connected } : p))
-    )
+  // Load existing connections
+  const loadConnections = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/gig-platforms')
+      const json = await res.json()
+      setConnections(json.connections ?? [])
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to load connections')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadConnections()
+  }, [loadConnections])
+
+  // Fetch a link token on mount so Plaid Link is ready when user clicks
+  useEffect(() => {
+    let cancelled = false
+    async function getToken() {
+      try {
+        const res = await fetch('/api/plaid/link-token', { method: 'POST' })
+        const json = await res.json()
+        if (cancelled) return
+        if (!res.ok) {
+          setError(json.error || 'Failed to initialize Plaid')
+          return
+        }
+        setLinkToken(json.link_token)
+      } catch (err: any) {
+        if (!cancelled) setError(err?.message ?? 'Plaid init failed')
+      }
+    }
+    getToken()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const onSuccess = useCallback(
+    async (public_token: string, metadata: any) => {
+      setSyncing(true)
+      setError(null)
+      try {
+        const res = await fetch('/api/plaid/exchange', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            public_token,
+            institution: metadata?.institution
+              ? {
+                  name: metadata.institution.name,
+                  institution_id: metadata.institution.institution_id,
+                }
+              : undefined,
+          }),
+        })
+        const json = await res.json()
+        if (!res.ok) {
+          setError(json.error || 'Failed to connect')
+          return
+        }
+        setLastResult({
+          platforms: json.platforms_connected ?? [],
+          records: json.income_records_added ?? 0,
+          score: json.score?.overall_score ?? null,
+        })
+        await loadConnections()
+      } catch (err: any) {
+        setError(err?.message ?? 'Exchange failed')
+      } finally {
+        setSyncing(false)
+      }
+    },
+    [loadConnections]
+  )
+
+  const { open, ready } = usePlaidLink({
+    token: linkToken,
+    onSuccess,
+  })
+
+  const disconnect = async (platform: string) => {
+    // For now, just mark inactive client-side; full disconnect endpoint can come later
+    setConnections((prev) => prev.filter((c) => c.platform !== platform))
   }
 
-  const connected = conns.filter((p) => p.connected)
-  const disconnected = conns.filter((p) => !p.connected)
+  const active = connections.filter((c) => c.is_active)
 
   return (
     <div className="space-y-14">
@@ -33,107 +153,118 @@ export function ConnectionsUI() {
           Platform connections.
         </h1>
         <p className="mt-3 text-body text-slate">
-          Connect your gig platforms to verify your income and build your credit score.
+          Connect your bank or gig platforms to verify your income and build your credit score.
         </p>
       </div>
+
+      {error && (
+        <div
+          className="rounded-md border px-5 py-4 text-sm"
+          style={{ borderColor: 'var(--color-error-red)', color: 'var(--color-error-red)' }}
+        >
+          {error}
+        </div>
+      )}
+
+      {lastResult && (
+        <div className="card-bordered px-6 py-5">
+          <p className="text-mono-label text-coral">Sync complete</p>
+          <p className="mt-2 text-sm text-ink-black">
+            Added {lastResult.records} income record{lastResult.records === 1 ? '' : 's'} across{' '}
+            {lastResult.platforms.length} platform
+            {lastResult.platforms.length === 1 ? '' : 's'}
+            {lastResult.score !== null && (
+              <>
+                {' '}
+                · New credit score: <strong>{lastResult.score}</strong>
+              </>
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Connected */}
       <section>
         <div className="mb-5 flex items-baseline gap-3">
           <h2 className="text-heading-feature text-ink-black">Connected</h2>
-          <span className="text-mono-label text-coral">{connected.length}</span>
+          <span className="text-mono-label text-coral">{active.length}</span>
         </div>
-        {connected.length === 0 ? (
+        {loading ? (
+          <div className="card-bordered px-8 py-12 text-center">
+            <p className="text-sm text-slate">Loading connections…</p>
+          </div>
+        ) : active.length === 0 ? (
           <div className="card-bordered px-8 py-12 text-center">
             <p className="text-mono-label text-slate">Empty state</p>
             <p className="mt-3 text-sm text-ink">No platforms connected yet.</p>
             <p className="mt-1 text-sm text-slate">
-              Connect platforms below to start building your credit score.
+              Connect your bank below to detect gig platform deposits automatically.
             </p>
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
-            {connected.map((platform) => (
-              <div
-                key={platform.id}
-                className="card-bordered flex items-center justify-between p-5"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-ink-black text-sm font-medium text-white">
-                    {platform.initial}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-ink-black">{platform.name}</p>
-                    <p className="text-xs text-slate">Connected · Auto-sync on</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => toggle(platform.id)}
-                  className="btn-pill-outline"
-                  style={{ borderColor: 'var(--color-error-red)', color: 'var(--color-error-red)' }}
+            {active.map((c) => {
+              const label = platformLabel(c.platform)
+              return (
+                <div
+                  key={c.id}
+                  className="card-bordered flex items-center justify-between p-5"
                 >
-                  Disconnect
-                </button>
-              </div>
-            ))}
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-ink-black text-sm font-medium text-white">
+                      {label.initial}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-ink-black">{label.name}</p>
+                      <p className="text-xs text-slate">
+                        {c.institution_name ? `${c.institution_name} · ` : ''}
+                        Last sync {formatSync(c.last_sync_at)}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => disconnect(c.platform)}
+                    className="btn-pill-outline"
+                    style={{
+                      borderColor: 'var(--color-error-red)',
+                      color: 'var(--color-error-red)',
+                    }}
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              )
+            })}
           </div>
         )}
       </section>
 
-      {/* Available */}
+      {/* Connect via Plaid */}
       <section>
         <div className="mb-5 flex items-baseline gap-3">
-          <h2 className="text-heading-feature text-ink-black">Available platforms</h2>
-          <span className="text-mono-label text-slate">{disconnected.length}</span>
+          <h2 className="text-heading-feature text-ink-black">Add a connection</h2>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {disconnected.map((platform) => (
+        <div className="card-bordered px-8 py-10">
+          <p className="text-mono-label text-slate">Bank-verified income</p>
+          <h3 className="mt-3 font-display text-2xl tracking-tight text-ink-black">
+            Connect your bank.
+          </h3>
+          <p className="mt-3 max-w-xl text-sm text-slate">
+            We use Plaid to securely scan your deposits and detect income from Uber, Lyft,
+            DoorDash, Instacart, Fiverr, Upwork, and more. Read-only — we never move your money.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <button
-              key={platform.id}
-              onClick={() => toggle(platform.id)}
-              className="card-bordered flex items-center gap-4 p-5 text-left transition hover:border-ink-black"
+              onClick={() => open()}
+              disabled={!ready || !linkToken || syncing}
+              className="btn-primary disabled:opacity-50"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-ink-black text-sm font-medium text-white">
-                {platform.initial}
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-ink-black">{platform.name}</p>
-                <p className="text-xs text-slate">Not connected</p>
-              </div>
-              <span className="link-editorial text-sm">Connect →</span>
+              {syncing ? 'Syncing…' : ready && linkToken ? 'Connect with Plaid' : 'Loading…'}
             </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Sync */}
-      <section className="border-t border-hairline pt-10">
-        <div className="grid gap-12 md:grid-cols-[1fr_2fr]">
-          <div>
-            <p className="text-mono-label text-slate">Data sync</p>
-            <h2 className="mt-3 text-heading-feature text-ink-black">Keep platforms fresh</h2>
+            <p className="text-xs text-slate">
+              {process.env.NEXT_PUBLIC_PLAID_ENV !== 'production' && 'Sandbox mode — use test bank credentials'}
+            </p>
           </div>
-          <ul className="divide-y divide-hairline">
-            <li className="flex items-center justify-between py-4">
-              <div>
-                <p className="text-sm font-medium text-ink-black">Auto-sync</p>
-                <p className="text-xs text-slate">
-                  Automatically sync income data every 24 hours
-                </p>
-              </div>
-              <label className="relative inline-flex cursor-pointer items-center">
-                <input type="checkbox" className="peer sr-only" defaultChecked />
-                <div className="h-6 w-11 rounded-full bg-hairline after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-ink-black peer-checked:after:translate-x-full" />
-              </label>
-            </li>
-            <li className="flex items-center justify-between py-4">
-              <div>
-                <p className="text-sm font-medium text-ink-black">Last sync</p>
-                <p className="text-xs text-slate">Never</p>
-              </div>
-              <button className="btn-pill-outline">Sync now</button>
-            </li>
-          </ul>
         </div>
       </section>
     </div>
