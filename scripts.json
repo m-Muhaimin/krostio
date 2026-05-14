@@ -1,0 +1,13 @@
+{
+  "name": "krost",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "db:migrate": "psql \"$DATABASE_URL\" -f db/migration.sql",
+    "deploy:contract": "cd blockchain && npx hardhat run scripts/deploy.js --network baseSepolia"
+  }
+}

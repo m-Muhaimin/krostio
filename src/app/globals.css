@@ -1,26 +1,486 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;450;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* ────────────────────────────────────────────────────────────
+     Cohere-inspired design system
+     Editorial restraint over decoration. White canvas dominant,
+     dark green / navy as full-width product bands, coral & blue
+     as editorial accents only.
+     ──────────────────────────────────────────────────────────── */
+
+  /* Brand & accent */
+  --color-cohere-black: #000000;
+  --color-ink-black: #17171c;           /* primary near-black (CTAs, footer) */
+  --color-ink: #212121;                  /* default body text */
+  --color-deep-green: #003c33;           /* product hero bands */
+  --color-dark-navy: #071829;            /* security / finance bands */
+  --color-action-blue: #1863dc;          /* editorial links, pagination */
+  --color-coral: #ff7759;                /* blog category chips */
+  --color-soft-coral: #ffad9b;           /* pale chip borders */
+
+  /* Surface & background */
+  --color-canvas: #ffffff;
+  --color-soft-stone: #eeece7;           /* warm neutral surface */
+  --color-pale-green: #edfce9;           /* North-style backdrop */
+  --color-pale-blue: #f1f5ff;            /* blog CTA surface */
+  --color-card-border: #f2f2f2;          /* softest containment line */
+
+  /* Text & rules */
+  --color-muted-slate: #93939f;          /* footer links, dates, metadata */
+  --color-slate: #75758a;                /* research separators, tertiary */
+  --color-hairline: #d9d9dd;             /* list rules, dividers */
+  --color-border-light: #e5e7eb;         /* secondary divider, utility rule */
+
+  /* Semantic */
+  --color-focus-blue: #4c6ee6;
+  --color-form-focus: #9b60aa;
+  --color-error-red: #b30000;
+
+  /* Legacy aliases — keep so the migration is non-destructive.
+     New code should prefer the Cohere tokens above. */
+  --color-canvas-cream: #ffffff;
+  --color-lifted-cream: #ffffff;
+  --color-soft-bone: #eeece7;
+  --color-signal-orange: #ff7759;
+  --color-light-signal-orange: #ff7759;
+  --color-clay-brown: #b30000;
+  --color-charcoal: #17171c;
+  --color-slate-gray: #75758a;
+  --color-granite: #75758a;
+  --color-dust-taupe: #d9d9dd;
+  --color-link-blue: #1863dc;
+  --color-white: #ffffff;
+
+  /* Typography */
+  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', Arial, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-family-sans: 'Inter', Arial, sans-serif;
+
+  /* Border radius — the Cohere scale */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 30px;
+  --radius-pill: 32px;
+  --radius-full: 9999px;
+  /* Legacy aliases */
+  --radius-stadium: 22px;
+  --radius-btn: 32px;
+  --radius-consent: 22px;
+
+  /* Shadows — used sparingly; Cohere is mostly flat */
+  --shadow-elevation-1: 0px 1px 2px 0px rgba(0,0,0,0.04);
+  --shadow-elevation-2: 0px 8px 24px 0px rgba(0,0,0,0.06);
+  --shadow-elevation-3: 0px 30px 60px 0px rgba(0,0,0,0.10);
+  --shadow-card: 0px 1px 2px 0px rgba(0,0,0,0.04);
+
+  /* Spacing */
+  --spacing-section: 96px;
+  --spacing-section-mobile: 48px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ────────────────────────── Base layer ───────────────────────── */
+@layer base {
+  html {
+    scroll-behavior: smooth;
   }
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* Display headlines: Space Grotesk, tight tracking, lean weight.
+     Spec calls for 400 weight with negative letter-spacing — size and
+     surface contrast do the hierarchy work, not heavy bold. */
+  h1, h2, h3, h4, h5 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--color-ink-black);
+  }
+  h1 { font-size: clamp(48px, 8vw, 96px); line-height: 1.0; letter-spacing: -0.02em; }
+  h2 { font-size: clamp(36px, 5vw, 60px); line-height: 1.0; letter-spacing: -0.02em; }
+  h3 { font-size: 32px; line-height: 1.2; letter-spacing: -0.01em; }
+  h4 { font-size: 24px; line-height: 1.3; }
+  h5 { font-size: 18px; line-height: 1.4; }
+
+  a { color: inherit; }
+
+  /* Selection: warm, editorial */
+  ::selection { background-color: var(--color-coral); color: var(--color-ink-black); }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ─────────────────────── Utility layer ──────────────────────── */
+@layer utilities {
+  /* ── Typography roles ── */
+  .text-display-hero {
+    font-family: var(--font-display);
+    font-size: clamp(48px, 8vw, 96px);
+    font-weight: 400;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+  }
+  .text-display-product {
+    font-family: var(--font-display);
+    font-size: clamp(40px, 6vw, 72px);
+    font-weight: 400;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+  }
+  .text-display-section {
+    font-family: var(--font-display);
+    font-size: clamp(32px, 5vw, 60px);
+    font-weight: 400;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+  }
+  .text-heading-section {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+  .text-heading-card {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+  .text-heading-feature {
+    font-family: var(--font-sans);
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1.3;
+  }
+  .text-body-lg {
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+  .text-body {
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+  .text-button {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.71;
+  }
+  .text-caption {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+  .text-mono-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+  .text-micro {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+
+  /* Legacy aliases */
+  .text-eyebrow { font-family: var(--font-mono); font-size: 12px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; }
+  .text-nav { font-size: 14px; font-weight: 500; letter-spacing: -0.01em; }
+  .text-footer-link { font-size: 14px; font-weight: 400; }
+  .text-footer-header { font-family: var(--font-mono); font-size: 12px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: var(--color-ink-black);
+    color: #ffffff;
+    border: 1px solid var(--color-ink-black);
+    border-radius: var(--radius-pill);
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    transition: opacity 0.15s, background-color 0.15s;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-primary-light {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: #ffffff;
+    color: var(--color-ink-black);
+    border: 1px solid #ffffff;
+    border-radius: var(--radius-pill);
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    transition: opacity 0.15s;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-primary-light:hover { opacity: 0.92; }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--color-ink-black);
+    border: 0;
+    padding: 0;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1px;
+    cursor: pointer;
+  }
+  .btn-secondary:hover { text-decoration-thickness: 2px; }
+
+  .btn-pill-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--color-ink-black);
+    border: 1px solid var(--color-ink-black);
+    border-radius: var(--radius-xl);
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .btn-pill-outline:hover { background-color: var(--color-ink-black); color: #ffffff; }
+  .btn-pill-outline[data-active="true"], .btn-pill-outline.is-active {
+    background-color: var(--color-ink-black); color: #ffffff;
+  }
+
+  /* Legacy button aliases — inline (Tailwind v4 @apply can't reference custom utilities) */
+  .btn-ink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: var(--color-ink-black);
+    color: #ffffff;
+    border: 1px solid var(--color-ink-black);
+    border-radius: var(--radius-pill);
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    transition: opacity 0.15s;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-ink:hover { opacity: 0.9; }
+  .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: #ffffff;
+    color: var(--color-ink-black);
+    border: 1px solid var(--color-ink-black);
+    border-radius: var(--radius-pill);
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .btn-outline:hover { background-color: var(--color-ink-black); color: #ffffff; }
+  .btn-signal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: var(--color-ink-black);
+    color: #ffffff;
+    border: 1px solid var(--color-ink-black);
+    border-radius: var(--radius-pill);
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-signal:hover { opacity: 0.9; }
+
+  /* ── Cards & surfaces ── */
+  .card-media {
+    border-radius: var(--radius-lg);   /* 22px hero/media radius */
+    overflow: hidden;
+    background-color: var(--color-soft-stone);
+  }
+  .card-bordered {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-card-border);
+    background-color: #ffffff;
+  }
+  .card-stone {
+    border-radius: var(--radius-sm);
+    background-color: var(--color-soft-stone);
+    padding: 32px;
+  }
+  .card-stadium { border-radius: var(--radius-lg); overflow: hidden; }
+
+  /* Dark agent-console card */
+  .agent-console {
+    background-color: #0e0e12;
+    color: #ffffff;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 24px;
+  }
+  .agent-console-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    background-color: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.85);
+    font-size: 12px;
+    font-weight: 400;
+  }
+
+  /* ── Forms ── */
+  .input-pill {
+    width: 100%;
+    background-color: #ffffff;
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-full);
+    padding: 12px 18px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--color-ink);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .input-pill::placeholder { color: var(--color-muted-slate); }
+  .input-pill:focus {
+    border-color: var(--color-form-focus);
+    box-shadow: 0 0 0 3px rgba(155,96,170,0.15);
+  }
+
+  .input-rect {
+    width: 100%;
+    background-color: #ffffff;
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-xs);
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--color-ink);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .input-rect::placeholder { color: var(--color-muted-slate); }
+  .input-rect:focus {
+    border-color: var(--color-form-focus);
+    box-shadow: 0 0 0 3px rgba(155,96,170,0.15);
+  }
+
+  /* ── Editorial chips & labels ── */
+  .chip-coral {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-coral);
+    color: var(--color-ink-black);
+    border: 1px solid var(--color-coral);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .chip-coral-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+    background-color: #ffffff;
+    color: var(--color-ink-black);
+    border: 1px solid var(--color-soft-coral);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* ── Rules / dividers ── */
+  .rule-hairline { border-top: 1px solid var(--color-hairline); }
+  .rule-light { border-top: 1px solid var(--color-border-light); }
+
+  /* ── Trust-logo strip ── */
+  .logo-mono { filter: grayscale(1) brightness(0); opacity: 0.6; }
+  .logo-mono-light { filter: grayscale(1) brightness(0) invert(1); opacity: 0.7; }
+
+  /* ── Announcement bar ── */
+  .announcement-bar {
+    background-color: var(--color-cohere-black);
+    color: #ffffff;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 400;
+  }
+
+  /* ── Editorial link ── */
+  .link-editorial {
+    color: var(--color-action-blue);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+  .link-editorial:hover { text-decoration-thickness: 2px; }
+
+  /* ── Legacy ── */
+  .ghost-watermark {
+    color: rgba(23,23,28,0.04);
+    font-family: var(--font-display);
+    font-size: 96px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 0.9;
+    user-select: none;
+    pointer-events: none;
+  }
+  .eyebrow-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-coral);
+    margin-right: 8px;
+    vertical-align: middle;
+  }
 }

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Krost Apple touch icon — "K." on a near-black rounded-square plate.
+  180×180 with 32px radius (close to iOS template's 22.37% corner-mask).
+  Plate color: #17171c (system "Near-Black Primary")
+  Letter color: #ffffff (canvas)
+  Period: #ff7759 (coral accent)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <rect width="180" height="180" rx="32" fill="#17171c"/>
+  <text
+    x="36"
+    y="138"
+    font-family="'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif"
+    font-size="150"
+    font-weight="500"
+    letter-spacing="-6"
+    fill="#ffffff">K</text>
+  <circle cx="138" cy="134" r="14" fill="#ff7759"/>
+</svg>
