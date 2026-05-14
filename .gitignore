@@ -35,6 +35,7 @@ yarn-error.log*
 .env*.local
 .env.production
 .env.development
+.env.vercel
 # but keep .env.example as a template reference
 !.env.example
 
