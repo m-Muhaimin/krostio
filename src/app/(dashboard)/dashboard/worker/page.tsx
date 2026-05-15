@@ -47,14 +47,15 @@ export default async function WorkerDashboard() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Fetch real data
-  const [{ data: platformRows }, { data: verification }] = await Promise.all([
+  // Fetch real data — existing + Krost Score v2
+  const [{ data: platformRows }, { data: verification }, { data: krostRecord }] = await Promise.all([
     supabase
       .from('platform_connections')
       .select('id, last_sync_at, is_active')
       .eq('user_id', user!.id)
       .eq('is_active', true),
-    supabase.from('income_verifications').select('*').eq('user_id', user!.id).single(),
+    supabase.from('income_verifications').select('*').eq('user_id', user!.id).maybeSingle(),
+    supabase.from('krost_scores').select('score, tier, breakdown, factors').eq('user_id', user!.id).maybeSingle(),
   ])
 
   const connections = platformRows?.length ?? 0
@@ -92,6 +93,35 @@ export default async function WorkerDashboard() {
   const platformCount = verification?.platform_diversity ?? 0
   const trajectory = verification?.trajectory_label ?? null
   const status = verification?.lender_ready_status ?? null
+
+  // Krost Score (300–850) — Pillar 1
+  const hasKrost = !!krostRecord
+  const krostScore = krostRecord?.score ?? null
+  const krostTier = krostRecord?.tier ?? null
+  const krostBreakdown = krostRecord?.breakdown ?? null
+
+  const krostTierColor =
+    krostTier === 'elite'
+      ? { bg: '#0A4D3B', text: '#fff' }    // deep green for elite
+      : krostTier === 'strong'
+        ? { bg: 'var(--color-deep-green)', text: '#fff' }
+        : krostTier === 'building'
+          ? { bg: '#B8860B', text: '#fff' }  // amber for building
+          : { bg: 'var(--color-slate-gray)', text: '#fff' }
+
+  const krostTierLabel =
+    krostTier === 'elite' ? 'Elite' 
+    : krostTier === 'strong' ? 'Strong'
+    : krostTier === 'building' ? 'Building'
+    : krostTier === 'emerging' ? 'Emerging'
+    : null
+
+  const krostTierMeaning =
+    krostTier === 'elite' ? 'Prime borrower — auto-approve most alt-doc loans'
+    : krostTier === 'strong' ? 'Non-QM eligible — suitable for personal, auto, business loans'
+    : krostTier === 'building' ? 'Partial income history — secured / smaller loans'
+    : krostTier === 'emerging' ? 'Early stage — microloans, credit-builder products'
+    : null
 
   const connectedCount = Math.max(platformCount, connections)
   const freshness = freshnessLabel(latestSync)
@@ -171,6 +201,80 @@ export default async function WorkerDashboard() {
             <div>
               <p className="text-mono-label text-white/40">Reports generated</p>
               <p className="mt-2 text-sm text-white/65">{reportCount ?? 0}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Krost Score (300–850) — Pillar 1 */}
+      <section
+        className="rounded-md p-10"
+        style={{ backgroundColor: krostTierColor.bg, color: '#fff' }}
+      >
+        <div className="grid gap-8 md:grid-cols-[2fr_1fr] md:items-center">
+          <div>
+            <p className="text-mono-label text-white/50">
+              Krost Score
+              <span className="ml-2 text-xs opacity-40">Income verification metric</span>
+            </p>
+            <div className="mt-6 flex items-end gap-6">
+              <span className="font-display text-[96px] leading-none tracking-tight text-white">
+                {hasKrost ? krostScore : '—'}
+              </span>
+              <div className="mb-3">
+                {hasKrost ? (
+                  <>
+                    <span className="inline-block rounded-full bg-white/20 px-3 py-1 text-sm font-semibold tracking-wide">
+                      {krostTierLabel}
+                    </span>
+                    <p className="mt-2 text-sm text-white/65">{krostTierMeaning}</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-white/65">
+                    Connect platforms to generate your Krost Score
+                  </p>
+                )}
+              </div>
+            </div>
+            {hasKrost && krostBreakdown && (
+              <div className="mt-6 flex flex-wrap gap-4 text-sm text-white/55">
+                {krostBreakdown.incomeScore > 0 && (
+                  <span>Income: +{krostBreakdown.incomeScore}</span>
+                )}
+                {krostBreakdown.tenureScore > 0 && (
+                  <span>Tenure: +{krostBreakdown.tenureScore}</span>
+                )}
+                {krostBreakdown.diversityScore > 0 && (
+                  <span>Diversity: +{krostBreakdown.diversityScore}</span>
+                )}
+                {krostBreakdown.consistencyScore > 0 && (
+                  <span>Consistency: +{krostBreakdown.consistencyScore}</span>
+                )}
+                {krostBreakdown.trajectoryScore > 0 && (
+                  <span>Trajectory: +{krostBreakdown.trajectoryScore}</span>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="space-y-4 border-l border-white/10 pl-8">
+            <div>
+              <p className="text-mono-label text-white/40">Score range</p>
+              <p className="mt-2 text-2xl font-normal text-white">300 – 850</p>
+            </div>
+            <div>
+              <p className="text-mono-label text-white/40">Tiers</p>
+              <div className="mt-2 space-y-1 text-xs text-white/55">
+                <p>750–850 Elite · 680–749 Strong</p>
+                <p>580–679 Building · 300–579 Emerging</p>
+              </div>
+            </div>
+            <div>
+              <Link
+                href="/dashboard/worker/score"
+                className="inline-flex items-center gap-1 rounded-full bg-white/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/25"
+              >
+                Factor breakdown →
+              </Link>
             </div>
           </div>
         </div>

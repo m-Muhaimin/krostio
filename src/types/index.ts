@@ -139,3 +139,47 @@ export interface WaitlistEntry {
   role: Role
   created_at: string
 }
+
+// ─── Krost Score v2 (300–850) ──────────────────────────────────────────
+
+export type KrostScoreTier = 'elite' | 'strong' | 'building' | 'emerging'
+
+export interface KrostScoreInput {
+  avgMonthlyIncome: number
+  platformTenureMonths: number
+  incomeVolatility: number       // coefficient of variation
+  platformDiversity: number      // number of active platforms
+  earningConsistency: number     // % of months with positive earnings (0–100)
+  incomeTrajectory: number       // linear regression slope
+  taxCompliance: boolean         // 1099-K filed
+  crossPlatformGrowth: number    // new platforms adopted over last 12 months
+  ledgerDepth: number            // months of verified history (capped at 36)
+}
+
+export interface KrostScoreFactorDetail {
+  name: string
+  label: string
+  points: number
+  maxPoints: number
+  impact: 'positive' | 'negative' | 'neutral'
+  description: string
+}
+
+export interface KrostScoreResult {
+  score: number                     // 300–850
+  tier: KrostScoreTier
+  factors: KrostScoreFactorDetail[]
+  breakdown: {
+    base: number
+    incomeScore: number
+    tenureScore: number
+    volatilityScore: number
+    diversityScore: number
+    consistencyScore: number
+    trajectoryScore: number
+    taxComplianceScore: number
+    crossPlatformGrowthScore: number
+    ledgerDepthScore: number
+  }
+  calculatedAt: string
+}

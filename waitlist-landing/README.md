@@ -1,18 +1,20 @@
-# Krost Waitlist Landing
+# Krostio Waitlist Landing
 
 Standalone, framework-free, single-page waitlist + lead-magnet landing for
-Krost. Mirrors the main app's Cohere-inspired design system (see
-`../src/app/globals.css`) — same tokens, same components, copied verbatim
-into plain CSS so this page ships with zero build step.
+**Krostio** — the four-pillar financial identity platform for gig workers.
+
+Mirrors the `DESIGN.md` Mastercard-inspired design system — warm cream canvas,
+Sofia Sans, extreme pill radii, ink black CTAs — copied verbatim into plain CSS
+so this page ships with zero build step.
 
 ## Files
 
-| File         | Purpose                                                                |
-| ------------ | ---------------------------------------------------------------------- |
-| `index.html` | Markup: hero, lead-magnet report preview, how-it-works, dark CTA, FAQ. |
-| `styles.css` | Krost design system — tokens, type roles, buttons, cards, agent console. |
-| `script.js`  | Email validation + POST to `/api/waitlist`. Idempotent, graceful errors. |
-| `vercel.json`| Static-host headers + caching. Drop-in for `vercel deploy`.            |
+| File | Purpose |
+| ---- | ------- |
+| `index.html` | Markup: hero, lead-magnet report preview, four-pillar how-it-works, dark CTA, FAQ. |
+| `styles.css` | Krostio design system — DESIGN.md tokens, type roles, buttons, cards, agent console. |
+| `script.js` | Email validation + POST to `/api/waitlist`. Idempotent, graceful errors. |
+| `vercel.json` | Static-host headers + caching. Drop-in for `vercel deploy`. |
 
 ## Run locally
 
@@ -35,23 +37,23 @@ The form POSTs to `/api/waitlist` (the same endpoint Next.js exposes at
 `src/app/api/waitlist/route.ts`, writing into the Supabase `waitlist`
 table from migration 002).
 
-**Same-origin deploy** (e.g. served from `krost.xyz` alongside the Next.js
+**Same-origin deploy** (e.g. served from `krostio.app` alongside the Next.js
 app): no config needed.
 
-**Separate-origin deploy** (this static page on `join.krost.xyz`, app on
-`krost.xyz`): point the form at the absolute API URL in one of two ways.
+**Separate-origin deploy** (this static page on `join.krostio.app`, app on
+`krostio.app`): point the form at the absolute API URL in one of two ways.
 
 1. Inline override before `script.js` in `index.html`:
 
    ```html
-   <script>window.KROST_API = 'https://krost.xyz/api/waitlist';</script>
+   <script>window.KROST_API = 'https://krostio.app/api/waitlist';</script>
    <script src="script.js"></script>
    ```
 
 2. Per-form override on either `<form>` tag:
 
    ```html
-   <form id="waitlist-form" data-api="https://krost.xyz/api/waitlist">
+   <form id="waitlist-form" data-api="https://krostio.app/api/waitlist">
    ```
 
 If the API lives on a different origin, the Next.js route handler must allow
@@ -79,31 +81,31 @@ mkdir -p ../public/join
 cp -r ./* ../public/join/
 ```
 
-Then visit `https://krost.xyz/join`. Same-origin, so the form works out of
+Then visit `https://krostio.app/join`. Same-origin, so the form works out of
 the box.
 
-## Anatomy — three lead-magnet sections
+## Anatomy — four sections + FAQ + footer
 
-1. **Hero** — Cohere-style monumental headline + sub + inline email capture.
-   Below the fold: the agent-console mockup card (same component from the
-   main app homepage) so the page feels native.
-2. **Free report** — the lead magnet itself. Numbered 4-point breakdown
-   (score, 12-mo income, consistency, partner lenders) + tilted 3D PDF
-   preview card. This is the value exchange that earns the email.
-3. **How it works + Dark CTA + FAQ** — three steps, a dark `ink-black`
-   conversion band with a second email field, then a five-question FAQ
-   covering the friction objections (credit pull? real lenders? data?).
+1. **Hero** — Monumental headline + sub + inline email capture. Agent-console
+   mockup shows all four pillars: Score, Ledger, Verifier, Passport.
+2. **Free report** — The lead magnet. 4-point breakdown maps to the four
+   pillars (Score, Ledger, Verifier report, Passport preview) + tilted PDF
+   preview card. The value exchange that earns the email.
+3. **Four-pillar How it works** — One step per pillar, laid out as a 4-column
+   grid on desktop.
+4. **Dark CTA + FAQ** — Dark `ink-black` conversion band with second email
+   field, then a 7-question FAQ covering platform positioning, Passport,
+   on-chain attestation, data privacy.
 
-Plus: announcement bar, three-zone sticky nav, three-column footer — all
-verbatim from the main app's design system.
+Plus: announcement bar, sticky nav, three-column dark footer.
 
 ## Editing copy
 
-All copy lives inline in `index.html`. Search for the section comments
-(`SECTION 1 — HERO`, `SECTION 2 — LEAD MAGNET`, etc.). Numbers used:
+All copy lives inline in `index.html`. Search for the section comments.
+Numbers used:
 
-- `60 million Americans` — hero sub
-- `2,400+ gig workers already on the list` — dark CTA
+- `76 million Americans` — hero sub
+- `4,800+ gig workers already on the list` — dark CTA
 - `5,000` — waitlist cap in the announcement bar
 - `724`, `$58,420`, `94%` — agent-console mock result (also `724` on the report card)
 - `Three pilot lenders` — FAQ
@@ -112,16 +114,26 @@ Update all of these when real numbers are available.
 
 ## Design-system parity
 
-If you change a token in `src/app/globals.css` you should mirror it here in
-`styles.css`. The relevant tokens are at the top of the file inside the
-`:root { … }` block. Components covered:
+Built to the `DESIGN.md` Mastercard-inspired spec:
 
-- `btn-primary`, `btn-primary-light`
-- `input-pill` (+ `input-pill-dark` variant added here for the dark CTA)
-- `card-media`, `agent-console`, `agent-console-chip`
-- `chip-coral-outline`
+| Token | Value | Notes |
+| ----- | ----- | ----- |
+| Canvas cream | `#F3F0EE` | Page background — never pure white |
+| Ink black | `#141413` | Primary CTAs, headlines, footer |
+| Signal orange | `#CF4500` | Eyebrow dots, consent actions only |
+| Light signal | `#F37338` | Decorative accents, console score |
+| Slate gray | `#696969` | Muted secondary text |
+| Font | Sofia Sans | Body 450, headlines 500 |
+| Radii | 9999px / 40px / 20px | Pill / stadium / btn |
+
+Components covered:
+
+- `btn-ink`, `btn-signal`
+- `input-pill` (+ `input-pill-dark` variant)
+- `card-media`, `agent-console`, `agent-chip`
+- `chip-signal-outline`
 - `announcement-bar`
-- `eyebrow-dot`, `text-mono-label`, `text-display-hero`, `text-display-section`, `text-heading-section`, `text-footer-link`, `text-footer-header`
+- `eyebrow`, `eyebrow-label`, `hero-headline`, `display-headline`, `section-headline`, `footer-link`, `footer-header`
 
 ## Accessibility
 
@@ -130,9 +142,7 @@ If you change a token in `src/app/globals.css` you should mirror it here in
 - `role="status"` + `aria-live="polite"` on form feedback.
 - Form labels are `aria-label` on the email inputs (placeholder is not the label).
 - `prefers-reduced-motion` disables smooth scroll + transitions.
-- Color contrast on `slate` (#75758a) against canvas meets WCAG AA for body
-  text; the muted footer/disclaimer copy (#93939f) is reserved for 12 px
-  metadata only.
+- Color contrast on `slate-gray` (#696969) meets WCAG AA for body text.
 
 ## What's intentionally NOT here
 

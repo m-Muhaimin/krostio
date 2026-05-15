@@ -14,7 +14,7 @@
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
   // localStorage flag so a returning visitor sees a softer state.
-  var STORAGE_KEY = 'krost_waitlist_joined';
+  var STORAGE_KEY = 'krostio_waitlist_joined';
 
   function resolveEndpoint(form) {
     return (

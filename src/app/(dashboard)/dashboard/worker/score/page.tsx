@@ -1,5 +1,6 @@
 import { requireRole } from '@/lib/auth-guard'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import type { KrostScoreResult, KrostScoreTier } from '@/types'
 
 type ScoreFactor = {
   name: string
@@ -76,16 +77,49 @@ export default async function ScoreBreakdownPage() {
   const { userId } = await requireRole(['gig_worker'])
 
   const supabase = await createServerSupabaseClient()
-  const { data: score } = await supabase
-    .from('income_verifications')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle()
+  const [{ data: score }, { data: krostRecord }] = await Promise.all([
+    supabase
+      .from('income_verifications')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabase
+      .from('krost_scores')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle(),
+  ])
 
   const hasScore = !!score
   const typedScore = score as CreditScore | null
   const factors = typedScore?.score_factors?.length ? typedScore.score_factors : FALLBACK_FACTORS
   const totalWeight = factors.reduce((sum, f) => sum + Math.abs(f.weight), 0) || 1
+
+  // Krost Score (300–850)
+  const hasKrost = !!krostRecord
+  const krostResult = krostRecord
+    ? ({
+        score: krostRecord.score,
+        tier: krostRecord.tier as KrostScoreTier,
+        breakdown: krostRecord.breakdown,
+        factors: krostRecord.factors,
+        calculatedAt: krostRecord.calculated_at,
+      } as KrostScoreResult)
+    : null
+
+  const krostTierColor =
+    krostResult?.tier === 'elite' ? '#0A4D3B'
+    : krostResult?.tier === 'strong' ? 'var(--color-deep-green)'
+    : krostResult?.tier === 'building' ? '#B8860B'
+    : krostResult?.tier === 'emerging' ? 'var(--color-slate-gray)'
+    : 'var(--color-deep-green)'
+
+  const krostTierLabel =
+    krostResult?.tier === 'elite' ? 'Elite'
+    : krostResult?.tier === 'strong' ? 'Strong'
+    : krostResult?.tier === 'building' ? 'Building'
+    : krostResult?.tier === 'emerging' ? 'Emerging'
+    : null
 
   // Ring rendering: consistency_score 0-100, map to 0-264 (full circle dasharray)
   const ringPct = typedScore
@@ -109,6 +143,86 @@ export default async function ScoreBreakdownPage() {
             : 'How your income score is calculated. Connect platforms to see your personalized breakdown.'}
         </p>
       </div>
+
+      {/* Krost Score (300–850) — Pillar 1 */}
+      <section
+        className="rounded-md p-10"
+        style={{ backgroundColor: krostTierColor, color: '#fff' }}
+      >
+        <div className="grid items-center gap-12 md:grid-cols-[auto_1fr]">
+          <div className="relative flex h-44 w-44 items-center justify-center">
+            <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="6" />
+              <circle
+                cx="50"
+                cy="50"
+                r="42"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeDasharray={`${hasKrost ? ((krostResult!.score - 300) / 550) * 264 : 0} 264`}
+                style={{ opacity: 0.5 }}
+              />
+            </svg>
+            <div className="absolute text-center">
+              <span className="font-display text-5xl text-white">
+                {hasKrost ? krostResult!.score : '—'}
+              </span>
+              <p className="text-xs text-white/50">/ 850</p>
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center gap-3">
+              <p className="text-mono-label text-white/50">Krost Score</p>
+              {hasKrost && (
+                <span className="rounded-full bg-white/20 px-3 py-0.5 text-xs font-semibold tracking-wide">
+                  {krostTierLabel}
+                </span>
+              )}
+            </div>
+            {hasKrost && krostResult ? (
+              <>
+                <h2 className="mt-3 font-display text-3xl tracking-tight text-white">
+                  {krostResult.tier === 'elite' ? 'Elite income profile.'
+                  : krostResult.tier === 'strong' ? 'Strong income profile.'
+                  : krostResult.tier === 'building' ? 'Building income history.'
+                  : 'Emerging income profile.'}
+                </h2>
+                <p className="mt-2 max-w-xl text-sm text-white/65">
+                  Your Krost Score reflects income reliability across{' '}
+                  {krostResult.breakdown ? Object.keys(krostResult.breakdown).filter(k =>
+                    krostResult.breakdown[k as keyof typeof krostResult.breakdown] > 0
+                  ).length - 1 : 6} factors.
+                  {krostResult.tier === 'elite' && ' You\'re in the top tier — lenders will view this as prime income documentation.'}
+                  {krostResult.tier === 'strong' && ' Most non-QM lenders will accept this as reliable income proof.'}
+                  {krostResult.tier === 'building' && ' Adding more platforms and history will strengthen your score.'}
+                  {krostResult.tier === 'emerging' && ' Connect platforms and build your earnings history to improve your score.'}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-4 text-sm text-white/55">
+                  {krostResult.breakdown && Object.entries(krostResult.breakdown)
+                    .filter(([key, val]) => key !== 'base' && val > 0)
+                    .map(([key, val]) => (
+                      <span key={key}>
+                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).replace(/Score$/, '')}: +{val}
+                      </span>
+                    ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="mt-3 font-display text-3xl tracking-tight text-white">
+                  No score yet.
+                </h2>
+                <p className="mt-2 max-w-xl text-sm text-white/65">
+                  Connect your gig platforms to calculate your Krost Score — a 300–850 income
+                  verification metric that speaks the lender&apos;s language.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* Overall Score Ring — deep green band */}
       <section
