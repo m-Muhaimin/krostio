@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requireRole } from '@/lib/auth-guard'
 import { checkLenderQuota } from '@/lib/lender-quota'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServiceSupabaseClient } from '@/lib/supabase-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,6 +41,23 @@ export default async function LenderDashboard() {
   const pct = quota.limit > 0 ? Math.min(100, Math.round((quota.used / quota.limit) * 100)) : 0
   const planLabel = PLAN_LABEL[quota.plan]
   const showUpgrade = quota.plan !== 'scale'
+
+  // Directory listing + referral stats (best effort — service-role read)
+  const service = createServiceSupabaseClient()
+  const { data: listing } = await service
+    .from('lender_profiles')
+    .select('id, slug, active')
+    .eq('id', lenderId)
+    .maybeSingle()
+
+  const monthStart = new Date()
+  monthStart.setUTCDate(1)
+  monthStart.setUTCHours(0, 0, 0, 0)
+  const { count: clicksThisMonth } = await service
+    .from('lender_referrals')
+    .select('id', { count: 'exact', head: true })
+    .eq('lender_id', lenderId)
+    .gte('clicked_at', monthStart.toISOString())
 
   return (
     <div className="space-y-14">
@@ -100,6 +118,35 @@ export default async function LenderDashboard() {
             </div>
           )}
         </div>
+      </section>
+
+      {/* Directory + Referrals (F-12) */}
+      <section className="grid gap-4 md:grid-cols-2">
+        <Link href="/dashboard/lender/listing" className="card-bordered block p-6 transition-shadow hover:shadow-md">
+          <p className="text-mono-label text-slate">Directory listing</p>
+          <p className="mt-3 font-display text-2xl tracking-tight text-ink-black">
+            {listing ? 'Manage your listing' : 'Create your listing'}
+          </p>
+          <p className="mt-2 text-sm text-slate">
+            {listing
+              ? listing.active
+                ? `Live at /lenders/${listing.slug}`
+                : 'Listing is inactive — contact support'
+              : 'Add Krost to the public directory and start receiving referrals.'}
+          </p>
+          <p className="link-editorial mt-3 text-sm">{listing ? 'Edit listing →' : 'Get started →'}</p>
+        </Link>
+
+        <Link href="/dashboard/lender/referrals" className="card-bordered block p-6 transition-shadow hover:shadow-md">
+          <p className="text-mono-label text-slate">Referrals this month</p>
+          <p className="mt-3 font-display text-2xl tracking-tight text-ink-black">
+            {clicksThisMonth ?? 0} clicks
+          </p>
+          <p className="mt-2 text-sm text-slate">
+            Workers reaching you from the public directory.
+          </p>
+          <p className="link-editorial mt-3 text-sm">View referrals →</p>
+        </Link>
       </section>
 
       {/* Stats — rule-separated row, no card chrome */}
