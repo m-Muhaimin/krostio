@@ -70,6 +70,12 @@ export default async function WorkerDashboard() {
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user!.id)
 
+  const { data: passportRecord } = await supabase
+    .from('passports')
+    .select('*')
+    .eq('user_id', user!.id)
+    .maybeSingle()
+
   // Recent reports — use service client so we get the latest list bypassing RLS edge cases
   let recentReports: RecentReport[] = []
   try {
@@ -99,6 +105,7 @@ export default async function WorkerDashboard() {
   const krostScore = krostRecord?.score ?? null
   const krostTier = krostRecord?.tier ?? null
   const krostBreakdown = krostRecord?.breakdown ?? null
+  const hasPassport = !!passportRecord
 
   const krostTierColor =
     krostTier === 'elite'
@@ -331,6 +338,43 @@ export default async function WorkerDashboard() {
         </div>
       </section>
 
+      {/* Krost Passport Minting — Pillar 4 */}
+      {hasKrost && krostScore >= 580 && (
+        <section>
+          <div className="card-bordered bg-pale-blue/30 border-blue-100 p-8">
+            <div className="flex items-start justify-between gap-6">
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-display text-2xl text-ink-black">Krost Passport</p>
+                  {hasPassport && (
+                    <span className="chip-coral py-0.5 px-2 text-[10px]">Minted</span>
+                  )}
+                </div>
+                <p className="mt-2 text-sm text-slate">
+                  {hasPassport
+                    ? `Your financial identity is attested on Base L2. Token ID: ${passportRecord.token_id}`
+                    : 'Your score qualifies for a Digital Passport. Permanently attest your financial identity on-chain.'}
+                </p>
+                {hasPassport && (
+                  <p className="mt-2 text-xs font-mono text-action-blue">
+                    TX: {passportRecord.wallet_address}
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                {!hasPassport ? (
+                   <MintPassportButton />
+                ) : (
+                  <Link href={`/passport/${passportRecord.token_id}`} className="btn-pill-outline text-xs">
+                    View Passport →
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Generate report CTA */}
       {hasScore && (
         <section>
@@ -358,7 +402,9 @@ export default async function WorkerDashboard() {
           </div>
           <div className="space-y-3">
             {recentReports.map((report) => {
-              const expired = new Date(report.expires_at).getTime() < Date.now()
+              const expiresAt = new Date(report.expires_at).getTime()
+              const now = new Date().getTime()
+              const expired = expiresAt < now
               return (
                 <div
                   key={report.id}
@@ -409,3 +455,4 @@ export default async function WorkerDashboard() {
 
 // Client component for report generation with loading state
 import { GenerateReportButton } from './generate-report-button'
+import { MintPassportButton } from './mint-passport-button'

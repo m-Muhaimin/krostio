@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
   let syncResult = null
   if (resync) {
     try {
-      const incomeRows = await fetchGigIncomeForItem(accessToken, user.id, numWeeks * 7)
+      const { incomeRows, ledgerRows } = await fetchGigIncomeForItem(accessToken, user.id, numWeeks * 7)
 
       // Write income_records (delete existing ones from this item's previous sync first?)
       // We upsert to avoid duplicates: one row per (user_id, platform, period_start)
@@ -153,6 +153,10 @@ export async function POST(request: NextRequest) {
         // For sandbox testing, clear old income records for this user first
         await service.from('income_records').delete().eq('user_id', user.id)
         await service.from('income_records').insert(incomeRows)
+      }
+      if (ledgerRows.length > 0) {
+        await service.from('ledger_entries').delete().eq('user_id', user.id)
+        await service.from('ledger_entries').insert(ledgerRows)
       }
 
       // Recalculate score

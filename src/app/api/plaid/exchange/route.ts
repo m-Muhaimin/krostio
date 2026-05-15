@@ -38,22 +38,23 @@ export async function POST(request: NextRequest) {
   }
 
   // 2. Pull income data
-  let incomeRows
+  let syncResult
   try {
-    incomeRows = await fetchGigIncomeForItem(accessToken, user.id, 90)
+    syncResult = await fetchGigIncomeForItem(accessToken, user.id, 90)
   } catch (err: any) {
     const msg = err?.response?.data?.error_message || err?.message || 'Plaid sync failed'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 
+  const { incomeRows, ledgerRows } = syncResult
+
   // 3. Detect which gig platforms this item produced
-  const platforms = Array.from(new Set(incomeRows.map((r) => r.platform)))
+  const platforms = Array.from(new Set(ledgerRows.map((r) => r.platform)))
 
   // If no gig income detected, still record the connection so the user can retry
-  // (some sandbox institutions don't seed gig deposits)
   const platformsToRecord = platforms.length > 0 ? platforms : ['other' as const]
 
-  // 4. Upsert platform_connections — one row per detected platform, all sharing the same item
+  // 4. Upsert platform_connections
   for (const platform of platformsToRecord) {
     await supabase.from('platform_connections').upsert(
       {
@@ -72,12 +73,15 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // 5. Insert income records (RLS allows this since user_id = auth.uid())
+  // 5. Insert legacy income records and new ledger entries
   if (incomeRows.length > 0) {
     await supabase.from('income_records').insert(incomeRows)
   }
+  if (ledgerRows.length > 0) {
+    await supabase.from('ledger_entries').insert(ledgerRows)
+  }
 
-  // 6. Recalculate score from ALL the user's income records (not just this item's)
+  // 6. Recalculate scores (v1 and v2)
   const { data: allIncome } = await supabase
     .from('income_records')
     .select('*')
@@ -118,11 +122,22 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // 7. Trigger Krost Score v2 calculation (via existing API route logic or internal call)
+  try {
+    const krostRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/score/krost?refresh=true`, {
+      headers: { cookie: request.headers.get('cookie') || '' }
+    })
+    if (!krostRes.ok) console.error('Krost score sync failed', await krostRes.text())
+  } catch (err) {
+    console.error('Krost score fetch error', err)
+  }
+
   return NextResponse.json({
     success: true,
     item_id: itemId,
     platforms_connected: platformsToRecord,
     income_records_added: incomeRows.length,
+    ledger_entries_added: ledgerRows.length,
     score,
   })
 }

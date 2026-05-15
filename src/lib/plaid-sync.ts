@@ -54,18 +54,29 @@ export type IncomeRow = {
   currency: string
 }
 
+export type LedgerRow = {
+  user_id: string
+  platform: GigPlatform
+  gross_amount: number
+  net_amount: number
+  currency: string
+  period_start: string
+  period_end: string
+  payment_date: string
+  category: string
+  platform_ref_id: string
+  source: string
+}
+
 /**
  * Pull 90 days of transactions for an item, filter to gig-platform deposits,
- * and aggregate into weekly income_records rows.
- *
- * Plaid returns negative amounts for credits/deposits, so deposits have amount < 0.
- * We flip the sign to store positive earnings.
+ * and aggregate into weekly income_records + ledger_entries rows.
  */
 export async function fetchGigIncomeForItem(
   accessToken: string,
   userId: string,
   daysBack = 90
-): Promise<IncomeRow[]> {
+): Promise<{ incomeRows: IncomeRow[], ledgerRows: LedgerRow[] }> {
   const end = new Date()
   const start = new Date()
   start.setDate(start.getDate() - daysBack)
@@ -91,7 +102,7 @@ export async function fetchGigIncomeForItem(
     if (offset > 5000) break // safety cap
   }
 
-  // Filter to gig-platform deposits (negative amount = credit) and bucket by week+platform
+  // BUCKET 1: For legacy income_records (weekly aggregation)
   type Bucket = {
     platform: GigPlatform
     weekStart: string
@@ -101,14 +112,34 @@ export async function fetchGigIncomeForItem(
   }
   const buckets = new Map<string, Bucket>()
 
+  // BUCKET 2: For new ledger_entries (one entry per transaction)
+  const ledgerRows: LedgerRow[] = []
+
   for (const tx of all) {
     if (tx.amount >= 0) continue // skip outgoing
     const platform = detectPlatform(tx.merchant_name ?? null, tx.name)
     if (!platform) continue
 
+    const amount = Math.abs(tx.amount)
+
+    // Add to Ledger (canonical granular record)
+    ledgerRows.push({
+      user_id: userId,
+      platform,
+      gross_amount: amount,
+      net_amount: amount,
+      currency: tx.iso_currency_code || 'USD',
+      period_start: tx.date, // for Plaid we use transaction date
+      period_end: tx.date,
+      payment_date: tx.date,
+      category: tx.personal_finance_category?.primary || 'gig_payout',
+      platform_ref_id: tx.transaction_id,
+      source: 'plaid',
+    })
+
+    // Add to weekly buckets for legacy scoring
     const txDate = new Date(tx.date)
-    // ISO week start (Monday)
-    const day = txDate.getUTCDay() // 0=Sun
+    const day = txDate.getUTCDay()
     const diffToMonday = (day + 6) % 7
     const weekStart = new Date(txDate)
     weekStart.setUTCDate(weekStart.getUTCDate() - diffToMonday)
@@ -120,7 +151,6 @@ export async function fetchGigIncomeForItem(
     const key = `${platform}|${weekStartIso}`
 
     const existing = buckets.get(key)
-    const amount = Math.abs(tx.amount)
     if (existing) {
       existing.gross += amount
       existing.count += 1
@@ -135,16 +165,18 @@ export async function fetchGigIncomeForItem(
     }
   }
 
-  return Array.from(buckets.values()).map((b) => ({
+  const incomeRows = Array.from(buckets.values()).map((b) => ({
     user_id: userId,
     platform: b.platform,
     period_start: b.weekStart,
     period_end: b.weekEnd,
     gross_earnings: Math.round(b.gross * 100) / 100,
-    net_earnings: Math.round(b.gross * 100) / 100, // Plaid only shows net deposits
+    net_earnings: Math.round(b.gross * 100) / 100,
     trips_completed: b.count,
     hours_active: 0,
     rating: null,
     currency: 'USD',
   }))
+
+  return { incomeRows, ledgerRows }
 }
