@@ -53,7 +53,22 @@ All in `src/app/globals.css` using Tailwind v4 `@theme`:
 
 ## DB tables
 
+### v1 (migration.sql)
 `profiles`, `platform_connections`, `income_records`, `credit_scores`, `lender_requests`, `waitlist` — all with RLS enabled. A trigger auto-creates a profile row on `auth.users` insert.
+
+### v2 — Four-Pillar Platform (migration-v2.sql)
+| Table | Pillar | Purpose |
+|-------|--------|---------|
+| `krost_scores` | Score | 300–850 income verification metric |
+| `income_verifications` | Score | v1 consistency score (0–100) output |
+| `ledger_entries` | Ledger | Unified earnings across all platforms |
+| `reports` | Verifier | Generated PDFs with shareable links |
+| `report_views` | Verifier | Access log for shared reports |
+| `lender_orgs` | B2B | Lender organization accounts + API keys |
+| `passports` | Passport | Mirrors on-chain SBT state |
+| `attestation_history` | Passport | Immutable attestation log |
+
+Run both migrations with `npm run db:migrate` (concatenates v1 + v2).
 
 ## Blockchain
 
