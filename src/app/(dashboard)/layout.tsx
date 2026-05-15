@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getCurrentUserRole } from '@/lib/auth-guard'
 import { redirect } from 'next/navigation'
+import { BrandLogo } from '@/components/ui/brand-logo'
 
 interface NavSection {
   label: string
@@ -70,9 +71,7 @@ export default async function DashboardLayout({
       {/* Sidebar */}
       <aside className="hidden w-64 border-r border-hairline bg-white p-6 lg:flex lg:flex-col">
         <Link href="/" className="mb-10 flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-ink-black text-xs font-medium text-white">
-            K
-          </div>
+          <BrandLogo size="default" />
           <span className="font-display text-[17px] font-medium tracking-tight text-ink-black">
             Krost
           </span>

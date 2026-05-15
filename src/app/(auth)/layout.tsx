@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BrandLogo } from '@/components/ui/brand-logo'
 
 export default function AuthLayout({
   children,
@@ -10,9 +11,7 @@ export default function AuthLayout({
       <header className="border-b border-hairline bg-white">
         <div className="mx-auto flex h-16 max-w-7xl items-center px-6">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-ink-black text-xs font-medium text-white">
-              K
-            </div>
+            <BrandLogo size="default" />
             <span className="font-display text-[17px] font-medium tracking-tight text-ink-black">
               Krost
             </span>

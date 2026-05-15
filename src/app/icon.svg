@@ -1,19 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Krost favicon — "K."
-  Display typeface: Space Grotesk (matches src/app/globals.css --font-display)
-  Mark: near-black K on transparent canvas with coral period.
-  Sized 32×32 with a tight 24px cap-height for clarity at 16×16.
--->
+<!-- Krost favicon — geometric K mark (matches media/logo.svg) -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <text
-    x="2"
-    y="25"
-    font-family="'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif"
-    font-size="28"
-    font-weight="500"
-    letter-spacing="-1.4"
-    fill="#17171c">K</text>
-  <!-- Coral period — system accent color (#ff7759) -->
-  <circle cx="24" cy="24" r="3" fill="#ff7759"/>
+  <rect width="32" height="32" rx="6" fill="#17171c"/>
+  <path d="M9 26V6h5l10 10-10 10h5l10-10 2 10H9z" fill="#ffffff"/>
 </svg>

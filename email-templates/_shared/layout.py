@@ -58,13 +58,7 @@ def tag(name, content, **attrs):
 
 # ── Logo SVG (inline, no external requests) ──────────────────────────────────
 
-LOGO = (
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="40" height="40">'
-    '<rect width="32" height="32" rx="6" fill="#17171c"/>'
-    '<text x="16" y="22" font-family="Arial,sans-serif" font-size="18" font-weight="bold" '
-    'fill="white" text-anchor="middle">K</text>'
-    '</svg>'
-)
+BRAND_LOGO_SVG = (Path(__file__).parent.parent.parent / "media" / "logo.svg").read_text(encoding="utf-8")
 
 # ── Reusable body components ───────────────────────────────────────────────────
 
@@ -205,7 +199,7 @@ def email_shell(title, preview_text, body_html, dark=False, foot_note=None):
             tag("table",
                 tag("tr",
                     tag("td",
-                        tag("a", LOGO, href=BRAND_URL,
+                        tag("a", BRAND_LOGO_SVG, href=BRAND_URL,
                             style=s(display="inline-block", text_decoration="none")),
                         align="left") +
                     tag("td",

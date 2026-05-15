@@ -1,6 +1,6 @@
 # Krostio — Product Requirements Document
 ### *Income Verification & Lender-Ready Documentation for Gig Workers*
-**Version:** 1.0 | **Author:** Solo Micro-SaaS Founder | **Date:** May 2026  
+**Version:** 1.0 | **Author:** @m-Muhaimin | **Date:** May 2026  
 **Status:** Pre-build Validation → MVP Scoping
 
 ---

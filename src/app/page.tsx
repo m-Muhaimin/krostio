@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BrandLogo } from '@/components/ui/brand-logo'
 
 export default function HomePage() {
   return (
@@ -25,9 +26,7 @@ export default function HomePage() {
       <header className="sticky top-0 z-40 border-b border-hairline bg-white/95 backdrop-blur">
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-ink-black text-xs font-medium text-white">
-              K
-            </div>
+            <BrandLogo size="default" />
             <span className="font-display text-[17px] font-medium tracking-tight text-ink-black">
               Krost
             </span>
@@ -509,9 +508,7 @@ export default function HomePage() {
           <div className="grid gap-12 py-16 md:grid-cols-5">
             <div className="md:col-span-2">
               <Link href="/" className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-white text-xs font-medium text-ink-black">
-                  K
-                </div>
+                <BrandLogo size="default" variant="light" />
                 <span className="font-display text-[17px] font-medium tracking-tight text-white">
                   Krost
                 </span>
