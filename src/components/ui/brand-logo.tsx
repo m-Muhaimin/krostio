@@ -1,5 +1,5 @@
 /**
- * BrandLogo — renders the Krostio SVG logo.
+ * BrandLogo — renders the Krostio logo as PNG.
  *
  * Sizes (icon only):
  *   sm       (20×20)
@@ -7,14 +7,11 @@
  *   lg       (40×40)
  *
  * Variants:
- *   'dark'  — white K on ink-black square   ← default (for dark-on-light pages)
- *   'light' — ink-black K on white square   ← for light-on-dark page sections
- *
- * Wordmark (icon + text):
- *   variant="wordmark" — renders the horizontal wordmark SVG
+ *   'dark'  — white K on ink-black square (logo.png)
+ *   'light' — ink-black K on white square (logo-light.png)
  */
 
-import LogoDark from '../../../media/logo.svg'
+import LogoDark from '../../../media/logo.png'
 import LogoLight from '../../../media/logo-light.svg'
 import LogoWordmark from '../../../media/logo-wordmark.svg'
 import Image from 'next/image'
@@ -49,11 +46,23 @@ export function BrandLogo({ size = 'default', variant = 'dark', className = '' }
     )
   }
 
-  const src = variant === 'light' ? LogoLight : LogoDark
+  if (variant === 'dark') {
+    return (
+      <Image
+        src={LogoDark}
+        alt="Krostio"
+        width={px}
+        height={px}
+        className={className}
+        priority
+      />
+    )
+  }
 
+  // light variant — no PNG light file yet, use SVG
   return (
     <Image
-      src={src}
+      src={LogoLight}
       alt="Krostio"
       width={px}
       height={px}
