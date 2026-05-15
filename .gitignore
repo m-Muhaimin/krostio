@@ -56,3 +56,4 @@ blockchain/pnpm-lock.yaml
 blockchain/pnpm-workspace.yaml
 blockchain/keystore.json
 blockchain/deployments/
+package-lock.json
