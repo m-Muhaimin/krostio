@@ -4,25 +4,20 @@ import type { GigPlatform } from '@/types'
 
 /**
  * Map Plaid merchant/category data to our GigPlatform enum.
- * Plaid surfaces gig payouts as deposits from "UBER PAYMENTS", "DOORDASH INC", etc.
  */
 const PLATFORM_PATTERNS: Array<{ pattern: RegExp; platform: GigPlatform }> = [
-  // Rideshare + delivery
   { pattern: /\bUBER\s*EATS\b|UBEREATS/i, platform: 'ubereats' },
   { pattern: /\bUBER\b/i, platform: 'uber' },
   { pattern: /\bLYFT\b/i, platform: 'lyft' },
   { pattern: /DOORDASH/i, platform: 'doordash' },
   { pattern: /GRUBHUB/i, platform: 'grubhub' },
   { pattern: /INSTACART/i, platform: 'instacart' },
-  // Freelance + creative
   { pattern: /FIVERR/i, platform: 'fiverr' },
   { pattern: /UPWORK/i, platform: 'upwork' },
   { pattern: /FREELANCER/i, platform: 'freelancer' },
-  // Asset rental
   { pattern: /\bTURO\b/i, platform: 'turo' },
   { pattern: /AIRBNB/i, platform: 'airbnb' },
   { pattern: /AMAZON\s*FLEX|AMZN\s*FLEX/i, platform: 'amazon_flex' },
-  // Retail / marketplace sellers (typically show up as payment processor names)
   { pattern: /SHOPIFY/i, platform: 'shopify' },
   { pattern: /\bETSY\b/i, platform: 'etsy' },
   { pattern: /MERCARI/i, platform: 'mercari' },
@@ -69,7 +64,7 @@ export type LedgerRow = {
 }
 
 /**
- * Pull 90 days of transactions for an item, filter to gig-platform deposits,
+ * Pull transactions for an item, filter to gig-platform deposits,
  * and aggregate into weekly income_records + ledger_entries rows.
  */
 export async function fetchGigIncomeForItem(
@@ -84,7 +79,6 @@ export async function fetchGigIncomeForItem(
   const startDate = start.toISOString().slice(0, 10)
   const endDate = end.toISOString().slice(0, 10)
 
-  // Paginate through Plaid transactions
   const all: Transaction[] = []
   let offset = 0
   const pageSize = 500
@@ -99,10 +93,9 @@ export async function fetchGigIncomeForItem(
     all.push(...res.data.transactions)
     if (all.length >= res.data.total_transactions) break
     offset += pageSize
-    if (offset > 5000) break // safety cap
+    if (offset > 5000) break
   }
 
-  // BUCKET 1: For legacy income_records (weekly aggregation)
   type Bucket = {
     platform: GigPlatform
     weekStart: string
@@ -111,25 +104,22 @@ export async function fetchGigIncomeForItem(
     count: number
   }
   const buckets = new Map<string, Bucket>()
-
-  // BUCKET 2: For new ledger_entries (one entry per transaction)
   const ledgerRows: LedgerRow[] = []
 
   for (const tx of all) {
-    if (tx.amount >= 0) continue // skip outgoing
+    if (tx.amount >= 0) continue
     const platform = detectPlatform(tx.merchant_name ?? null, tx.name)
     if (!platform) continue
 
     const amount = Math.abs(tx.amount)
 
-    // Add to Ledger (canonical granular record)
     ledgerRows.push({
       user_id: userId,
       platform,
       gross_amount: amount,
       net_amount: amount,
       currency: tx.iso_currency_code || 'USD',
-      period_start: tx.date, // for Plaid we use transaction date
+      period_start: tx.date,
       period_end: tx.date,
       payment_date: tx.date,
       category: tx.personal_finance_category?.primary || 'gig_payout',
@@ -137,7 +127,6 @@ export async function fetchGigIncomeForItem(
       source: 'plaid',
     })
 
-    // Add to weekly buckets for legacy scoring
     const txDate = new Date(tx.date)
     const day = txDate.getUTCDay()
     const diffToMonday = (day + 6) % 7
@@ -179,4 +168,55 @@ export async function fetchGigIncomeForItem(
   }))
 
   return { incomeRows, ledgerRows }
+}
+
+/**
+ * syncPlaidItem — used by webhooks and manual re-sync.
+ * Fetches income + ledger rows, writes to DB, recalculates scores.
+ */
+export async function syncPlaidItem(
+  accessToken: string,
+  userId: string,
+  itemId: string,
+  institution?: { name?: string; institution_id?: string }
+) {
+  const { incomeRows, ledgerRows } = await fetchGigIncomeForItem(accessToken, userId, 90)
+
+  // Dynamically import admin client to avoid top-level module issues
+  const { createClient } = await import('@supabase/supabase-js')
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+
+  if (incomeRows.length > 0) {
+    await admin.from('income_records').insert(incomeRows)
+  }
+  if (ledgerRows.length > 0) {
+    await admin.from('ledger_entries').insert(ledgerRows)
+  }
+
+  const platforms = Array.from(new Set(ledgerRows.map((r) => r.platform)))
+
+  // Recalculate Krost score
+  const { data: allIncome } = await admin
+    .from('income_records')
+    .select('*')
+    .eq('user_id', userId)
+
+  let score = null
+  if (allIncome && allIncome.length > 0) {
+    // Simplified inline scoring
+    const total = allIncome.reduce((s: number, r: any) => s + (r.gross_earnings || 0), 0)
+    const months = Math.max(1, allIncome.length / 4)
+    const monthlyAvg = total / months
+    score = { consistency_score: Math.min(100, Math.round((monthlyAvg / 5000) * 100)), annualized_income: total }
+  }
+
+  return {
+    rowsAdded: incomeRows.length + ledgerRows.length,
+    platformsDetected: platforms,
+    score,
+  }
 }
