@@ -4,11 +4,11 @@ import { BrandLogo } from '@/components/ui/brand-logo'
 export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
-      {/* ── Announcement bar — full-width black strip above nav ── */}
+      {/* ── Announcement bar ── */}
       <div className="announcement-bar relative">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-center px-4">
           <span className="text-center">
-            Krost is in private beta — early access for gig workers.{' '}
+            Krostio is in private beta — early access for gig workers.{' '}
             <Link href="/register" className="underline underline-offset-2 hover:opacity-80">
               Request access
             </Link>
@@ -22,13 +22,13 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── Three-zone nav: logo left, links center, sign-in/CTA right ── */}
+      {/* ── Nav ── */}
       <header className="sticky top-0 z-40 border-b border-hairline bg-white/95 backdrop-blur">
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-2">
             <BrandLogo size="default" />
             <span className="font-display text-[17px] font-medium tracking-tight text-ink-black">
-              Krost
+              Krostio
             </span>
           </Link>
 
@@ -50,27 +50,25 @@ export default function HomePage() {
         </nav>
       </header>
 
-      {/* ── HERO — monumental typographic declaration over white canvas ── */}
+      {/* ── HERO ── */}
       <section className="relative px-6 pt-24 pb-20">
         <div className="mx-auto max-w-7xl">
-          {/* Mono category label */}
           <p className="text-mono-label mb-8 text-slate">
             <span className="eyebrow-dot" />
-            Income verification for gig workers
+            The financial identity platform for gig workers
           </p>
 
-          {/* Hero declaration — tight line-height, negative tracking */}
           <h1 className="text-display-hero max-w-5xl">
             Your gig income is real.
             <br />
-            We make lenders see it.
+            Own your financial identity.
           </h1>
 
           <div className="mt-10 max-w-2xl">
             <p className="text-body-lg text-slate">
-              60M Americans work gig jobs. Banks reject them because they don&apos;t see W-2s.
-              Krost turns multi-platform earnings into a verifiable income report —
-              so lenders can say yes.
+              76 million Americans work gig jobs. Banks reject them because they can&apos;t see W-2s.
+              Krostio turns multi-platform earnings into a portable, verifiable financial identity —
+              built on four pillars: a credit score, an earnings ledger, lender-ready reports, and an on-chain passport.
             </p>
 
             <div className="mt-10 flex flex-wrap items-center gap-6">
@@ -78,102 +76,186 @@ export default function HomePage() {
                 Check your score free
               </Link>
               <Link href="/register" className="btn-secondary">
-                Explore products →
+                See the platform →
               </Link>
             </div>
           </div>
 
-          {/* Two-card media composition: wide product mockup + narrow photo card */}
-          <div className="mt-20 grid gap-6 lg:grid-cols-[2fr_1fr]">
-            {/* Wide agent-console mockup card */}
-            <div className="card-media bg-soft-stone p-8">
-              <div className="agent-console">
-                <div className="mb-5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-7 w-7 rounded-full bg-coral/20 ring-1 ring-coral/40" />
-                    <div>
-                      <p className="text-sm font-medium text-white">Income agent</p>
-                      <p className="text-xs text-white/50">Verifying 4 platforms</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="agent-console-chip">
-                      <span className="h-1.5 w-1.5 rounded-full bg-coral" />
-                      Uber
-                    </span>
-                    <span className="agent-console-chip">
-                      <span className="h-1.5 w-1.5 rounded-full bg-action-blue" />
-                      DoorDash
-                    </span>
-                    <span className="agent-console-chip">
-                      <span className="h-1.5 w-1.5 rounded-full bg-pale-green" />
-                      Upwork
-                    </span>
-                  </div>
-                </div>
+          {/* Four-pillar hero cards */}
+          <div className="mt-20 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                label: 'Pillar 01',
+                title: 'Krost Score',
+                desc: '300–850 income-based creditworthiness score built entirely on gig earnings, not credit history.',
+                accent: 'bg-ink-black',
+              },
+              {
+                label: 'Pillar 02',
+                title: 'Krost Ledger',
+                desc: 'Unified, worker-owned record of every dollar earned across every platform, all in one place.',
+                accent: 'bg-action-blue',
+              },
+              {
+                label: 'Pillar 03',
+                title: 'Krost Verifier',
+                desc: 'Lender-ready PDF reports and shareable links that any underwriter can accept. Expiring, revocable, verifiable.',
+                accent: 'bg-coral',
+              },
+              {
+                label: 'Pillar 04',
+                title: 'Krost Passport',
+                desc: 'Permanent on-chain identity attested on Base L2. Soul-bound. Portable. Yours forever, not a platform\'s.',
+                accent: 'bg-deep-green',
+              },
+            ].map((p) => (
+              <div key={p.label} className="flex flex-col gap-3 rounded-md border border-hairline p-6">
+                <div className={`h-1 w-12 rounded-full ${p.accent}`} />
+                <p className="text-mono-label text-slate mt-2">{p.label}</p>
+                <h3 className="text-xl font-medium text-ink-black">{p.title}</h3>
+                <p className="text-sm text-slate leading-relaxed">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-                <div className="rule-light my-5 border-white/10" />
-
-                <p className="text-mono-label mb-3 text-white/40">Prompt</p>
-                <p className="text-sm text-white/90">
-                  Compute income consistency score across all connected platforms
-                  over the last 12 months and generate a lender-ready verification report.
-                </p>
-
-                <div className="mt-6 rounded-md border border-white/10 bg-white/[0.03] p-5">
-                  <div className="flex items-baseline justify-between">
-                    <div>
-                      <p className="text-mono-label text-white/40">Consistency score</p>
-                      <p className="mt-2 text-5xl font-light tracking-tight text-white">
-                        87<span className="text-2xl text-white/40"> / 100</span>
-                      </p>
-                    </div>
-                    <div className="text-right text-xs text-white/50">
-                      <p>Annualized income · $48,200</p>
-                      <p className="mt-1">Trajectory · +14% YoY</p>
-                      <p className="mt-1">Tenure · 31 months</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex items-center gap-2 text-xs text-white/50">
-                    <span className="h-1.5 w-1.5 rounded-full bg-coral" />
-                    Verification report ready · shareable link expires in 30 days
-                  </div>
-                </div>
+      {/* ── Score demo band ── */}
+      <section className="px-6 py-24" style={{ backgroundColor: 'var(--color-deep-green)' }}>
+        <div className="mx-auto max-w-7xl text-white">
+          <div className="grid gap-16 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+            <div>
+              <p className="text-mono-label text-white/50">
+                <span className="eyebrow-dot" style={{ backgroundColor: '#ffad9b' }} />
+                Krost Score
+              </p>
+              <h2 className="text-display-product mt-6 text-white">
+                A credit score that
+                <br />
+                works for gig workers.
+              </h2>
+              <p className="text-body-lg mt-8 max-w-lg text-white/70">
+                The Krost Score is a 300–850 income-based creditworthiness metric — built on
+                9 factors from real earnings data. It&apos;s not a FICO score. It&apos;s better
+                for anyone without a W-2.
+              </p>
+              <div className="mt-10 flex flex-wrap items-center gap-6">
+                <Link href="/register" className="btn-primary-light">
+                  Check your score
+                </Link>
+                <Link href="/learn" className="btn-secondary text-white">
+                  How it&apos;s calculated →
+                </Link>
               </div>
             </div>
 
-            {/* Narrower photo placeholder card */}
-            <div className="card-media relative flex flex-col justify-end bg-soft-stone p-8 min-h-[420px]">
-              <div
-                aria-hidden
-                className="absolute inset-0"
-                style={{
-                  background:
-                    'radial-gradient(120% 80% at 20% 0%, rgba(255,119,89,0.35), transparent 55%), radial-gradient(80% 60% at 90% 30%, rgba(24,99,220,0.18), transparent 60%), linear-gradient(180deg, #eeece7 0%, #e2dfd9 100%)',
-                }}
-              />
-              <div className="relative">
-                <p className="text-mono-label text-ink-black/60">Why it matters</p>
-                <h3 className="mt-3 text-[28px] leading-tight text-ink-black">
-                  &ldquo;A loan application shouldn&apos;t demand a W-2 from someone who doesn&apos;t get one.&rdquo;
-                </h3>
-                <p className="mt-4 text-sm text-ink-black/60">
-                  Krost replaces paper pay stubs and bank-statement screenshots with a single, verifiable report you control.
-                </p>
-              </div>
+            <div className="space-y-4">
+              {[
+                {
+                  label: 'Income reliability',
+                  title: 'Average monthly + trajectory over 24 months',
+                  body: 'Higher income relative to $5K benchmark, weighted by 6-month trend slope.',
+                },
+                {
+                  label: 'Platform diversity',
+                  title: 'Multi-platform diversification bonus',
+                  body: 'Workers with 3+ platforms score higher — less concentration risk for lenders.',
+                },
+                {
+                  label: 'Consistency & tenure',
+                  title: 'Months of history and earning consistency',
+                  body: 'Longer track record with fewer zero-earning months signals reliability.',
+                },
+                {
+                  label: 'Tax & ledger depth',
+                  title: 'Verified history and tax compliance signals',
+                  body: '1099-K filing and months of verified ledger history add bonus points.',
+                },
+              ].map((f) => (
+                <div
+                  key={f.label}
+                  className="rounded-md border border-white/10 bg-white/[0.04] p-5"
+                >
+                  <p className="text-mono-label text-white/50">{f.label}</p>
+                  <h3 className="mt-2 text-lg font-normal text-white">{f.title}</h3>
+                  <p className="mt-1 text-sm text-white/65">{f.body}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Platform-logo strip — the platforms we integrate with ── */}
-      <section className="px-6 py-24">
+      {/* ── Four-pillar detail ── */}
+      <section id="product" className="px-6 py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-mono-label text-slate">
+              <span className="eyebrow-dot" />
+              The four pillars
+            </p>
+            <h2 className="text-heading-section mt-4">
+              Everything a gig worker needs to own their financial identity.
+            </h2>
+          </div>
+
+          <div className="mt-16 grid gap-10 md:grid-cols-2">
+            {[
+              {
+                num: '01',
+                title: 'Krost Score',
+                subtitle: '300–850 income-based creditworthiness metric',
+                body: 'A deterministic 9-factor scoring model purpose-built for 1099 workers. Tiers: Elite (750+), Strong (680+), Building (580+), Emerging. The score is computed from real ledger data — not a FICO equivalent or FCRA-regulated credit report.',
+                accent: 'bg-ink-black',
+              },
+              {
+                num: '02',
+                title: 'Krost Ledger',
+                subtitle: 'Permanent, unified earnings record across all platforms',
+                body: 'Connect every gig platform — Uber, DoorDash, Lyft, Fiverr, Upwork, Instacart, and more — via Plaid. The Ledger aggregates all earnings into a single timeline. Export as CSV. Track monthly rollups. See your complete career earnings record in one place.',
+                accent: 'bg-action-blue',
+              },
+              {
+                num: '03',
+                title: 'Krost Verifier',
+                subtitle: 'Lender-ready reports you control',
+                body: 'Generate on-demand PDF reports with 10 sections: executive summary, income history, earnings charts, platform profiles, stability analysis, trajectory statement, and verification footnotes. Share via expiring links with email-gated access. Revoke any time. Full access log.',
+                accent: 'bg-coral',
+              },
+              {
+                num: '04',
+                title: 'Krost Passport',
+                subtitle: 'Permanent, soul-bound on-chain identity',
+                body: 'When your score reaches 580+, attest it on Base L2 as a soul-bound token (SBT). No wallet needed — Krostio creates one via Account Abstraction (gasless, email-based). Your Passport is a verifiable financial identity you own forever, even if Krostio shuts down.',
+                accent: 'bg-deep-green',
+              },
+            ].map((p) => (
+              <div key={p.num} className="flex flex-col gap-4 rounded-xl border border-hairline p-8">
+                <div className={`h-1.5 w-16 rounded-full ${p.accent}`} />
+                <p className="text-mono-label text-coral mt-3">{p.num}</p>
+                <h3 className="text-2xl font-medium text-ink-black">{p.title}</h3>
+                <p className="text-sm font-medium text-slate">{p.subtitle}</p>
+                <p className="text-sm text-slate leading-relaxed">{p.body}</p>
+                <Link
+                  href="/register"
+                  className="link-editorial mt-2 inline-block text-sm"
+                >
+                  Learn more →
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Platform strip ── */}
+      <section className="border-t border-hairline px-6 py-20">
         <div className="mx-auto max-w-6xl text-center">
           <p className="text-mono-label text-slate">
-            Built for the gig economy — integrating with the platforms you already work on
+            Connecting with the platforms you already work on
           </p>
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-x-16 gap-y-8 text-ink-black/40">
-            {['UBER', 'DOORDASH', 'LYFT', 'INSTACART', 'UPWORK', 'FIVERR', 'GRUBHUB'].map((logo) => (
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-16 gap-y-8 text-ink-black/40">
+            {['UBER', 'DOORDASH', 'LYFT', 'INSTACART', 'UPWORK', 'FIVERR', 'GRUBHUB', 'AMAZON FLEX'].map((logo) => (
               <span
                 key={logo}
                 className="font-display text-2xl font-medium tracking-tight"
@@ -185,115 +267,52 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Dark feature band — deep green, North-style capability panel ── */}
-      <section id="product" className="px-6 py-24" style={{ backgroundColor: 'var(--color-deep-green)' }}>
+      {/* ── How it works ── */}
+      <section id="how-it-works" className="px-6 py-24" style={{ backgroundColor: 'var(--color-dark-navy)' }}>
         <div className="mx-auto max-w-7xl text-white">
-          <div className="grid gap-16 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-            <div>
-              <p className="text-mono-label text-white/50">
-                <span className="eyebrow-dot" style={{ backgroundColor: '#ffad9b' }} />
-                The product
-              </p>
-              <h2 className="text-display-product mt-6 text-white">
-                Income, verified.
-                <br />
-                Underwriting, accelerated.
-              </h2>
-              <p className="text-body-lg mt-8 max-w-lg text-white/70">
-                Connect platforms, generate a verified income report, and share it with a
-                single expiring link. No more paper pay stubs. No more bank-statement
-                screenshots. No more six-week underwriting cycles.
-              </p>
-              <div className="mt-10 flex flex-wrap items-center gap-6">
-                <Link href="/register" className="btn-primary-light">
-                  Get started
-                </Link>
-                <Link href="/register" className="btn-secondary text-white">
-                  See a sample report →
-                </Link>
+          <p className="text-mono-label text-white/50">
+            <span className="eyebrow-dot" style={{ backgroundColor: '#ffad9b' }} />
+            How it works
+          </p>
+          <h2 className="text-heading-section mt-4 max-w-2xl text-white">
+            Four steps from gig worker to financial identity.
+          </h2>
+
+          <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                num: '01',
+                title: 'Connect platforms',
+                body: 'Link any combination of Uber, DoorDash, Lyft, Upwork, Fiverr, and more via Plaid. One tap per platform — encrypted, revocable.',
+              },
+              {
+                num: '02',
+                title: 'Build your Ledger',
+                body: 'All earnings from all platforms flow into a single unified timeline. See monthly rollups, career totals, and platform breakdowns at a glance.',
+              },
+              {
+                num: '03',
+                title: 'Get your Score',
+                body: 'A deterministic 9-factor engine computes your Krost Score (300–850). See exactly what factors help or hurt, with personalized improvement tips.',
+              },
+              {
+                num: '04',
+                title: 'Share & attest',
+                body: 'Generate a lender-ready report, share an expiring link, or mint your on-chain Passport. Your financial identity, fully under your control.',
+              },
+            ].map((s) => (
+              <div key={s.num} className="flex flex-col gap-3">
+                <span className="text-3xl font-light text-coral">{s.num}</span>
+                <h3 className="text-xl font-medium text-white">{s.title}</h3>
+                <p className="text-sm text-white/60 leading-relaxed">{s.body}</p>
               </div>
-            </div>
-
-            {/* Stacked dark capability panels */}
-            <div className="space-y-4">
-              {[
-                {
-                  label: 'Connector layer',
-                  title: 'One-tap platform linking',
-                  body: 'OAuth flows for Uber, Lyft, DoorDash, Instacart, Fiverr, Upwork, and more — encrypted at rest, revocable any time.',
-                },
-                {
-                  label: 'Scoring engine',
-                  title: 'Multi-factor consistency score',
-                  body: 'Deterministic 0-100 scoring across stability, diversity, tenure, and trajectory — auditable, transparent, no opaque ML black boxes. Not a credit score.',
-                },
-                {
-                  label: 'Verification report',
-                  title: 'Lender-ready PDF + shareable link',
-                  body: 'Each report is a signed PDF with an expiring shareable URL. Lenders verify in seconds. Workers revoke access whenever they choose.',
-                },
-              ].map((p) => (
-                <div
-                  key={p.label}
-                  className="rounded-md border border-white/10 bg-white/[0.04] p-6"
-                >
-                  <p className="text-mono-label text-white/50">{p.label}</p>
-                  <h3 className="mt-3 text-2xl font-normal text-white">{p.title}</h3>
-                  <p className="mt-3 text-sm text-white/65">{p.body}</p>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ── Capability cards — thin-line illustrations, white surface ── */}
-      <section id="how-it-works" className="px-6 py-24">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid gap-12 lg:grid-cols-[1fr_2fr]">
-            <div>
-              <p className="text-mono-label text-slate">How it works</p>
-              <h2 className="text-heading-section mt-4">
-                Three steps from gig income to a lender-ready report.
-              </h2>
-            </div>
-            <div className="grid gap-10 sm:grid-cols-3">
-              {[
-                {
-                  num: '01',
-                  title: 'Connect platforms',
-                  body: 'Link any combination of Uber, DoorDash, Fiverr, Upwork, and other income sources. We store only what is needed to verify your earnings — never your raw transaction data.',
-                },
-                {
-                  num: '02',
-                  title: 'Get a consistency score',
-                  body: 'A deterministic engine computes income stability, platform diversity, tenure, and trajectory. The output is a single 0-100 income consistency score — not a credit score.',
-                },
-                {
-                  num: '03',
-                  title: 'Share a verified report',
-                  body: 'Generate a signed PDF and an expiring shareable link. Lenders verify your income in seconds. You can revoke access at any time.',
-                },
-              ].map((s) => (
-                <div key={s.num} className="border-t border-hairline pt-6">
-                  <p className="text-mono-label text-coral">{s.num}</p>
-                  <h3 className="mt-4 text-[22px] leading-tight text-ink-black">{s.title}</h3>
-                  <p className="mt-3 text-sm text-slate">{s.body}</p>
-                  <Link
-                    href="/register"
-                    className="link-editorial mt-4 inline-block text-sm"
-                  >
-                    Read more
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Editorial taxonomy strip — coral chips, large, hero-level ── */}
-      <section id="research" className="border-t border-hairline px-6 py-24">
+      {/* ── Research strip ── */}
+      <section className="border-t border-hairline px-6 py-24">
         <div className="mx-auto max-w-7xl">
           <p className="text-mono-label text-slate">From the research blog</p>
           <h2 className="text-heading-section mt-4 max-w-3xl">
@@ -309,7 +328,6 @@ export default function HomePage() {
             <span className="chip-coral-outline">Policy &amp; advocacy</span>
           </div>
 
-          {/* Rule-separated publication list */}
           <ul className="mt-14 divide-y divide-hairline">
             {[
               {
@@ -325,7 +343,7 @@ export default function HomePage() {
               {
                 date: 'Mar 2026',
                 topic: 'Verification',
-                title: 'Designing a 0-100 income consistency score that lenders actually trust',
+                title: 'Designing a 300–850 Krost Score that lenders actually trust',
               },
               {
                 date: 'Feb 2026',
@@ -351,100 +369,131 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Pricing — restrained card pair (workers only) ── */}
+      {/* ── Pricing ── */}
       <section id="pricing" className="border-t border-hairline px-6 py-24">
         <div className="mx-auto max-w-7xl">
-          <div className="grid gap-12 lg:grid-cols-[1fr_2fr]">
-            <div>
-              <p className="text-mono-label text-slate">Plans</p>
-              <h2 className="text-heading-section mt-4">Simple pricing for gig workers.</h2>
-              <p className="mt-6 text-body text-slate">
-                Pick a monthly plan for ongoing income verification, or grab a single
-                report when you just need one. No surprise charges.
+          <p className="text-mono-label text-slate text-center">
+            <span className="eyebrow-dot" />
+            Plans
+          </p>
+          <h2 className="text-heading-section mt-4 text-center">
+            Simple pricing. No surprises.
+          </h2>
+
+          <div className="mt-12 grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
+            {/* Free */}
+            <div className="card-stone">
+              <p className="text-mono-label text-slate">Get started</p>
+              <h3 className="mt-4 text-[32px] font-normal leading-none text-ink-black">Free</h3>
+              <p className="mt-4 text-sm text-slate">
+                See what Krostio can do. No credit card needed.
               </p>
+              <div className="my-8 border-t border-hairline" />
+              <div className="flex items-baseline gap-2">
+                <span className="font-display text-5xl font-normal tracking-tight">$0</span>
+              </div>
+              <ul className="mt-8 space-y-3 text-sm text-ink">
+                {[
+                  '1 platform connection',
+                  'Income summary view',
+                  'Krost Score preview',
+                  'No PDF reports',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-3">
+                    <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-10">
+                <Link href="/register" className="btn-pill-outline">
+                  Get started
+                </Link>
+              </div>
             </div>
 
-            <div className="grid gap-6 sm:grid-cols-2">
-              {/* Pro */}
-              <div className="card-stone">
-                <p className="text-mono-label text-slate">Most popular</p>
-                <h3 className="mt-4 text-[32px] font-normal leading-none text-ink-black">
-                  Pro
-                </h3>
-                <p className="mt-4 text-sm text-slate">
-                  Keep your income verification up to date across every platform you work on.
-                </p>
-                <div className="my-8 border-t border-hairline" />
-                <div className="flex items-baseline gap-2">
-                  <span className="font-display text-5xl font-normal tracking-tight">$19</span>
-                  <span className="text-sm text-slate">/ month</span>
-                </div>
-                <ul className="mt-8 space-y-3 text-sm text-ink">
-                  {[
-                    'Connect up to 5 platforms',
-                    'Unlimited PDF reports',
-                    'Expiring shareable links',
-                    '24 months income history',
-                  ].map((f) => (
-                    <li key={f} className="flex items-start gap-3">
-                      <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-10">
-                  <Link href="/register?plan=pro" className="btn-pill-outline">
-                    Start free trial
-                  </Link>
-                </div>
+            {/* Pro */}
+            <div className="card-stone relative">
+              <div className="absolute right-6 top-6">
+                <span className="rounded-full bg-coral px-3 py-1 text-xs font-medium text-white">
+                  Most popular
+                </span>
               </div>
+              <p className="text-mono-label text-slate">For serious earners</p>
+              <h3 className="mt-4 text-[32px] font-normal leading-none text-ink-black">Pro</h3>
+              <p className="mt-4 text-sm text-slate">
+                Keep your income verification up to date across every platform you work on.
+              </p>
+              <div className="my-8 border-t border-hairline" />
+              <div className="flex items-baseline gap-2">
+                <span className="font-display text-5xl font-normal tracking-tight">$19</span>
+                <span className="text-sm text-slate">/ month</span>
+              </div>
+              <ul className="mt-8 space-y-3 text-sm text-ink">
+                {[
+                  'Connect up to 5 platforms',
+                  'Unlimited PDF reports',
+                  'Expiring shareable links (7/30 day)',
+                  '24 months income history',
+                  'Krost Passport minting',
+                  'Priority support',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-3">
+                    <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-10">
+                <Link href="/register?plan=pro" className="btn-primary">
+                  Start free trial
+                </Link>
+              </div>
+            </div>
 
-              {/* Single Report */}
-              <div className="card-stone">
-                <p className="text-mono-label text-slate">Pay as you go</p>
-                <h3 className="mt-4 text-[32px] font-normal leading-none text-ink-black">
-                  Single Report
-                </h3>
-                <p className="mt-4 text-sm text-slate">
-                  One verified income report when you just need to share it with a single lender.
-                </p>
-                <div className="my-8 border-t border-hairline" />
-                <div className="flex items-baseline gap-2">
-                  <span className="font-display text-5xl font-normal tracking-tight">$9</span>
-                  <span className="text-sm text-slate">one-time</span>
-                </div>
-                <ul className="mt-8 space-y-3 text-sm text-ink">
-                  {[
-                    '1 platform connection',
-                    '1 PDF report',
-                    '12 months history',
-                    'Shareable link (7 days)',
-                  ].map((f) => (
-                    <li key={f} className="flex items-start gap-3">
-                      <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-10">
-                  <Link href="/register?plan=single" className="btn-pill-outline">
-                    Buy a report
-                  </Link>
-                </div>
+            {/* Single Report */}
+            <div className="card-stone">
+              <p className="text-mono-label text-slate">Pay as you go</p>
+              <h3 className="mt-4 text-[32px] font-normal leading-none text-ink-black">Single Report</h3>
+              <p className="mt-4 text-sm text-slate">
+                One verified income report when you just need to share it with a lender.
+              </p>
+              <div className="my-8 border-t border-hairline" />
+              <div className="flex items-baseline gap-2">
+                <span className="font-display text-5xl font-normal tracking-tight">$9</span>
+                <span className="text-sm text-slate">one-time</span>
+              </div>
+              <ul className="mt-8 space-y-3 text-sm text-ink">
+                {[
+                  '1 platform connection',
+                  '1 PDF report',
+                  '12 months history',
+                  'Shareable link (7 days)',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-3">
+                    <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-10">
+                <Link href="/register?plan=single" className="btn-pill-outline">
+                  Buy a report
+                </Link>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── CTA image band — pale blue surface, abstract field ── */}
+      {/* ── CTA ── */}
       <section className="px-6 py-24" style={{ backgroundColor: 'var(--color-pale-blue)' }}>
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
               <p className="text-mono-label text-slate">Get started</p>
               <h2 className="text-display-product mt-4 max-w-xl">
-                Ready to get the credit you actually deserve?
+                Ready to own your financial identity?
               </h2>
               <p className="mt-6 max-w-md text-body text-slate">
                 Free score preview. No credit card. Takes about three minutes.
@@ -471,10 +520,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Dark footer w/ coral eyebrow, newsletter, columns ── */}
+      {/* ── Footer ── */}
       <footer className="px-6 py-20" style={{ backgroundColor: 'var(--color-ink-black)', color: 'rgba(255,255,255,0.7)' }}>
         <div className="mx-auto max-w-7xl">
-          {/* Top — newsletter band */}
           <div className="grid gap-12 border-b border-white/10 pb-16 lg:grid-cols-[1fr_1fr]">
             <div>
               <p className="text-mono-label" style={{ color: 'var(--color-coral)' }}>
@@ -504,17 +552,16 @@ export default function HomePage() {
             </form>
           </div>
 
-          {/* Columns */}
           <div className="grid gap-12 py-16 md:grid-cols-5">
             <div className="md:col-span-2">
               <Link href="/" className="flex items-center gap-2">
                 <BrandLogo size="default" variant="light" />
                 <span className="font-display text-[17px] font-medium tracking-tight text-white">
-                  Krost
+                  Krostio
                 </span>
               </Link>
               <p className="mt-5 max-w-xs text-sm text-white/50">
-                Income verification for the gig economy. Turn multi-platform earnings into a lender-ready report.
+                A financial identity platform for the gig economy. Four pillars. One portable credential.
               </p>
             </div>
 
@@ -522,10 +569,11 @@ export default function HomePage() {
               {
                 heading: 'Product',
                 links: [
-                  ['Features', '#product'],
+                  ['Krost Score', '#product'],
+                  ['Krost Ledger', '#product'],
+                  ['Krost Verifier', '#product'],
+                  ['Krost Passport', '#product'],
                   ['Pricing', '#pricing'],
-                  ['How it works', '#how-it-works'],
-                  ['Sign up', '/register'],
                 ],
               },
               {
@@ -565,13 +613,12 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* Bottom bar */}
           <div className="flex flex-col items-start justify-between gap-6 border-t border-white/10 pt-8 md:flex-row md:items-center">
             <select className="rounded-full border border-white/20 bg-transparent px-4 py-2 text-sm text-white outline-none">
               <option className="text-ink-black">United States (English)</option>
             </select>
             <p className="text-sm text-white/30">
-              © 2026 Krost. Income verification for the gig economy.
+              &copy; 2026 Krostio. The financial identity platform for gig workers.
             </p>
             <div className="flex items-center gap-5 text-white/40">
               {['LinkedIn', 'X', 'GitHub'].map((s) => (

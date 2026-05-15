@@ -1,5 +1,5 @@
 /**
- * BrandLogo — renders the Krost SVG logo.
+ * BrandLogo — renders the Krostio SVG logo.
  *
  * Sizes (icon only):
  *   sm       (20×20)
@@ -41,7 +41,7 @@ export function BrandLogo({ size = 'default', variant = 'dark', className = '' }
     return (
       <Image
         src={LogoWordmark}
-        alt="Krost"
+        alt="Krostio"
         width={Math.round(px * 3.75)}
         height={px}
         className={className}
@@ -54,7 +54,7 @@ export function BrandLogo({ size = 'default', variant = 'dark', className = '' }
   return (
     <Image
       src={src}
-      alt="Krost"
+      alt="Krostio"
       width={px}
       height={px}
       className={className}
