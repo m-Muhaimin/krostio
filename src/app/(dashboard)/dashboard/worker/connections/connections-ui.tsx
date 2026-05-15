@@ -121,7 +121,7 @@ export function ConnectionsUI() {
         setLastResult({
           platforms: json.platforms_connected ?? [],
           records: json.income_records_added ?? 0,
-          score: json.score?.overall_score ?? null,
+          score: json.score?.consistency_score ?? null,
         })
         await loadConnections()
       } catch (err: any) {
@@ -176,7 +176,7 @@ export function ConnectionsUI() {
             {lastResult.score !== null && (
               <>
                 {' '}
-                · New credit score: <strong>{lastResult.score}</strong>
+                · New consistency score: <strong>{lastResult.score}</strong>/100
               </>
             )}
           </p>

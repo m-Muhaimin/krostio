@@ -89,10 +89,28 @@ export async function POST(request: NextRequest) {
       const calc = calculateCreditScore(allIncome as any, user.id)
       const expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
 
-      // Upsert credit_scores (unique on user_id)
+      // Upsert income_verifications (unique on user_id)
       await supabase
-        .from('credit_scores')
-        .upsert({ ...calc, expires_at }, { onConflict: 'user_id' })
+        .from('income_verifications')
+        .upsert(
+          {
+            user_id: calc.user_id,
+            consistency_score: calc.consistency_score,
+            annualized_income: calc.annualized_income,
+            monthly_avg_income: calc.monthly_avg_income,
+            income_volatility: calc.income_volatility,
+            tenure_months: calc.tenure_months,
+            platform_diversity: calc.platform_diversity,
+            diversity_score: calc.diversity_score,
+            trajectory_label: calc.trajectory_label,
+            trajectory_slope: calc.trajectory_slope,
+            lender_ready_status: calc.lender_ready_status,
+            score_factors: calc.score_factors,
+            calculated_at: calc.calculated_at,
+            expires_at,
+          },
+          { onConflict: 'user_id' }
+        )
 
       score = calc
     } catch (err) {

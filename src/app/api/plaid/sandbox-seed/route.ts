@@ -167,8 +167,26 @@ export async function POST(request: NextRequest) {
           const calc = calculateCreditScore(allIncome as any, user.id)
           const expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
           await service
-            .from('credit_scores')
-            .upsert({ ...calc, expires_at }, { onConflict: 'user_id' })
+            .from('income_verifications')
+            .upsert(
+              {
+                user_id: calc.user_id,
+                consistency_score: calc.consistency_score,
+                annualized_income: calc.annualized_income,
+                monthly_avg_income: calc.monthly_avg_income,
+                income_volatility: calc.income_volatility,
+                tenure_months: calc.tenure_months,
+                platform_diversity: calc.platform_diversity,
+                diversity_score: calc.diversity_score,
+                trajectory_label: calc.trajectory_label,
+                trajectory_slope: calc.trajectory_slope,
+                lender_ready_status: calc.lender_ready_status,
+                score_factors: calc.score_factors,
+                calculated_at: calc.calculated_at,
+                expires_at,
+              },
+              { onConflict: 'user_id' }
+            )
           score = calc
         } catch {
           // not enough data
@@ -187,7 +205,7 @@ export async function POST(request: NextRequest) {
         platforms_detected: incomeRows.length > 0
           ? Array.from(new Set(incomeRows.map((r) => r.platform)))
           : [],
-        score: score?.overall_score ?? null,
+        score: score?.consistency_score ?? null,
       }
     } catch (err: any) {
       syncResult = { error: err?.message ?? 'Sync failed after seeding' }

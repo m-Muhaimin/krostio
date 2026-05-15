@@ -55,27 +55,39 @@ export async function POST(request: NextRequest) {
   }
 
   const score = calculateCreditScore(allRecords, user.id)
+  const expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  const payload = {
+    user_id: score.user_id,
+    consistency_score: score.consistency_score,
+    annualized_income: score.annualized_income,
+    monthly_avg_income: score.monthly_avg_income,
+    income_volatility: score.income_volatility,
+    tenure_months: score.tenure_months,
+    platform_diversity: score.platform_diversity,
+    diversity_score: score.diversity_score,
+    trajectory_label: score.trajectory_label,
+    trajectory_slope: score.trajectory_slope,
+    lender_ready_status: score.lender_ready_status,
+    score_factors: score.score_factors,
+    calculated_at: score.calculated_at,
+    expires_at,
+  }
 
   // Save or update score
   const { data: existingScore } = await supabase
-    .from('credit_scores')
+    .from('income_verifications')
     .select('id')
     .eq('user_id', user.id)
     .single()
 
   if (existingScore) {
     await supabase
-      .from('credit_scores')
-      .update({
-        ...score,
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      })
+      .from('income_verifications')
+      .update(payload)
       .eq('id', existingScore.id)
   } else {
-    await supabase.from('credit_scores').insert({
-      ...score,
-      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    })
+    await supabase.from('income_verifications').insert(payload)
   }
 
   return NextResponse.json({ score })

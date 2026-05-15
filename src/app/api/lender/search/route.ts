@@ -76,8 +76,8 @@ export async function GET(request: NextRequest) {
   let scoresByWorker = new Map<string, any>()
   if (approvedIds.length > 0) {
     const { data: scores } = await service
-      .from('credit_scores')
-      .select('user_id, overall_score, monthly_avg_income, tenure_months, platform_diversity')
+      .from('income_verifications')
+      .select('user_id, consistency_score, monthly_avg_income, tenure_months, platform_diversity, annualized_income, lender_ready_status')
       .in('user_id', approvedIds)
     for (const s of scores ?? []) {
       scoresByWorker.set(s.user_id, s)
@@ -131,10 +131,12 @@ export async function GET(request: NextRequest) {
       platforms: platformsByWorker.get(w.id) ?? [],
       request_status: requestStatus, // null | 'pending' | 'approved' | 'denied'
       // Score only revealed if approved
-      score: score?.overall_score ?? null,
+      consistency_score: score?.consistency_score ?? null,
       monthly_avg_income: score?.monthly_avg_income ?? null,
+      annualized_income: score?.annualized_income ?? null,
       tenure_months: score?.tenure_months ?? null,
       platform_diversity: score?.platform_diversity ?? null,
+      lender_ready_status: score?.lender_ready_status ?? null,
     }
   })
 

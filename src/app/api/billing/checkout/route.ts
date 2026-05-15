@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     mode: 'subscription',
     payment_method_types: ['card'],
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${appUrl}/dashboard?upgraded=true`,
+    success_url: `${appUrl}/dashboard/billing?upgraded=true`,
     cancel_url: `${appUrl}/dashboard/billing?canceled=true`,
     subscription_data: { trial_period_days: 14 },
     // Make the Stripe customer/subscription queryable back to this Supabase user.

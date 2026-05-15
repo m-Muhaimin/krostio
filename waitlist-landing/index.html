@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Krost — Get the credit score gig work earned you</title>
+<meta name="description" content="60M Americans work gig jobs and get rejected for loans. Krost turns Uber, DoorDash, Upwork & more into a verifiable, on-chain credit score lenders accept. Join the waitlist." />
+<meta name="theme-color" content="#ffffff" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Krost — Get the credit score gig work earned you" />
+<meta property="og:description" content="Turn multi-platform gig income into a verifiable credit score. Join the waitlist + get the free Gig Worker Credit Report." />
+<meta property="og:url" content="https://krost.xyz" />
+<meta property="og:image" content="https://krost.xyz/og.png" />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Krost — The credit score gig work earned you" />
+<meta name="twitter:description" content="60M gig workers. 0 credit recognition. Until now." />
+
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2317171c'/%3E%3Ctext x='16' y='22' font-family='Space Grotesk, sans-serif' font-size='18' font-weight='500' fill='white' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Inter:wght@300;400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ── Announcement bar ────────────────────────────────────────── -->
+<div class="announcement-bar">
+  <div class="announcement-inner">
+    <span>Krost is live on Base L2. The waitlist closes when we hit 5,000.</span>
+  </div>
+</div>
+
+<!-- ── Three-zone nav ──────────────────────────────────────────── -->
+<header class="nav-shell">
+  <nav class="nav-row">
+    <a href="/" class="brand">
+      <span class="brand-mark">K</span>
+      <span class="brand-word">Krost</span>
+    </a>
+
+    <div class="nav-links">
+      <a href="#how" class="nav-link">How it works</a>
+      <a href="#report" class="nav-link">Free report</a>
+      <a href="#faq" class="nav-link">FAQ</a>
+    </div>
+
+    <div class="nav-cta">
+      <a href="#join" class="btn-primary">Join the waitlist</a>
+    </div>
+  </nav>
+</header>
+
+<!-- ══════════════════════ SECTION 1 — HERO ═══════════════════════ -->
+<section class="hero">
+  <div class="container">
+    <p class="text-mono-label slate-text"><span class="eyebrow-dot"></span>Decentralized credit scoring</p>
+
+    <h1 class="text-display-hero hero-headline">
+      Your gig income is real.<br />
+      We make lenders see it.
+    </h1>
+
+    <div class="hero-sub">
+      <p class="text-body-lg slate-text">
+        60 million Americans drive Uber, deliver DoorDash, freelance on Upwork — and get
+        rejected for loans because banks can&rsquo;t see a W-2. Krost turns multi-platform
+        earnings into a verifiable, on-chain credit score. Built on Base L2.
+      </p>
+
+      <!-- Inline waitlist form -->
+      <form id="waitlist-form" class="hero-form" novalidate>
+        <input
+          type="email"
+          name="email"
+          id="email"
+          placeholder="your@email.com"
+          required
+          autocomplete="email"
+          class="input-pill"
+          aria-label="Email address"
+        />
+        <button type="submit" class="btn-primary" id="submit-btn">
+          <span class="btn-label">Get my free report</span>
+        </button>
+      </form>
+      <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+      <p class="form-disclaimer text-micro">
+        Free 12-page Gig Worker Credit Report. No spam. Unsubscribe anytime.
+      </p>
+    </div>
+
+    <!-- Agent-console mockup card -->
+    <div class="hero-media">
+      <div class="card-media">
+        <div class="agent-console">
+          <div class="agent-console-head">
+            <div class="agent-id">
+              <span class="agent-avatar"></span>
+              <div>
+                <p class="agent-name">Income agent</p>
+                <p class="agent-status">Verifying 4 platforms</p>
+              </div>
+            </div>
+            <div class="agent-chips">
+              <span class="agent-console-chip"><span class="dot dot-coral"></span>Uber</span>
+              <span class="agent-console-chip"><span class="dot dot-blue"></span>DoorDash</span>
+              <span class="agent-console-chip"><span class="dot dot-green"></span>Upwork</span>
+            </div>
+          </div>
+
+          <div class="agent-rule"></div>
+
+          <p class="text-mono-label agent-prompt-label">Prompt</p>
+          <p class="agent-prompt">
+            Compute attested credit score for verified user 0x71C…dE3a across all connected
+            platforms. Output JSON + on-chain attestation hash.
+          </p>
+
+          <div class="agent-rule"></div>
+
+          <p class="text-mono-label agent-prompt-label">Result</p>
+          <div class="agent-result">
+            <div class="result-score">
+              <span class="result-score-number">724</span>
+              <span class="result-score-label">Krost Score</span>
+            </div>
+            <div class="result-meta">
+              <p><span class="meta-key">12-mo income</span><span class="meta-val">$58,420</span></p>
+              <p><span class="meta-key">Consistency</span><span class="meta-val">94%</span></p>
+              <p><span class="meta-key">Attested</span><span class="meta-val mono">0xa1f2…7c4b</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ SECTION 2 — LEAD MAGNET ════════════════ -->
+<section id="report" class="lead-magnet">
+  <div class="container lead-magnet-grid">
+    <!-- Left: copy -->
+    <div>
+      <p class="text-mono-label slate-text"><span class="eyebrow-dot"></span>Free report</p>
+
+      <h2 class="text-display-section lm-headline">
+        Get the credit score<br />gig work earned you.
+      </h2>
+
+      <p class="text-body-lg slate-text lm-sub">
+        Connect once. See what banks would see if they understood gig income.
+        Delivered as a 12-page PDF — no credit pull, no commitment.
+      </p>
+
+      <ul class="lm-list">
+        <li>
+          <span class="lm-list-num">01</span>
+          <div>
+            <p class="lm-list-title">Your Krost Score (300–850)</p>
+            <p class="lm-list-body slate-text">Modeled on FICO, calibrated for gig income variance.</p>
+          </div>
+        </li>
+        <li>
+          <span class="lm-list-num">02</span>
+          <div>
+            <p class="lm-list-title">12-month verified income</p>
+            <p class="lm-list-body slate-text">Across every platform you connect. One number lenders trust.</p>
+          </div>
+        </li>
+        <li>
+          <span class="lm-list-num">03</span>
+          <div>
+            <p class="lm-list-title">Consistency &amp; risk breakdown</p>
+            <p class="lm-list-body slate-text">Weekly cadence, platform diversity, off-season buffer.</p>
+          </div>
+        </li>
+        <li>
+          <span class="lm-list-num">04</span>
+          <div>
+            <p class="lm-list-title">Lenders who accept it</p>
+            <p class="lm-list-body slate-text">Three partner lenders currently piloting Krost attestations.</p>
+          </div>
+        </li>
+      </ul>
+
+      <a href="#join" class="btn-primary lm-cta">Claim my free report</a>
+    </div>
+
+    <!-- Right: report card preview -->
+    <div class="lm-preview">
+      <div class="report-card">
+        <div class="report-head">
+          <span class="report-doc-label text-mono-label">REPORT · 12 pp</span>
+          <span class="chip-coral-outline">Free</span>
+        </div>
+        <p class="report-title">Krost<br />Gig Worker<br />Credit Report</p>
+        <p class="report-edition text-mono-label">2026 EDITION · CONFIDENTIAL</p>
+
+        <div class="report-divider"></div>
+
+        <div class="report-stats">
+          <div>
+            <p class="text-mono-label slate-text">SCORE</p>
+            <p class="report-stat-value">724</p>
+          </div>
+          <div>
+            <p class="text-mono-label slate-text">RANGE</p>
+            <p class="report-stat-value">300–850</p>
+          </div>
+        </div>
+
+        <div class="report-bars">
+          <div class="report-bar"><span style="width:78%"></span></div>
+          <div class="report-bar"><span style="width:64%"></span></div>
+          <div class="report-bar"><span style="width:91%"></span></div>
+          <div class="report-bar"><span style="width:42%"></span></div>
+        </div>
+
+        <p class="report-foot text-micro slate-text">
+          Generated by Krost. Attested on Base L2. Verifiable at krost.xyz/verify.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ SECTION 3 — HOW + JOIN + FOOTER ═══════ -->
+<section id="how" class="how">
+  <div class="container">
+    <p class="text-mono-label slate-text"><span class="eyebrow-dot"></span>Three steps</p>
+    <h2 class="text-heading-section how-headline">From rideshare app to lender approval — in 4 minutes.</h2>
+
+    <div class="how-grid">
+      <div class="how-step">
+        <p class="how-num text-mono-label">STEP 01</p>
+        <h3 class="how-step-title">Connect your platforms</h3>
+        <p class="slate-text">Securely link Uber, DoorDash, Upwork, Instacart and 14 others via Plaid &amp; OAuth. Read-only.</p>
+      </div>
+      <div class="how-step">
+        <p class="how-num text-mono-label">STEP 02</p>
+        <h3 class="how-step-title">We compute &amp; attest</h3>
+        <p class="slate-text">Our scoring engine analyzes 12 months of earnings, then publishes a tamper-proof attestation to Base L2.</p>
+      </div>
+      <div class="how-step">
+        <p class="how-num text-mono-label">STEP 03</p>
+        <h3 class="how-step-title">Share with any lender</h3>
+        <p class="slate-text">One signed URL. Lenders verify on-chain in seconds. You stay in control of the data.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="join" class="join">
+  <div class="container">
+    <h2 class="text-display-section join-headline">Join 2,400+ gig workers<br />already on the list.</h2>
+    <p class="text-body-lg join-sub">Early access opens in waves. Waitlist members get the free report today and lifetime free attestations at launch.</p>
+
+    <form id="waitlist-form-2" class="hero-form join-form" novalidate>
+      <input
+        type="email"
+        name="email"
+        placeholder="your@email.com"
+        required
+        autocomplete="email"
+        class="input-pill input-pill-dark"
+        aria-label="Email address"
+      />
+      <button type="submit" class="btn-primary-light" id="submit-btn-2">
+        <span class="btn-label">Join the waitlist</span>
+      </button>
+    </form>
+    <p id="form-status-2" class="form-status form-status-dark" role="status" aria-live="polite"></p>
+  </div>
+</section>
+
+<section id="faq" class="faq">
+  <div class="container">
+    <p class="text-mono-label slate-text"><span class="eyebrow-dot"></span>FAQ</p>
+    <h2 class="text-heading-section faq-headline">Honest answers.</h2>
+
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>Will this affect my credit score?</summary>
+        <p>No. Krost is a soft-data layer — we read your gig platforms read-only and produce an independent score. No hard pulls, no credit-bureau footprint.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Which lenders accept the Krost Score today?</summary>
+        <p>Three pilot lenders are live (announced at launch). We&rsquo;re onboarding more weekly. Waitlist members get the partner list with their free report.</p>
+      </details>
+      <details class="faq-item">
+        <summary>What does &ldquo;on-chain attestation&rdquo; actually mean for me?</summary>
+        <p>Your score is published as a signed record on Base L2 — a low-fee Ethereum network. Any lender can verify the score is real and unaltered. You never expose raw earnings.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Is the free report really free?</summary>
+        <p>Yes. One full report per waitlist signup, delivered by email. We monetize lender verifications, not gig workers.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How is my data stored?</summary>
+        <p>Earnings sit encrypted in Supabase with row-level security. Only the score hash goes on-chain. You can wipe your data anytime.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <a href="/" class="brand brand-footer">
+        <span class="brand-mark">K</span>
+        <span class="brand-word">Krost</span>
+      </a>
+      <p class="footer-tag text-micro">The credit score gig work earned you.</p>
+    </div>
+    <div class="footer-col">
+      <p class="text-footer-header">Product</p>
+      <a href="#how" class="text-footer-link">How it works</a>
+      <a href="#report" class="text-footer-link">Free report</a>
+      <a href="#join" class="text-footer-link">Waitlist</a>
+    </div>
+    <div class="footer-col">
+      <p class="text-footer-header">Company</p>
+      <a href="mailto:hello@krost.xyz" class="text-footer-link">Contact</a>
+      <a href="#" class="text-footer-link">Privacy</a>
+      <a href="#" class="text-footer-link">Terms</a>
+    </div>
+  </div>
+  <div class="container footer-meta">
+    <p class="text-micro slate-text">© 2026 Krost. Built on Base L2.</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

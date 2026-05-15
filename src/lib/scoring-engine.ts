@@ -1,85 +1,111 @@
-import type { IncomeRecord, CreditScore, ScoreFactor } from '@/types'
+import type { IncomeRecord, IncomeVerification, ScoreFactor, TrajectoryLabel, LenderReadyStatus } from '@/types'
 
 /**
- * Krost Scoring Engine
- * Calculates alternative credit scores from gig economy income data.
- * Factors: income stability, tenure, platform diversity, earning trajectory
+ * Krost Income Verification Engine
+ *
+ * PRD-compliant. Computes:
+ *  - Annualized Income Estimate
+ *  - Income Consistency Score (0–100)
+ *  - Income Trajectory (Growing / Stable / Declining)
+ *  - Platform Diversity Score
+ *  - Lender-Ready Status (Green / Yellow / Red)
+ *
+ * NOT a credit score. Do not call it one (FCRA liability).
  */
 export function calculateCreditScore(
   incomes: IncomeRecord[],
   userId: string
-): Omit<CreditScore, 'id' | 'expires_at' | 'attestation_id'> {
+): Omit<IncomeVerification, 'id' | 'expires_at' | 'attestation_id'> {
   if (incomes.length === 0) {
     throw new Error('No income records provided')
   }
 
-  const monthlyIncomes = aggregateByMonth(incomes)
-  const avgMonthlyIncome = calcAverageMonthlyIncome(monthlyIncomes)
-  const volatility = calcIncomeVolatility(monthlyIncomes)
+  const monthly = aggregateByMonth(incomes)
+  const avgMonthly = calcAverageMonthlyIncome(monthly)
+  const annualized = avgMonthly * 12
+  const cv = calcCoefficientOfVariation(monthly) // income volatility
   const tenure = calcTenure(incomes)
-  const diversity = calcPlatformDiversity(incomes)
-  const reliability = calcReliabilityScore(incomes, volatility)
-  const trajectory = calcTrajectory(monthlyIncomes)
-  const consistency = calcConsistency(incomes)
+  const platforms = calcPlatformDiversity(incomes)
+  const trajectorySlope = calcTrajectorySlope(monthly)
+  const trajectoryLabel = classifyTrajectory(trajectorySlope)
 
-  // Base score starts at 500, max 850
-  let score = 500
+  // Income Consistency Score (0–100) per PRD §7.2: max(0, 100 - (cv × 100))
+  const consistencyScore = Math.max(0, Math.min(100, Math.round(100 - cv * 100)))
+
+  // Diversity Score per PRD §7.4: min(100, num_active_platforms / 4 × 100)
+  const diversityScore = Math.min(100, Math.round((platforms / 4) * 100))
+
+  // Lender-Ready Status
+  const lenderReadyStatus = classifyLenderReady(consistencyScore, platforms, avgMonthly)
 
   const factors: ScoreFactor[] = []
 
-  // Income level contribution (up to +80)
-  if (avgMonthlyIncome >= 4000) { score += 80; factors.push({ name: 'High monthly income', impact: 'positive', description: `Average monthly income of $${avgMonthlyIncome.toLocaleString()}`, weight: 80 }) }
-  else if (avgMonthlyIncome >= 2000) { score += 50; factors.push({ name: 'Moderate income', impact: 'positive', description: `Average monthly income of $${avgMonthlyIncome.toLocaleString()}`, weight: 50 }) }
-  else { score += 20; factors.push({ name: 'Low income base', impact: 'neutral', description: `Average monthly income of $${avgMonthlyIncome.toLocaleString()}`, weight: 20 }) }
+  // Consistency factor
+  if (consistencyScore >= 80) {
+    factors.push({ name: 'Income consistency', impact: 'positive', description: `Excellent consistency score of ${consistencyScore}/100 — very stable income stream`, weight: 30 })
+  } else if (consistencyScore >= 60) {
+    factors.push({ name: 'Income consistency', impact: 'positive', description: `Good consistency score of ${consistencyScore}/100 — moderate income stability`, weight: 20 })
+  } else {
+    factors.push({ name: 'Income consistency', impact: 'negative', description: `High income volatility — consistency score of ${consistencyScore}/100`, weight: -10 })
+  }
 
-  // Tenure contribution (up to +70)
-  if (tenure >= 24) { score += 70; factors.push({ name: 'Long platform tenure', impact: 'positive', description: `${tenure} months on gig platforms`, weight: 70 }) }
-  else if (tenure >= 12) { score += 50; factors.push({ name: 'Established tenure', impact: 'positive', description: `${tenure} months on gig platforms`, weight: 50 }) }
-  else if (tenure >= 6) { score += 30; factors.push({ name: 'Growing tenure', impact: 'positive', description: `${tenure} months on gig platforms`, weight: 30 }) }
-  else { score += 10; factors.push({ name: 'Short tenure', impact: 'negative', description: `Only ${tenure} months of platform history`, weight: 10 }) }
+  // Annualized income factor
+  if (annualized >= 80000) {
+    factors.push({ name: 'Annualized income', impact: 'positive', description: `Annualized income of $${annualized.toLocaleString()} — strong earning level`, weight: 25 })
+  } else if (annualized >= 40000) {
+    factors.push({ name: 'Annualized income', impact: 'positive', description: `Annualized income of $${annualized.toLocaleString()} — solid base`, weight: 15 })
+  } else {
+    factors.push({ name: 'Annualized income', impact: 'neutral', description: `Annualized income of $${annualized.toLocaleString()} — below-average earnings`, weight: 5 })
+  }
 
-  // Volatility contribution (up to +60 for low volatility)
-  if (volatility < 0.15) { score += 60; factors.push({ name: 'Very stable income', impact: 'positive', description: 'Income varies less than 15% month-to-month', weight: 60 }) }
-  else if (volatility < 0.30) { score += 40; factors.push({ name: 'Stable income', impact: 'positive', description: 'Income varies less than 30% month-to-month', weight: 40 }) }
-  else if (volatility < 0.50) { score += 20; factors.push({ name: 'Moderate income volatility', impact: 'neutral', description: `Income volatility of ${(volatility * 100).toFixed(0)}%`, weight: 20 }) }
-  else { score -= 20; factors.push({ name: 'High income volatility', impact: 'negative', description: `Income volatility of ${(volatility * 100).toFixed(0)}%`, weight: -20 }) }
+  // Tenure factor
+  if (tenure >= 24) {
+    factors.push({ name: 'Platform tenure', impact: 'positive', description: `${tenure} months of gig work history — strong track record`, weight: 20 })
+  } else if (tenure >= 12) {
+    factors.push({ name: 'Platform tenure', impact: 'positive', description: `${tenure} months of gig work history — established record`, weight: 15 })
+  } else {
+    factors.push({ name: 'Platform tenure', impact: 'neutral', description: `Only ${tenure} months of history — building track record`, weight: 5 })
+  }
 
-  // Platform diversity (up to +50)
-  if (diversity >= 3) { score += 50; factors.push({ name: 'Multi-platform earner', impact: 'positive', description: `Active on ${diversity} platforms — diversified income`, weight: 50 }) }
-  else if (diversity === 2) { score += 30; factors.push({ name: 'Dual-platform earner', impact: 'positive', description: 'Income from 2 platforms reduces risk', weight: 30 }) }
-  else { score += 10; factors.push({ name: 'Single platform', impact: 'neutral', description: 'Income from 1 platform — consider diversifying', weight: 10 }) }
+  // Diversity factor
+  if (platforms >= 4) {
+    factors.push({ name: 'Platform diversity', impact: 'positive', description: `Income from ${platforms} platforms — excellent diversification`, weight: 15 })
+  } else if (platforms >= 2) {
+    factors.push({ name: 'Platform diversity', impact: 'positive', description: `Income from ${platforms} platforms — diversified`, weight: 10 })
+  } else {
+    factors.push({ name: 'Platform diversity', impact: 'neutral', description: `Single platform — consider adding another income source`, weight: 0 })
+  }
 
-  // Reliability/consistency (up to +50)
-  if (consistency >= 0.8) { score += 50; factors.push({ name: 'Highly consistent earner', impact: 'positive', description: 'You earn consistently week-over-week', weight: 50 }) }
-  else if (consistency >= 0.6) { score += 30; factors.push({ name: 'Consistent earner', impact: 'positive', description: 'Regular earning pattern detected', weight: 30 }) }
-  else { score += 10; factors.push({ name: 'Variable earning pattern', impact: 'negative', description: 'Earnings fluctuate significantly week-to-week', weight: 10 }) }
-
-  // Trajectory bonus (up to +40)
-  if (trajectory > 0.15) { score += 40; factors.push({ name: 'Strong upward trend', impact: 'positive', description: 'Income growing consistently (+15%+)', weight: 40 }) }
-  else if (trajectory > 0.05) { score += 20; factors.push({ name: 'Growing income', impact: 'positive', description: 'Moderate upward income trajectory', weight: 20 }) }
-  else if (trajectory < -0.10) { score -= 20; factors.push({ name: 'Declining income trend', impact: 'negative', description: 'Income trending downward over recent months', weight: -20 }) }
-
-  // Clamp score
-  const finalScore = Math.min(850, Math.max(300, score))
+  // Trajectory factor
+  if (trajectoryLabel === 'growing') {
+    factors.push({ name: 'Income trajectory', impact: 'positive', description: `Income growing at ${(trajectorySlope * 100).toFixed(1)}%/month — positive trend`, weight: 15 })
+  } else if (trajectoryLabel === 'declining') {
+    factors.push({ name: 'Income trajectory', impact: 'negative', description: `Income declining at ${(Math.abs(trajectorySlope) * 100).toFixed(1)}%/month`, weight: -15 })
+  }
 
   return {
     user_id: userId,
-    overall_score: finalScore,
-    monthly_avg_income: Math.round(avgMonthlyIncome),
-    income_volatility: Math.round(volatility * 100) / 100,
+    consistency_score: consistencyScore,
+    annualized_income: Math.round(annualized),
+    monthly_avg_income: Math.round(avgMonthly),
+    income_volatility: Math.round(cv * 10000) / 10000,
     tenure_months: tenure,
-    platform_diversity: diversity,
-    reliability_score: Math.round(reliability),
-    debt_to_income_ratio: 0, // user provides this separately
+    platform_diversity: platforms,
+    diversity_score: diversityScore,
+    trajectory_label: trajectoryLabel,
+    trajectory_slope: Math.round(trajectorySlope * 10000) / 10000,
+    lender_ready_status: lenderReadyStatus,
     score_factors: factors.sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight)),
     calculated_at: new Date().toISOString(),
   }
 }
 
+// ─── Helpers ──────────────────────────────────────────────
+
 function aggregateByMonth(records: IncomeRecord[]): { month: string; total: number }[] {
   const grouped = new Map<string, number>()
   for (const r of records) {
-    const monthKey = r.period_start.slice(0, 7) // YYYY-MM
+    const monthKey = r.period_start.slice(0, 7)
     grouped.set(monthKey, (grouped.get(monthKey) || 0) + r.net_earnings)
   }
   return Array.from(grouped.entries())
@@ -92,12 +118,12 @@ function calcAverageMonthlyIncome(monthly: { month: string; total: number }[]): 
   return monthly.reduce((sum, m) => sum + m.total, 0) / monthly.length
 }
 
-function calcIncomeVolatility(monthly: { month: string; total: number }[]): number {
+function calcCoefficientOfVariation(monthly: { month: string; total: number }[]): number {
   if (monthly.length < 2) return 0
   const avg = calcAverageMonthlyIncome(monthly)
   if (avg === 0) return 0
   const variance = monthly.reduce((sum, m) => sum + (m.total - avg) ** 2, 0) / monthly.length
-  return Math.sqrt(variance) / avg // coefficient of variation
+  return Math.sqrt(variance) / avg
 }
 
 function calcTenure(records: IncomeRecord[]): number {
@@ -111,44 +137,36 @@ function calcPlatformDiversity(records: IncomeRecord[]): number {
   return new Set(records.map(r => r.platform)).size
 }
 
-function calcReliabilityScore(records: IncomeRecord[], volatility: number): number {
-  // Active days ratio * consistency bonuses
-  const weeksWithData = new Set(
-    records.map(r => {
-      const d = new Date(r.period_start)
-      const weekNum = Math.floor(d.getTime() / (7 * 24 * 60 * 60 * 1000))
-      return `${d.getFullYear()}-W${weekNum}`
-    })
-  ).size
-
-  const totalWeeks = 12 // look at 3-month window
-  const coverage = Math.min(1, weeksWithData / totalWeeks)
-
-  // Volatility penalizes reliability
-  const volatilityPenalty = Math.min(0.5, volatility * 0.5)
-
-  return Math.round(Math.max(0, Math.min(100, (coverage - volatilityPenalty) * 100)))
-}
-
-function calcTrajectory(monthly: { month: string; total: number }[]): number {
+function calcTrajectorySlope(monthly: { month: string; total: number }[]): number {
   if (monthly.length < 3) return 0
-  const recent = monthly.slice(-3)
-  const firstHalf = recent.slice(0, 2)
-  const secondHalf = recent.slice(-2)
-  const avgFirst = firstHalf.reduce((s, m) => s + m.total, 0) / firstHalf.length
-  const avgSecond = secondHalf.reduce((s, m) => s + m.total, 0) / secondHalf.length
-  if (avgFirst === 0) return 0
-  return (avgSecond - avgFirst) / avgFirst
+  // Simple linear regression on last 12 months (or all available)
+  const slice = monthly.slice(-12)
+  const n = slice.length
+  const indices = slice.map((_, i) => i)
+  const totals = slice.map(m => m.total)
+  const sumX = indices.reduce((a, b) => a + b, 0)
+  const sumY = totals.reduce((a, b) => a + b, 0)
+  const sumXY = indices.reduce((s, i) => s + i * totals[i], 0)
+  const sumX2 = indices.reduce((s, i) => s + i * i, 0)
+  if (n * sumX2 - sumX * sumX === 0) return 0
+  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
+  const meanY = sumY / n
+  if (meanY === 0) return 0
+  return slope / meanY // relative slope
 }
 
-function calcConsistency(records: IncomeRecord[]): number {
-  // Ratio of weeks with earnings > 0 vs total weeks in range
-  if (records.length === 0) return 0
-  const dateRange = Math.max(
-    1,
-    (new Date(records[records.length - 1].period_end).getTime() -
-      new Date(records[0].period_start).getTime()) /
-      (1000 * 60 * 60 * 24 * 7)
-  )
-  return Math.min(1, records.length / (dateRange * 3)) // expect ~3 records per week
+function classifyTrajectory(slope: number): TrajectoryLabel {
+  if (slope > 0.03) return 'growing'
+  if (slope < -0.03) return 'declining'
+  return 'stable'
+}
+
+function classifyLenderReady(
+  consistency: number,
+  platforms: number,
+  avgMonthly: number
+): LenderReadyStatus {
+  if (consistency >= 70 && platforms >= 2 && avgMonthly >= 2000) return 'green'
+  if (consistency >= 40 && platforms >= 1 && avgMonthly >= 1000) return 'yellow'
+  return 'red'
 }

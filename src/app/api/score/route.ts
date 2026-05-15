@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: score } = await supabase
-      .from('credit_scores')
+      .from('income_verifications')
       .select('*')
       .eq('user_id', workerId)
       .single()
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
 
   // Gig worker - return their own score
   const { data: score } = await supabase
-    .from('credit_scores')
+    .from('income_verifications')
     .select('*')
     .eq('user_id', user.id)
     .single()

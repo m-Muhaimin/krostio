@@ -9,16 +9,20 @@ type ScoreFactor = {
 }
 
 type CreditScore = {
-  overall_score: number
+  consistency_score: number
+  annualized_income: number
   monthly_avg_income: number
   income_volatility: number
   tenure_months: number
   platform_diversity: number
-  reliability_score: number
+  diversity_score: number
+  trajectory_label: string
+  trajectory_slope: number
+  lender_ready_status: string
   score_factors: ScoreFactor[]
   calculated_at: string
-  expires_at: string | null
-  attestation_id: string | null
+  expires_at?: string | null
+  attestation_id?: string | null
 }
 
 const FALLBACK_FACTORS: ScoreFactor[] = [
@@ -26,45 +30,46 @@ const FALLBACK_FACTORS: ScoreFactor[] = [
     name: 'Income stability',
     impact: 'neutral',
     description: 'Based on variance in weekly earnings over the last 6 months. Lower variance = higher score.',
-    weight: 200,
+    weight: 30,
   },
   {
     name: 'Platform diversity',
     impact: 'neutral',
     description: 'More income sources = lower risk. 3+ platforms is considered excellent.',
-    weight: 150,
+    weight: 20,
   },
   {
     name: 'Tenure',
     impact: 'neutral',
     description: 'Length of gig work history. Longer track record = more predictable income.',
-    weight: 120,
+    weight: 20,
   },
   {
     name: 'Income trajectory',
     impact: 'neutral',
     description: 'Are your earnings growing? Upward trend signals increasing creditworthiness.',
-    weight: 80,
+    weight: 15,
   },
   {
     name: 'Consistency',
     impact: 'neutral',
     description: 'How regularly you work. Fewer gaps = more reliable income stream.',
-    weight: 50,
-  },
-  {
-    name: 'Debt-to-income',
-    impact: 'neutral',
-    description: 'Lower ratio = better. Based on self-reported liabilities vs earnings.',
-    weight: 50,
+    weight: 15,
   },
 ]
 
-function scoreBand(score: number): string {
-  if (score >= 740) return 'Excellent'
-  if (score >= 670) return 'Good'
-  if (score >= 580) return 'Fair'
-  return 'Poor'
+function trajectoryColor(label: string): string {
+  const l = (label || '').toLowerCase()
+  if (l.includes('growing') || l.includes('up') || l.includes('rising')) return 'var(--color-deep-green)'
+  if (l.includes('declining') || l.includes('down') || l.includes('falling')) return 'var(--color-error-red)'
+  return 'var(--color-ink-black)'
+}
+
+function lenderReadyColor(status: string): string {
+  const s = (status || '').toLowerCase()
+  if (s.includes('ready') || s.includes('approved') || s.includes('strong')) return 'var(--color-deep-green)'
+  if (s.includes('not') || s.includes('weak') || s.includes('reject')) return 'var(--color-error-red)'
+  return 'var(--color-ink-black)'
 }
 
 export default async function ScoreBreakdownPage() {
@@ -72,7 +77,7 @@ export default async function ScoreBreakdownPage() {
 
   const supabase = await createServerSupabaseClient()
   const { data: score } = await supabase
-    .from('credit_scores')
+    .from('income_verifications')
     .select('*')
     .eq('user_id', userId)
     .maybeSingle()
@@ -82,9 +87,9 @@ export default async function ScoreBreakdownPage() {
   const factors = typedScore?.score_factors?.length ? typedScore.score_factors : FALLBACK_FACTORS
   const totalWeight = factors.reduce((sum, f) => sum + Math.abs(f.weight), 0) || 1
 
-  // Ring rendering: score range 300-850, map to 0-264 (full circle dasharray)
+  // Ring rendering: consistency_score 0-100, map to 0-264 (full circle dasharray)
   const ringPct = typedScore
-    ? Math.max(0, Math.min(1, (typedScore.overall_score - 300) / 550))
+    ? Math.max(0, Math.min(1, typedScore.consistency_score / 100))
     : 0
   const ringDash = `${ringPct * 264} 264`
 
@@ -100,8 +105,8 @@ export default async function ScoreBreakdownPage() {
         </h1>
         <p className="mt-3 text-body text-slate">
           {hasScore
-            ? 'How your credit score breaks down across the factors that matter most.'
-            : 'How your credit score is calculated. Connect platforms to see your personalized breakdown.'}
+            ? 'How your income consistency breaks down across the factors that matter most.'
+            : 'How your income score is calculated. Connect platforms to see your personalized breakdown.'}
         </p>
       </div>
 
@@ -127,31 +132,54 @@ export default async function ScoreBreakdownPage() {
             </svg>
             <div className="absolute text-center">
               <span className="font-display text-5xl text-white">
-                {typedScore ? typedScore.overall_score : '—'}
+                {typedScore ? typedScore.consistency_score : '—'}
               </span>
-              <p className="text-xs text-white/50">/ 850</p>
+              <p className="text-xs text-white/50">/ 100</p>
             </div>
           </div>
           <div>
-            <p className="text-mono-label text-white/50">Attested score</p>
+            <p className="text-mono-label text-white/50">Consistency score</p>
             <h2 className="mt-3 font-display text-3xl tracking-tight text-white">
               {typedScore
-                ? `${scoreBand(typedScore.overall_score)} credit rating.`
+                ? `$${Math.round(typedScore.annualized_income).toLocaleString()} annualized.`
                 : 'Connect platforms to calculate.'}
             </h2>
             {typedScore && (
-              <div className="mt-3 flex flex-wrap gap-6 text-sm text-white/70">
-                <span>${typedScore.monthly_avg_income.toLocaleString()}/mo avg</span>
-                <span>{typedScore.tenure_months} mo tenure</span>
-                <span>{typedScore.platform_diversity} platforms</span>
-                <span>{Math.round(typedScore.income_volatility * 100)}% volatility</span>
-              </div>
+              <>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <span
+                    className="rounded-full px-3 py-1 text-xs font-medium"
+                    style={{
+                      backgroundColor: trajectoryColor(typedScore.trajectory_label),
+                      color: '#fff',
+                    }}
+                  >
+                    Trajectory: {typedScore.trajectory_label || 'unknown'}
+                  </span>
+                  <span
+                    className="rounded-full px-3 py-1 text-xs font-medium"
+                    style={{
+                      backgroundColor: lenderReadyColor(typedScore.lender_ready_status),
+                      color: '#fff',
+                    }}
+                  >
+                    Lender: {typedScore.lender_ready_status || 'pending'}
+                  </span>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-6 text-sm text-white/70">
+                  <span>${typedScore.monthly_avg_income.toLocaleString()}/mo avg</span>
+                  <span>{typedScore.tenure_months} mo tenure</span>
+                  <span>{typedScore.platform_diversity} platforms</span>
+                  <span>Diversity: {typedScore.diversity_score}</span>
+                  <span>{Math.round(typedScore.income_volatility * 100)}% volatility</span>
+                </div>
+              </>
             )}
             <div className="mt-6 flex flex-wrap gap-2">
-              <span className="agent-console-chip">300–579 Poor</span>
-              <span className="agent-console-chip">580–669 Fair</span>
-              <span className="agent-console-chip">670–739 Good</span>
-              <span className="agent-console-chip">740–850 Excellent</span>
+              <span className="agent-console-chip">0–40 Poor</span>
+              <span className="agent-console-chip">41–60 Fair</span>
+              <span className="agent-console-chip">61–80 Good</span>
+              <span className="agent-console-chip">81–100 Excellent</span>
             </div>
           </div>
         </div>
@@ -215,7 +243,7 @@ export default async function ScoreBreakdownPage() {
         <p className="text-mono-label text-slate">Attestation</p>
         <h2 className="mt-3 text-heading-feature text-ink-black">On-chain proof</h2>
         <p className="mt-4 max-w-2xl text-sm text-slate">
-          Your credit score is attested on Base L2 — you own it, and only you can grant lenders
+          Your income score is attested on Base L2 — you own it, and only you can grant lenders
           permission to view it. Each attestation is cryptographically signed and verifiable
           on-chain.
         </p>
