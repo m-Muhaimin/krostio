@@ -7,18 +7,30 @@ import type { GigPlatform } from '@/types'
  * Plaid surfaces gig payouts as deposits from "UBER PAYMENTS", "DOORDASH INC", etc.
  */
 const PLATFORM_PATTERNS: Array<{ pattern: RegExp; platform: GigPlatform }> = [
+  // Rideshare + delivery
   { pattern: /\bUBER\s*EATS\b|UBEREATS/i, platform: 'ubereats' },
   { pattern: /\bUBER\b/i, platform: 'uber' },
   { pattern: /\bLYFT\b/i, platform: 'lyft' },
   { pattern: /DOORDASH/i, platform: 'doordash' },
   { pattern: /GRUBHUB/i, platform: 'grubhub' },
   { pattern: /INSTACART/i, platform: 'instacart' },
+  // Freelance + creative
   { pattern: /FIVERR/i, platform: 'fiverr' },
   { pattern: /UPWORK/i, platform: 'upwork' },
   { pattern: /FREELANCER/i, platform: 'freelancer' },
+  // Asset rental
   { pattern: /\bTURO\b/i, platform: 'turo' },
   { pattern: /AIRBNB/i, platform: 'airbnb' },
   { pattern: /AMAZON\s*FLEX|AMZN\s*FLEX/i, platform: 'amazon_flex' },
+  // Retail / marketplace sellers (typically show up as payment processor names)
+  { pattern: /SHOPIFY/i, platform: 'shopify' },
+  { pattern: /\bETSY\b/i, platform: 'etsy' },
+  { pattern: /MERCARI/i, platform: 'mercari' },
+  { pattern: /POSHMARK/i, platform: 'poshmark' },
+  { pattern: /\bEBAY\b|EBAY\s*COMMERCE/i, platform: 'ebay' },
+  { pattern: /DEPOP/i, platform: 'depop' },
+  { pattern: /STOCKX/i, platform: 'stockx' },
+  { pattern: /WHATNOT/i, platform: 'whatnot' },
 ]
 
 function detectPlatform(merchantName: string | null, name: string): GigPlatform | null {

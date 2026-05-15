@@ -7,7 +7,10 @@ export type ConnectionProvider = 'plaid' | 'manual' | 'oauth'
 export type GigPlatform =
   | 'uber' | 'lyft' | 'doordash' | 'ubereats' | 'grubhub'
   | 'fiverr' | 'upwork' | 'freelancer' | 'instacart'
-  | 'turo' | 'airbnb' | 'amazon_flex' | 'other'
+  | 'turo' | 'airbnb' | 'amazon_flex'
+  | 'shopify' | 'etsy' | 'mercari' | 'poshmark' | 'ebay'
+  | 'depop' | 'stockx' | 'whatnot'
+  | 'other'
 
 export type TrajectoryLabel = 'growing' | 'stable' | 'declining'
 export type LenderReadyStatus = 'green' | 'yellow' | 'red'
