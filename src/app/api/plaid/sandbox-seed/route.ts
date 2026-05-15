@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { plaid } from '@/lib/plaid'
+import { fetchGigIncomeForItem } from '@/lib/plaid-sync'
+import { calculateCreditScore } from '@/lib/scoring-engine'
+import { createServiceSupabaseClient } from '@/lib/supabase-service'
 
 /**
  * Gig payout names used by real platforms when depositing via Plaid-enabled bank accounts.
@@ -29,14 +32,14 @@ function addDays(date: Date, days: number): Date {
 
 /**
  * POST /api/plaid/sandbox-seed
- * Body: { access_token: string, weeks?: number }
+ * Body: { access_token: string, weeks?: number, resync?: boolean }
  *
- * Injects 15-30 random gig-payout transactions per week into a Plaid sandbox Item,
- * spread across the last `weeks` weeks (default: 13 ≈ 3 months).
- * After calling this, the user should re-fetch transactions via
- * POST /api/plaid/exchange or a manual sync to populate income_records.
+ * 1. Injects 15-30 random fake gig-payout transactions per week across
+ *    the last `weeks` weeks (default: 13 ≈ 3 months).
+ * 2. If `resync: true`, also re-fetches transactions, writes income_records,
+ *    and recalculates the credit score — all in one call.
  *
- * ONLY works in sandbox environment.
+ * ONLY works in sandbox PLAID_ENV.
  */
 export async function POST(request: NextRequest) {
   if (process.env.PLAID_ENV !== 'sandbox') {
@@ -52,17 +55,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { access_token, weeks } = await request.json()
-  if (!access_token) {
-    return NextResponse.json({ error: 'access_token required' }, { status: 400 })
+  const { access_token: rawToken, weeks, resync } = await request.json()
+
+  // Resolve access_token — either passed directly or looked up from the user's connections
+  let accessToken = rawToken
+  let resolvedItemId: string | null = null
+
+  if (!accessToken) {
+    // Look up the most recent plaid connection for this user
+    const { data: conn } = await supabase
+      .from('platform_connections')
+      .select('access_token, item_id')
+      .eq('user_id', user.id)
+      .eq('provider', 'plaid')
+      .order('last_sync_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (!conn?.access_token) {
+      return NextResponse.json(
+        { error: 'No Plaid connection found. Connect via Plaid Link first, or provide access_token directly.' },
+        { status: 400 }
+      )
+    }
+    accessToken = conn.access_token
+    resolvedItemId = conn.item_id
   }
 
-  const numWeeks = Math.min(Math.max(weeks ?? 13, 1), 26) // 1–26 weeks
+  const numWeeks = Math.min(Math.max(weeks ?? 13, 1), 26)
 
-  // Build transactions: 15-30 random deposits per week, ending today
+  // Build fake transactions
   const today = new Date()
-  // Plaid sandbox supports dates between 2020 and ~current
-  const end = today
   const start = addDays(today, -(numWeeks * 7))
 
   const allTransactions: Array<{
@@ -80,12 +103,11 @@ export async function POST(request: NextRequest) {
 
     for (let d = 0; d < depositsPerWeek; d++) {
       const platform = GIG_DEPOSITS[Math.floor(Math.random() * GIG_DEPOSITS.length)]
-      const amount = -randBetween(platform.min, platform.max) // negative = deposit
+      const amount = -randBetween(platform.min, platform.max)
       const dateOffset = Math.floor(Math.random() * 7)
       const date = addDays(weekStart, dateOffset)
 
-      // Don't go past today
-      if (date > end) continue
+      if (date > today) continue
 
       allTransactions.push({
         name: platform.name,
@@ -98,30 +120,77 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Plaid sandbox accepts up to 500 transactions per call
+  // Seed in batches of 300
   let totalSeeded = 0
   const batchSize = 300
-  const batches: number[] = []
-
   for (let i = 0; i < allTransactions.length; i += batchSize) {
     const batch = allTransactions.slice(i, i + batchSize)
     try {
-      const res = await plaid.sandboxTransactionsCreate({
-        access_token,
+      await plaid.sandboxTransactionsCreate({
+        access_token: accessToken,
         transactions: batch,
-      })
+      } as any)
       totalSeeded += batch.length
-      batches.push(batch.length)
     } catch (err: any) {
       const msg = err?.response?.data?.error_message || err?.message || 'Sandbox seed failed'
       return NextResponse.json(
-        {
-          error: msg,
-          total_seeded: totalSeeded,
-          remaining: allTransactions.length - totalSeeded,
-        },
+        { error: msg, total_seeded: totalSeeded },
         { status: 500 }
       )
+    }
+  }
+
+  // Resync: fetch transactions + recalculate score
+  let syncResult = null
+  if (resync) {
+    try {
+      const incomeRows = await fetchGigIncomeForItem(accessToken, user.id, numWeeks * 7)
+
+      // Write income_records (delete existing ones from this item's previous sync first?)
+      // We upsert to avoid duplicates: one row per (user_id, platform, period_start)
+      const service = createServiceSupabaseClient()
+      if (incomeRows.length > 0) {
+        // For sandbox testing, clear old income records for this user first
+        await service.from('income_records').delete().eq('user_id', user.id)
+        await service.from('income_records').insert(incomeRows)
+      }
+
+      // Recalculate score
+      const { data: allIncome } = await service
+        .from('income_records')
+        .select('*')
+        .eq('user_id', user.id)
+
+      let score = null
+      if (allIncome && allIncome.length > 0) {
+        try {
+          const calc = calculateCreditScore(allIncome as any, user.id)
+          const expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          await service
+            .from('credit_scores')
+            .upsert({ ...calc, expires_at }, { onConflict: 'user_id' })
+          score = calc
+        } catch {
+          // not enough data
+        }
+      }
+
+      // Update last_sync_at on the connection
+      await service
+        .from('platform_connections')
+        .update({ last_sync_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('provider', 'plaid')
+
+      syncResult = {
+        income_rows: incomeRows.length,
+        platforms_detected: incomeRows.length > 0
+          ? Array.from(new Set(incomeRows.map((r) => r.platform)))
+          : [],
+        score: score?.overall_score ?? null,
+      }
+    } catch (err: any) {
+      syncResult = { error: err?.message ?? 'Sync failed after seeding' }
     }
   }
 
@@ -129,11 +198,11 @@ export async function POST(request: NextRequest) {
     success: true,
     total_seeded: totalSeeded,
     weeks: numWeeks,
-    batches: batches.length,
     date_range: {
       start: start.toISOString().slice(0, 10),
-      end: end.toISOString().slice(0, 10),
+      end: today.toISOString().slice(0, 10),
     },
     platforms_seeded: GIG_DEPOSITS.map((g) => g.name),
+    sync: syncResult,
   })
 }
