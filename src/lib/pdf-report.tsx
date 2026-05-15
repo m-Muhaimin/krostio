@@ -173,7 +173,7 @@ export function IncomeReport({ workerName, reportDate, reportId, verification, r
         {/* Monthly Earnings Table */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            Monthly Earnings History {hasInsufficientData ? '(Preliminary — Insufficient History)' : ''}
+            Monthly Earnings History (Trailing 12 Months) {hasInsufficientData ? '(Preliminary)' : ''}
           </Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
@@ -226,6 +226,53 @@ export function IncomeReport({ workerName, reportDate, reportId, verification, r
           })()}
         </View>
 
+        {/* Income Consistency Analysis */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Income Consistency Analysis</Text>
+          {(() => {
+            const cv = verification.income_volatility
+            const band = cv < 0.3 ? 'Low' : cv < 0.6 ? 'Moderate' : 'High'
+            const colors: Record<string, { bg: string; fg: string }> = {
+              Low: { bg: '#dcfce7', fg: '#166534' },
+              Moderate: { bg: '#fef9c3', fg: '#854d0e' },
+              High: { bg: '#fce4ec', fg: '#c62828' },
+            }
+            const c = colors[band]
+            return (
+              <>
+                <View style={{ flexDirection: 'row', gap: 16, marginBottom: 12 }}>
+                  <View style={{ flex: 1, padding: 10, borderWidth: 1, borderColor: '#e4e4e7', borderRadius: 6 }}>
+                    <Text style={{ fontSize: 8, color: '#71717a' }}>Coefficient of Variation</Text>
+                    <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#18181b', marginTop: 2 }}>
+                      {cv.toFixed(3)}
+                    </Text>
+                    <Text style={{ fontSize: 7, color: '#a1a1aa', marginTop: 1 }}>σ/μ — std dev ÷ mean</Text>
+                  </View>
+                  <View style={{ flex: 1, padding: 10, borderWidth: 1, borderColor: '#e4e4e7', borderRadius: 6 }}>
+                    <Text style={{ fontSize: 8, color: '#71717a' }}>Volatility Band</Text>
+                    <Text style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, fontSize: 9, fontFamily: 'Helvetica-Bold', backgroundColor: c.bg, color: c.fg, alignSelf: 'flex-start', marginTop: 2 }}>
+                      {band.toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, padding: 10, borderWidth: 1, borderColor: '#e4e4e7', borderRadius: 6 }}>
+                    <Text style={{ fontSize: 8, color: '#71717a' }}>Consistency Score</Text>
+                    <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#18181b', marginTop: 2 }}>
+                      {verification.consistency_score}/100
+                    </Text>
+                  </View>
+                </View>
+                <Text style={{ fontSize: 8, color: '#52525b', lineHeight: 1.5 }}>
+                  {band === 'Low'
+                    ? `${name}'s monthly income shows low variability (CV &lt; 0.3), indicating stable and predictable earnings. This is a strong signal for lenders assessing repayment capacity.`
+                    : band === 'Moderate'
+                    ? `${name}'s monthly income shows moderate variability (CV 0.3–0.6). Earnings fluctuate but remain within a predictable range. Consider reviewing seasonal or platform-specific patterns.`
+                    : `${name}'s monthly income shows high variability (CV &gt; 0.6). Income fluctuates significantly month-to-month. A longer earnings history or additional platforms may improve stability.`}
+                </Text>
+              </>
+            )
+          })()}
+        </View>
+
         {/* Trajectory Statement */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Income Trajectory Assessment</Text>
@@ -254,6 +301,81 @@ export function IncomeReport({ workerName, reportDate, reportId, verification, r
             date and should be verified for currency by the receiving institution. Krost makes no representation regarding
             creditworthiness or loan eligibility.
           </Text>
+        </View>
+
+        {/* Methodology Footnote */}
+        <View style={{ ...styles.verificationBox, marginTop: 8 }}>
+          <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#18181b', marginBottom: 3 }}>Methodology Note</Text>
+          <Text style={{ fontSize: 7, color: '#71717a', lineHeight: 1.4 }}>
+            Annualized income = trailing {Math.min(12, monthlyData.length || 12)}-month average monthly income × 12.
+            {'\n'}
+            Consistency Score (0–100) = max(0, 100 − (coefficient of variation × 100)). Measures earnings stability.
+            {'\n'}
+            Krost Score (300–850) is an income verification metric, not a consumer credit report. It is not a substitute for a FICO score and shall not be used as the sole basis for adverse action.
+            {'\n'}
+            Income data is sourced directly from gig platform(s) via authenticated API connections. Data freshness reflects the most recent platform sync. All figures in USD unless otherwise noted.
+          </Text>
+        </View>
+
+        {/* Appendix — Full Earnings History */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Appendix: Full Earnings History</Text>
+          <Text style={{ fontSize: 7, color: '#71717a', marginBottom: 6 }}>
+            Complete earnings history across all connected platforms ({monthlyData.length} months, {records.length} records)
+          </Text>
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={styles.col}>Month</Text>
+              <Text style={styles.colRight}>Gross</Text>
+              <Text style={styles.colRight}>Net</Text>
+              <Text style={styles.colRight}>Platforms</Text>
+            </View>
+            {monthlyData.map((m, i) => {
+              const monthRecords = records.filter(r => r.period_start.slice(0, 7) === m.month)
+              const platforms = [...new Set(monthRecords.map(r => r.platform))].join(', ')
+              const gross = monthRecords.reduce((s, r) => s + r.gross_earnings, 0)
+              return (
+                <View key={i} style={{ ...styles.tableRow, fontSize: 7 }}>
+                  <Text style={{ ...styles.col, fontSize: 7 }}>{m.month}</Text>
+                  <Text style={{ ...styles.colRight, fontSize: 7 }}>${gross.toLocaleString()}</Text>
+                  <Text style={{ ...styles.colRight, fontSize: 7 }}>${m.total.toLocaleString()}</Text>
+                  <Text style={{ ...styles.col, fontSize: 6, color: '#71717a' }}>{platforms}</Text>
+                </View>
+              )
+            })}
+          </View>
+
+          {/* Career Summary */}
+          <View style={{ marginTop: 12, padding: 8, backgroundColor: '#fafafa', borderRadius: 6 }}>
+            <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#18181b', marginBottom: 4 }}>Career Summary</Text>
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              {(() => {
+                const totalGross = records.reduce((s, r) => s + r.gross_earnings, 0)
+                const totalNet = records.reduce((s, r) => s + r.net_earnings, 0)
+                const platformCount = new Set(records.map(r => r.platform)).size
+                return (
+                  <>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 7, color: '#71717a' }}>Total Gross Earnings</Text>
+                      <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#18181b' }}>${totalGross.toLocaleString()}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 7, color: '#71717a' }}>Total Net Earnings</Text>
+                      <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#18181b' }}>${totalNet.toLocaleString()}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 7, color: '#71717a' }}>Platforms</Text>
+                      <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#18181b' }}>{platformCount}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 7, color: '#71717a' }}>Total Records</Text>
+                      <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#18181b' }}>{records.length}</Text>
+                    </View>
+                  </>
+                )
+              })()}
+            </View>
+          </View>
         </View>
 
         {/* Footer */}

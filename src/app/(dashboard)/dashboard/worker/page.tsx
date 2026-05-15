@@ -287,6 +287,146 @@ export default async function WorkerDashboard() {
         </div>
       </section>
 
+      {/* Score improvement recommendations */}
+      {hasKrost && krostBreakdown && (
+        <section>
+          <h2 className="mb-6 text-heading-feature text-ink-black">Improve your score</h2>
+          <div className="space-y-3">
+            {(() => {
+              const tips: { icon: string; title: string; desc: string; action: string; href: string }[] = []
+
+              const b = krostBreakdown as Record<string, any>
+              const incomeScore = b.incomeScore ?? 0
+              const diversityScore = b.diversityScore ?? 0
+              const tenureScore = b.tenureScore ?? 0
+              const volatilityScore = b.volatilityScore ?? 0
+              const consistencyScore = b.consistencyScore ?? 0
+              const trajectoryScore = b.trajectoryScore ?? 0
+
+              if (diversityScore < 25) {
+                tips.push({
+                  icon: '⊕',
+                  title: 'Add another platform',
+                  desc: `Platform diversity contributes up to +50 pts. You have ${Math.round(diversityScore / 12.5) || 1} platform${Math.round(diversityScore / 12.5) || 1 !== 1 ? 's' : ''} contributing.`,
+                  action: 'Connect platform →',
+                  href: '/dashboard/worker/connections',
+                })
+              }
+              if (incomeScore < 40) {
+                tips.push({
+                  icon: '↑',
+                  title: 'Increase monthly earnings',
+                  desc: 'Higher average monthly income relative to $5K/mo benchmark adds up to +80 pts. More trips or higher-value work improve this factor.',
+                  action: 'View ledger →',
+                  href: '/dashboard/worker/ledger',
+                })
+              }
+              if (tenureScore < 40) {
+                tips.push({
+                  icon: '⏱',
+                  title: 'Build career tenure',
+                  desc: 'Score rewards months of consistent gig activity (up to +70 pts). Time on platform is the only factor that increases naturally.',
+                  action: 'See score breakdown →',
+                  href: '/dashboard/worker/score',
+                })
+              }
+              if (volatilityScore < 30) {
+                tips.push({
+                  icon: '📊',
+                  title: 'Reduce income volatility',
+                  desc: 'Steady earnings improve your volatility score (up to +60 pts). Consider diversifying into more consistent platforms.',
+                  action: 'View ledger →',
+                  href: '/dashboard/worker/ledger',
+                })
+              }
+              if (consistencyScore < 25) {
+                tips.push({
+                  icon: '◉',
+                  title: 'Improve earning consistency',
+                  desc: 'Positive earnings in more months boosts consistency (up to +50 pts). Aim for earnings every month across your connected platforms.',
+                  action: 'View ledger →',
+                  href: '/dashboard/worker/ledger',
+                })
+              }
+              if (trajectoryScore < 15) {
+                tips.push({
+                  icon: '↗',
+                  title: 'Grow your income trajectory',
+                  desc: 'An upward trend adds up to +40 pts. Focus on increasing earnings month-over-month to demonstrate growth.',
+                  action: 'View ledger →',
+                  href: '/dashboard/worker/ledger',
+                })
+              }
+
+              return tips.slice(0, 3).map((tip) => (
+                <Link
+                  key={tip.title}
+                  href={tip.href}
+                  className="card-bordered flex items-start gap-4 px-6 py-5 transition hover:border-ink-black"
+                >
+                  <span className="mt-0.5 text-xl">{tip.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-ink-black">{tip.title}</p>
+                    <p className="mt-1 text-xs text-slate leading-relaxed">{tip.desc}</p>
+                  </div>
+                  <span className="mt-1 shrink-0 text-sm text-slate">{tip.action}</span>
+                </Link>
+              ))
+            })()}
+          </div>
+          <Link
+            href="/dashboard/worker/score"
+            className="mt-4 link-editorial text-sm inline-flex"
+          >
+            Full factor breakdown →
+          </Link>
+        </section>
+      )}
+      {/* Current score improvement tips when no krost score yet */}
+      {!hasKrost && (
+        <section>
+          <h2 className="mb-6 text-heading-feature text-ink-black">Build your score</h2>
+          <div className="space-y-3">
+            {[
+              {
+                icon: '⊞',
+                title: 'Connect your first platform',
+                desc: 'Link a gig platform via Plaid to start building your income history. Earnings from every trip and delivery count toward your score.',
+                action: 'Connect →',
+                href: '/dashboard/worker/connections',
+              },
+              {
+                icon: '📋',
+                title: 'Generate a report',
+                desc: 'Once connected, generate a Krost Score and create a lender-ready PDF report in minutes.',
+                action: 'Learn more →',
+                href: '/dashboard/worker/score',
+              },
+              {
+                icon: '🔒',
+                title: 'Mint your digital Passport',
+                desc: 'After reaching a score of 580, you can mint a permanent on-chain financial identity — yours forever.',
+                action: 'About Passport →',
+                href: '/dashboard/worker/passport',
+              },
+            ].map((tip) => (
+              <Link
+                key={tip.title}
+                href={tip.href}
+                className="card-bordered flex items-start gap-4 px-6 py-5 transition hover:border-ink-black"
+              >
+                <span className="mt-0.5 text-xl">{tip.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-ink-black">{tip.title}</p>
+                  <p className="mt-1 text-xs text-slate leading-relaxed">{tip.desc}</p>
+                </div>
+                <span className="mt-1 shrink-0 text-sm text-slate">{tip.action}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* CTAs */}
       <section className="grid gap-4 md:grid-cols-2">
         <Link
@@ -300,12 +440,12 @@ export default async function WorkerDashboard() {
           <span className="text-2xl text-slate">→</span>
         </Link>
         <Link
-          href="/dashboard/worker/score"
+          href="/dashboard/worker/ledger"
           className="card-stone flex items-center justify-between p-6 transition hover:border-ink-black"
         >
           <div>
-            <p className="font-display text-xl text-ink-black">View score breakdown</p>
-            <p className="mt-1 text-sm text-slate">See factors, trajectory, platform details</p>
+            <p className="font-display text-xl text-ink-black">Earnings ledger</p>
+            <p className="mt-1 text-sm text-slate">Unified timeline of all platform earnings</p>
           </div>
           <span className="text-2xl text-slate">→</span>
         </Link>

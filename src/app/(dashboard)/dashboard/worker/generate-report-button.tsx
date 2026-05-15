@@ -7,6 +7,26 @@ export function GenerateReportButton({ hasReports }: { hasReports: boolean }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ downloadUrl?: string; shareUrl?: string; expiresAt?: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const handleCopyShare = async () => {
+    if (!result?.shareUrl) return
+    try {
+      await navigator.clipboard.writeText(result.shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    } catch {
+      // Fallback: select text from a temp input
+      const input = document.createElement('input')
+      input.value = result.shareUrl
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand('copy')
+      document.body.removeChild(input)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    }
+  }
 
   const handleGenerate = async () => {
     setLoading(true)
@@ -36,7 +56,7 @@ export function GenerateReportButton({ hasReports }: { hasReports: boolean }) {
     return (
       <div className="space-y-3">
         <p className="text-sm text-green-800">Report generated!</p>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <a
             href={result.downloadUrl}
             target="_blank"
@@ -46,15 +66,18 @@ export function GenerateReportButton({ hasReports }: { hasReports: boolean }) {
             Download PDF
           </a>
           <button
-            onClick={() => {
-              navigator.clipboard.writeText(result.shareUrl!)
-              alert('Share link copied!')
-            }}
-            className="btn-outline text-sm"
+            onClick={handleCopyShare}
+            className={`btn-outline text-sm ${copied ? '!bg-emerald-50 !text-emerald-700 !border-emerald-300' : ''}`}
           >
-            Copy share link
+            {copied ? '✓ Link copied!' : 'Copy share link'}
           </button>
         </div>
+        <p className="text-xs text-slate break-all">
+          Share: <span className="font-mono text-slate/70">{result.shareUrl}</span>
+        </p>
+        <p className="text-xs text-slate">
+          Recipients will be asked for their email before viewing the report.
+        </p>
       </div>
     )
   }

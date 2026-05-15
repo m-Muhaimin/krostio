@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { createServiceSupabaseClient } from '@/lib/supabase-service'
+import { syncOnChainAttestation } from '@/lib/score-sync'
 
 /**
  * POST /api/passport/attest
  *
  * Pillar 4: Krost Passport
- * Triggers an on-chain attestation of the worker's Krost Score.
+ * Triggers an on-chain attestation of the worker's Krost Score
+ * via the deployer key. No user wallet required.
  *
- * In a real production environment, this would:
- * 1. Validate the user has a qualifying score (>= 580)
- * 2. Connect to an Account Abstraction provider (e.g. Biconomy, Pimlico)
- * 3. Call the `mintPassport` or `updatePassport` function on the IncomeAttestation contract
- * 4. Pay gas from the Krostio paymaster
- * 5. Update the `passports` and `attestation_history` tables in Supabase
+ * Flow:
+ *   Validate score ≥ 580
+ *   Upsert passport record
+ *   Call syncOnChainAttestation (deployer key → attestForWorker)
+ *   Record attestation_history
+ *   Return tx details
  */
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies()
@@ -37,7 +40,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // 1. Fetch latest score
+  // 1. Fetch latest krost score
   const { data: krostScore } = await supabase
     .from('krost_scores')
     .select('*')
@@ -50,46 +53,116 @@ export async function POST(request: NextRequest) {
     }, { status: 400 })
   }
 
-  // 2. Simulated Attestation Logic (for MVP/Solo phase)
-  // In Phase 1, we simulate the L2 transaction to demonstrate the flow.
-  const txHash = `0x${crypto.randomUUID().replace(/-/g, '')}`
-  const tokenId = Math.floor(Math.random() * 1000000).toString()
+  // 2. Use admin client to read/create passport
+  const admin = createServiceSupabaseClient()
 
-  // 3. Upsert Passport record
-  const { data: passport, error: passportError } = await supabase
+  const { data: existingPassport } = await admin
     .from('passports')
-    .upsert({
-      user_id: user.id,
-      wallet_address: `0x${user.id.slice(0, 8)}...simulated`,
-      token_id: tokenId,
-      chain: 'base',
-      contract_address: process.env.NEXT_PUBLIC_ATTESTATION_CONTRACT_ADDRESS || '0xKrostPassportContract',
-      minted_at: new Date().toISOString(),
-      last_attested_at: new Date().toISOString(),
-      current_score: krostScore.score,
-      score_tier: krostScore.tier,
-      attestation_count: 1,
-    })
-    .select()
-    .single()
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle()
 
-  if (passportError) {
-    return NextResponse.json({ error: passportError.message }, { status: 500 })
+  if (existingPassport && !existingPassport.wallet_address) {
+    return NextResponse.json({
+      error: 'Connect a wallet first via the Passport page before attesting on-chain.',
+    }, { status: 400 })
   }
 
-  // 4. Record Attestation History
-  await supabase.from('attestation_history').insert({
-    passport_id: passport.id,
-    score: krostScore.score,
-    income_tier: krostScore.tier,
-    tx_hash: txHash,
-    data_hash: crypto.randomUUID(), // simplified hash
-  })
+  let walletAddress: `0x${string}` | null = existingPassport?.wallet_address as `0x${string}` | null
 
+  // 3. Get income_verifications for sync params
+  const { data: incomeVerif } = await supabase
+    .from('income_verifications')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('calculated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  // Use defaults for any missing fields
+  const monthlyAvgIncome = incomeVerif?.monthly_avg_income ?? 3000
+  const incomeVolatility = incomeVerif?.income_volatility ?? 0.3
+  const tenureMonths = incomeVerif?.tenure_months ?? 12
+  const platformDiversity = incomeVerif?.platform_diversity ?? 1
+  const reliabilityScore = (krostScore as any)?.reliability_score ?? 70
+
+  // 4. Create/update passport record
+  const passportPayload = {
+    user_id: user.id,
+    current_score: krostScore.score,
+    score_tier: krostScore.tier,
+    chain: 'base',
+    contract_address: process.env.NEXT_PUBLIC_ATTESTATION_CONTRACT_ADDRESS || null,
+  }
+
+  let passportId = existingPassport?.id
+
+  if (existingPassport) {
+    await admin.from('passports').update(passportPayload).eq('id', existingPassport.id)
+  } else {
+    const { data: newPassport } = await admin
+      .from('passports')
+      .insert({ ...passportPayload, is_public: true })
+      .select()
+      .single()
+
+    passportId = newPassport?.id
+    walletAddress = newPassport?.wallet_address as `0x${string}` | null
+  }
+
+  if (!passportId) {
+    return NextResponse.json({ error: 'Failed to create passport record' }, { status: 500 })
+  }
+
+  // 5. Execute on-chain attestation via deployer key
+  if (walletAddress) {
+    const syncResult = await syncOnChainAttestation({
+      workerAddress: walletAddress,
+      score: krostScore.score,
+      monthlyAvgIncome,
+      incomeVolatility,
+      tenureMonths,
+      platformDiversity,
+      reliabilityScore,
+    })
+
+    if (syncResult.success) {
+      // Record attestation history
+      await admin.from('attestation_history').insert({
+        passport_id: passportId,
+        score: krostScore.score,
+        score_tier: krostScore.tier,
+        income_tier: monthlyAvgIncome >= 5000 ? 'premium' : monthlyAvgIncome >= 3000 ? 'strong' : 'moderate',
+        tx_hash: syncResult.txHash,
+      })
+
+      // Update passport
+      await admin.from('passports').update({
+        last_attested_at: new Date().toISOString(),
+        attestation_count: (existingPassport?.attestation_count ?? 0) + 1,
+      }).eq('id', passportId)
+
+      return NextResponse.json({
+        success: true,
+        txHash: syncResult.txHash,
+        blockNumber: syncResult.blockNumber,
+        passportId,
+        message: 'Krost Passport attested on-chain.',
+      })
+    } else {
+      return NextResponse.json({
+        success: false,
+        error: syncResult.error,
+        passportId,
+        message: 'Passport record saved but on-chain attestation failed.',
+      }, { status: 500 })
+    }
+  }
+
+  // No wallet connected — just save the passport record without on-chain sync
   return NextResponse.json({
     success: true,
-    passport,
-    txHash,
-    message: 'Krost Passport successfully attested on Base L2.'
+    passportId,
+    message: 'Passport created. Connect a wallet to attest on-chain.',
   })
 }

@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { calculateKrostScore } from '@/lib/scoring-engine'
 import type { KrostScoreInput } from '@/types'
+import { syncOnChainAttestation } from '@/lib/score-sync'
 
 /**
  * GET /api/score/krost
@@ -149,7 +150,24 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // v2 inputs (use defaults for now — these will come from ledger_entries and tax docs later)
+  // v2 — Cross-platform growth: new platforms adopted in the last 12 months
+  let crossPlatformGrowth = 0
+  try {
+    const twelveMonthsAgo = new Date()
+    twelveMonthsAgo.setFullYear(twelveMonthsAgo.getFullYear() - 1)
+    const { data: recentConnections } = await supabase
+      .from('platform_connections')
+      .select('platform')
+      .eq('user_id', user.id)
+      .gte('connected_at', twelveMonthsAgo.toISOString())
+    if (recentConnections) {
+      crossPlatformGrowth = new Set(recentConnections.map(c => c.platform)).size
+    }
+  } catch {
+    // Non-critical — default to 0
+  }
+
+  // v2 inputs
   const input: KrostScoreInput = {
     avgMonthlyIncome: avgMonthly,
     platformTenureMonths: tenureMonths,
@@ -157,8 +175,8 @@ export async function GET(request: NextRequest) {
     platformDiversity: platforms.size,
     earningConsistency,
     incomeTrajectory: trajectorySlope,
-    taxCompliance: false,                // TODO: query tax_compliance table
-    crossPlatformGrowth: 0,              // TODO: query ledger_entries for new platforms in last 12mo
+    taxCompliance: false,                // TODO: query tax_compliance table when available
+    crossPlatformGrowth,                 // computed from platform_connections
     ledgerDepth: monthlyTotals.length,   // months of available data
   }
 
@@ -187,6 +205,37 @@ export async function GET(request: NextRequest) {
       .eq('id', existingRecord.id)
   } else {
     await supabase.from('krost_scores').insert(payload)
+  }
+
+  // ─── Auto-sync to on-chain if user has a passport with wallet ───
+  try {
+    const { data: passport } = await supabase
+      .from('passports')
+      .select('wallet_address')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (passport?.wallet_address) {
+      // Non-blocking — don't await, fire and forget on-chain sync
+      syncOnChainAttestation({
+        workerAddress: passport.wallet_address as `0x${string}`,
+        score: result.score,
+        monthlyAvgIncome: avgMonthly,
+        incomeVolatility: cv,
+        tenureMonths,
+        platformDiversity: platforms.size,
+        reliabilityScore: earningConsistency,
+      }).then(syncResult => {
+        if (syncResult.success) {
+          console.log(`[krost-sync] On-chain attestation complete: tx=${syncResult.txHash}`)
+        } else {
+          console.warn(`[krost-sync] On-chain sync skipped: ${syncResult.error}`)
+        }
+      })
+    }
+  } catch {
+    // Non-critical — score saved even if on-chain fails
+    console.warn('[krost-sync] Failed to check passport for on-chain sync')
   }
 
   return NextResponse.json({ ...result, cached: false })

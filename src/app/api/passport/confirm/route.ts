@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
 
   const { tokenId, txHash } = await request.json()
 
-  if (!tokenId || !txHash) {
-    return NextResponse.json({ error: 'tokenId and txHash are required' }, { status: 400 })
+  if (!txHash) {
+    return NextResponse.json({ error: 'txHash is required' }, { status: 400 })
   }
 
   const { data: passport } = await supabase
@@ -47,14 +47,18 @@ export async function POST(request: NextRequest) {
   }
 
   // Update passport with on-chain data
+  const updateData: Record<string, any> = {
+    minted_at: new Date().toISOString(),
+    last_attested_at: new Date().toISOString(),
+    attestation_count: 1,
+  }
+  if (tokenId) {
+    updateData.token_id = tokenId
+  }
+
   const { error } = await supabase
     .from('passports')
-    .update({
-      token_id: tokenId,
-      minted_at: new Date().toISOString(),
-      last_attested_at: new Date().toISOString(),
-      attestation_count: 1,
-    })
+    .update(updateData)
     .eq('user_id', user.id)
 
   if (error) {

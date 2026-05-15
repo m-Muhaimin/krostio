@@ -58,10 +58,11 @@ Breakdown:
 
 ## Tech Implementation
 
-- **Single server component** at `/check-score` route
-- **Client-side mock:** Shows animated score meter with randomized realistic values
-- **Real version:** Would connect to actual gig platform API (Argyle) for live scoring
-- **Conversion event:** "score_check_completed" + "score_signup" analytics events
+- **Client component** at `/check-score` with 4-step state machine (`landing → connecting → result → email → saved`)
+- **Score simulated client-side** based on 5 factors: income stability (30%), platform diversity (20%), earnings trajectory (20%), activity consistency (20%), platform tenure (10%)
+- **Animated states:** Platform dots cycle during "connecting", gauge needle sweeps on result, breakdown bars fill in sequence
+- **Conversion event:** Score computed → email captured via POST to `/api/waitlist`
+- **Real version:** Would connect to actual gig platform API (Argyle/Plaid) for live earnings data
 
 ## Success Metrics
 

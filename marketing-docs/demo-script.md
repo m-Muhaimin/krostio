@@ -79,7 +79,7 @@
 ## Production Notes
 
 - **Background music:** Modern electronic, uptempo but not distracting (Epidemic Sound, Artlist)
-- **Colors:** Gradient from emerald to blue (matching app theme)
+- **Colors:** Coral (#FF5A3D) and ink-black (#1A1A1A) on cream (#FFF8F0) — matching app theme
 - **Font:** Clean sans-serif, white text on dark backgrounds
 - **Device mockup:** iPhone 15 Pro frame if recording mobile web, or clean browser window
 - **No voiceover needed** — text-driven works better for short-format (TikTok, Instagram Reels, Twitter)
