@@ -5,40 +5,48 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   typescript: true,
 })
 
-export const GIG_WORKER_PRICE_ID = process.env.STRIPE_GIG_WORKER_PRICE_ID!
-export const LENDER_PRICE_ID = process.env.STRIPE_LENDER_PRICE_ID!
+// Price IDs — set these in Vercel env vars
+export const PRO_MONTHLY_PRICE_ID = process.env.STRIPE_PRO_MONTHLY_PRICE_ID!
+export const ONE_TIME_PRICE_ID = process.env.STRIPE_ONE_TIME_PRICE_ID!
+
+// Legacy compat (remove after env migration)
+export const GIG_WORKER_PRICE_ID = PRO_MONTHLY_PRICE_ID
+export const LENDER_PRICE_ID = ''    // lender plan removed from MVP
 
 export const PLANS = [
   {
-    id: 'gig_worker_monthly',
-    name: 'Gig Worker',
-    description: 'Build your credit score and access better financing',
-    price: 29,
+    id: 'pro_monthly',
+    name: 'Pro',
+    description: 'Unlimited reports and shareable links for serious earners',
+    price: 19,
     interval: 'month' as const,
-    priceId: GIG_WORKER_PRICE_ID,
-    role: 'gig_worker' as const,
+    priceId: PRO_MONTHLY_PRICE_ID,
+    mode: 'subscription' as const,
+    popular: true,
     features: [
-      'Connect up to 3 gig platforms',
-      'Monthly credit score updates',
-      'Score sharing with lenders',
-      'On-chain score attestation',
-      'Income history reports',
+      'Connect up to 5 platforms',
+      'Unlimited PDF reports',
+      'Expiring shareable links (7/30 day)',
+      '24 months income history',
+      'Downloadable as PDF',
+      'Priority support',
     ],
   },
   {
-    id: 'lender_monthly',
-    name: 'Lender',
-    description: 'Verify gig worker income in seconds, not days',
-    price: 99,
-    interval: 'month' as const,
-    priceId: LENDER_PRICE_ID,
-    role: 'lender' as const,
+    id: 'one_time',
+    name: 'Single Report',
+    description: 'One PDF, one-time, no strings attached',
+    price: 9,
+    interval: null as string | null,
+    priceId: ONE_TIME_PRICE_ID,
+    mode: 'payment' as const,
+    popular: false,
     features: [
-      'Up to 50 verifications per month',
-      'On-chain score verification',
-      'Bulk income report downloads',
-      'Risk scoring API access',
-      'Custom scoring parameters',
+      '1 platform connection',
+      '1 PDF report',
+      '12 months income history',
+      'Shareable link (7 days)',
+      'No subscription needed',
     ],
   },
 ]

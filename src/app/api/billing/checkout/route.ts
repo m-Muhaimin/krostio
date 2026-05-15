@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { stripe, PRO_MONTHLY_PRICE_ID, ONE_TIME_PRICE_ID } from '@/lib/stripe'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -26,9 +26,16 @@ export async function POST(request: NextRequest) {
   }
 
   const { priceId } = await request.json()
-
   if (!priceId) {
     return NextResponse.json({ error: 'Price ID required' }, { status: 400 })
+  }
+
+  // Determine if this is a subscription or one-time purchase
+  const isOneTime = priceId === ONE_TIME_PRICE_ID
+  const isSubscription = priceId === PRO_MONTHLY_PRICE_ID
+
+  if (!isOneTime && !isSubscription) {
+    return NextResponse.json({ error: 'Unknown price ID' }, { status: 400 })
   }
 
   // Get or create Stripe customer
@@ -56,13 +63,12 @@ export async function POST(request: NextRequest) {
 
   const checkoutSession = await stripe.checkout.sessions.create({
     customer: customerId,
-    mode: 'subscription',
+    mode: isOneTime ? 'payment' : 'subscription',
     payment_method_types: ['card'],
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${appUrl}/dashboard/billing?upgraded=true`,
     cancel_url: `${appUrl}/dashboard/billing?canceled=true`,
-    subscription_data: { trial_period_days: 14 },
-    // Make the Stripe customer/subscription queryable back to this Supabase user.
+    ...(isSubscription && { subscription_data: { trial_period_days: 14 } }),
     client_reference_id: user.id,
     metadata: { user_id: user.id },
   })

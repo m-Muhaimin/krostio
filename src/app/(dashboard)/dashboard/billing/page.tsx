@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { GIG_WORKER_PRICE_ID, LENDER_PRICE_ID } from '@/lib/stripe'
+import { PRO_MONTHLY_PRICE_ID, ONE_TIME_PRICE_ID } from '@/lib/stripe'
 import { SubscribeButton } from './subscribe-button'
 import { BillingAutoStart, BillingSuccessBanner } from './billing-client'
 
@@ -17,18 +17,16 @@ export default async function BillingPage({
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  let role = 'gig_worker'
   let subscription: { status: string; price_id: string | null } | null = null
 
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, subscription_status, stripe_price_id')
+      .select('subscription_status, stripe_price_id')
       .eq('id', user.id)
       .single()
 
     if (profile) {
-      role = profile.role
       if (profile.subscription_status && profile.subscription_status !== 'free') {
         subscription = {
           status: profile.subscription_status,
@@ -40,50 +38,43 @@ export default async function BillingPage({
 
   const plans = [
     {
-      id: 'gig_worker_monthly',
-      name: 'Gig worker',
-      description: 'Full credit profile for workers',
-      price: 29,
-      priceId: GIG_WORKER_PRICE_ID,
-      role: 'gig_worker',
-      popular: false,
+      id: 'pro_monthly',
+      name: 'Pro',
+      description: 'Unlimited reports and shareable links',
+      price: 19,
+      priceId: PRO_MONTHLY_PRICE_ID,
+      popular: true,
+      priceSuffix: '/ month',
       features: [
-        'Unlimited platform connections',
-        'Real-time score updates',
-        'Detailed score breakdown',
-        'On-chain attestation (Base L2)',
-        'Share score with unlimited lenders',
-        'Score history & trends',
+        'Connect up to 5 platforms',
+        'Unlimited PDF reports',
+        'Expiring shareable links',
+        '24 months income history',
+        'Downloadable PDF reports',
       ],
     },
     {
-      id: 'lender_monthly',
-      name: 'Lender',
-      description: 'Verify worker income at scale',
-      price: 99,
-      priceId: LENDER_PRICE_ID,
-      role: 'lender',
-      popular: true,
+      id: 'one_time',
+      name: 'Single Report',
+      description: 'One PDF, no subscription',
+      price: 9,
+      priceId: ONE_TIME_PRICE_ID,
+      popular: false,
+      priceSuffix: 'one-time',
       features: [
-        '50 verifications per month',
-        'Search workers by email/wallet',
-        'On-chain score verification',
-        'Income history reports',
-        'Bulk verification API',
-        'Priority support',
+        '1 platform connection',
+        '1 PDF report',
+        '12 months history',
+        'Shareable link (7 days)',
+        'No subscription needed',
       ],
     },
   ]
 
   const isSubscribed = subscription?.status === 'active' || subscription?.status === 'trialing'
 
-  // Resolve a `?start=worker|lender` hint into the matching Stripe price id.
-  const autoStartPriceId =
-    start === 'worker'
-      ? GIG_WORKER_PRICE_ID
-      : start === 'lender'
-        ? LENDER_PRICE_ID
-        : null
+  // Resolve a `?start=worker` hint into the matching Stripe price id.
+  const autoStartPriceId = start === 'worker' ? PRO_MONTHLY_PRICE_ID : null
 
   return (
     <div className="space-y-14">
@@ -112,9 +103,9 @@ export default async function BillingPage({
             <p className="text-mono-label text-slate">Current plan</p>
             <p className="mt-3 font-display text-3xl tracking-tight text-ink-black">
               {isSubscribed
-                ? subscription!.price_id === LENDER_PRICE_ID
-                  ? 'Lender'
-                  : 'Gig worker'
+                ? subscription!.price_id === PRO_MONTHLY_PRICE_ID
+                  ? 'Pro'
+                  : 'Free'
                 : 'Free'}
             </p>
             {subscription && (
@@ -145,6 +136,39 @@ export default async function BillingPage({
         </div>
       </section>
 
+      {/* Free tier callout */}
+      <section className="card-stone">
+        <div className="flex items-start justify-between gap-6">
+          <div>
+            <span className="chip-coral-outline mb-5">Always free</span>
+            <p className="text-mono-label text-slate">Free</p>
+            <div className="mt-4 flex items-baseline gap-2">
+              <span className="font-display text-5xl font-normal tracking-tight text-ink-black">
+                $0
+              </span>
+              <span className="text-sm text-slate">/ forever</span>
+            </div>
+            <p className="mt-3 text-sm text-slate">
+              Get started with a verified income snapshot. No card required.
+            </p>
+          </div>
+          <ul className="mt-2 space-y-3 text-sm text-ink max-w-sm">
+            <li className="flex items-start gap-3">
+              <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
+              1 platform connection
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
+              Income snapshot (no PDF)
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
+              90 days history
+            </li>
+          </ul>
+        </div>
+      </section>
+
       {/* Plans */}
       <section>
         <h2 className="mb-6 text-heading-feature text-ink-black">
@@ -152,16 +176,10 @@ export default async function BillingPage({
         </h2>
         <div className="grid gap-6 md:grid-cols-2">
           {plans.map((plan) => {
-            const isRelevant = plan.role === role
             const isCurrentPlan = isSubscribed && subscription?.price_id === plan.priceId
 
             return (
-              <div
-                key={plan.id}
-                className={`card-stone ${
-                  !isRelevant && !isSubscribed ? 'opacity-50' : ''
-                }`}
-              >
+              <div key={plan.id} className="card-stone">
                 {plan.popular && !isSubscribed && (
                   <span className="chip-coral mb-5">Recommended</span>
                 )}
@@ -173,7 +191,7 @@ export default async function BillingPage({
                   <span className="font-display text-5xl font-normal tracking-tight text-ink-black">
                     ${plan.price}
                   </span>
-                  <span className="text-sm text-slate">/ month</span>
+                  <span className="text-sm text-slate">{plan.priceSuffix}</span>
                 </div>
                 <p className="mt-3 text-sm text-slate">{plan.description}</p>
                 <ul className="mt-6 space-y-3 text-sm text-ink">
@@ -184,26 +202,19 @@ export default async function BillingPage({
                     </li>
                   ))}
                 </ul>
-                {isRelevant && (
-                  <SubscribeButton
-                    priceId={plan.priceId}
-                    label={
-                      isCurrentPlan
-                        ? 'Current plan'
-                        : isSubscribed
-                          ? 'Switch to this plan'
+                <SubscribeButton
+                  priceId={plan.priceId}
+                  label={
+                    isCurrentPlan
+                      ? 'Current plan'
+                      : isSubscribed
+                        ? 'Switch to this plan'
+                        : plan.id === 'one_time'
+                          ? 'Buy single report'
                           : 'Upgrade'
-                    }
-                    disabled={isCurrentPlan}
-                  />
-                )}
-                {!isRelevant && !isSubscribed && (
-                  <p className="mt-6 text-xs text-slate">
-                    {role === 'lender'
-                      ? 'Gig Worker plan available after account setup'
-                      : 'Lender plan available after account setup'}
-                  </p>
-                )}
+                  }
+                  disabled={isCurrentPlan}
+                />
               </div>
             )
           })}
