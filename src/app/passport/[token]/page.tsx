@@ -1,11 +1,10 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ethers } from 'ethers'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
+import { createPublicClient, http } from 'viem'
+import { baseSepolia } from 'viem/chains'
 import { INCOME_ATTESTATION_ABI, getContractAddress } from '@/lib/contract'
 import type { Metadata } from 'next'
-
-// ─── Tier definitions ────────────────────────────────────────────────
 
 const SCORE_TIER_META: Record<string, { label: string; color: string; textColor: string; bgClass: string }> = {
   elite:    { label: 'Elite',      color: '#003c33', textColor: 'text-[#003c33]', bgClass: 'bg-[#edfce9]' },
@@ -41,7 +40,11 @@ function formatMonths(months: number): string {
   return `${months} months`
 }
 
-// ─── Metadata ────────────────────────────────────────────────────────
+const admin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+)
 
 interface PageProps {
   params: Promise<{ token: string }>
@@ -50,8 +53,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params
-  const supabase = await createServerSupabaseClient()
-  const { data: passport } = await supabase
+  const { data: passport } = await admin
     .from('passports')
     .select('score_tier, current_score')
     .eq('id', token)
@@ -72,17 +74,12 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   }
 }
 
-// ─── Page component ──────────────────────────────────────────────────
-
 export default async function PassportPage({ params, searchParams }: PageProps) {
   const { token } = await params
   const { show_exact } = await searchParams
   const showExact = show_exact === 'true'
 
-  const supabase = await createServerSupabaseClient()
-
-  // 1. Fetch passport
-  const { data: passport } = await supabase
+  const { data: passport } = await admin
     .from('passports')
     .select('*')
     .eq('id', token)
@@ -93,8 +90,7 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
     notFound()
   }
 
-  // 2. Fetch latest attestation history
-  const { data: attestations } = await supabase
+  const { data: attestations } = await admin
     .from('attestation_history')
     .select('*')
     .eq('passport_id', passport.id)
@@ -103,7 +99,7 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
 
   const latestAttestation = attestations?.[0] ?? null
 
-  // 3. On-chain verification (read-only, best-effort)
+  // On-chain verification via viem
   let onChainVerified = false
   let onChainScore: number | null = null
   let onChainMonthlyAvg: number | null = null
@@ -112,41 +108,48 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
 
   if (passport.wallet_address) {
     try {
-      const provider = new ethers.JsonRpcProvider('https://sepolia.base.org')
+      const publicClient = createPublicClient({
+        chain: baseSepolia,
+        transport: http('https://sepolia.base.org'),
+      })
       const contractAddress = getContractAddress()
-      const contract = new ethers.Contract(contractAddress, INCOME_ATTESTATION_ABI, provider)
 
-      const ids: bigint[] = await contract.getWorkerAttestationIds(passport.wallet_address)
+      const ids = (await publicClient.readContract({
+        address: contractAddress,
+        abi: INCOME_ATTESTATION_ABI,
+        functionName: 'getWorkerAttestationIds',
+        args: [passport.wallet_address as `0x${string}`],
+      })) as bigint[]
 
-      // Walk from newest to oldest to find an active one
       for (let i = ids.length - 1; i >= 0; i--) {
-        const att = await contract.attestations(ids[i])
+        const att = (await publicClient.readContract({
+          address: contractAddress,
+          abi: INCOME_ATTESTATION_ABI,
+          functionName: 'attestations',
+          args: [ids[i]],
+        })) as any
+
         if (att.isActive) {
           onChainVerified = true
-          onChainScore = Number(att.score) / 100       // contract stores ×100
-          onChainMonthlyAvg = Number(att.monthlyAvgIncome) / 100  // cents → dollars
+          onChainScore = Number(att.score) / 100
+          onChainMonthlyAvg = Number(att.monthlyAvgIncome) / 100
           onChainTenure = Number(att.tenureMonths)
           onChainPlatforms = Number(att.platformDiversity)
           break
         }
       }
     } catch {
-      // On-chain query failed — page still works with DB data
       console.warn('On-chain query failed for wallet', passport.wallet_address)
     }
   }
 
-  // 4. Derive display values
   const scoreTier = passport.score_tier ?? 'emerging'
   const tierMeta = SCORE_TIER_META[scoreTier] ?? SCORE_TIER_META.emerging
-
   const incomeTier = latestAttestation?.income_tier
     ?? (onChainMonthlyAvg ? deriveIncomeTier(onChainMonthlyAvg) : 'moderate')
   const incomeMeta = INCOME_TIER_META[incomeTier] ?? INCOME_TIER_META.moderate
-
-  const tenureMonths = onChainTenure ?? passport.attestation_count > 0 ? 12 : 0
+  const tenureMonths = onChainTenure ?? 12
   const platformCount = onChainPlatforms ?? 1
-
   const txHash = latestAttestation?.tx_hash ?? null
   const attestedAt = latestAttestation?.attested_at ?? passport.last_attested_at ?? passport.created_at
 
@@ -154,20 +157,11 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
     ? `https://sepolia.basescan.org/tx/${txHash}`
     : `https://sepolia.basescan.org/address/${passport.wallet_address ?? ''}`
 
-  // Determine actual monthly income for privacy gate
-  const exactMonthly = showExact && passport.is_public
-    ? (onChainMonthlyAvg ?? null)
-    : null
-
-  const exactScore = showExact && passport.is_public
-    ? (onChainScore ?? passport.current_score ?? null)
-    : null
-
-  // ─── Render ──────────────────────────────────────────────────────
+  const exactMonthly = showExact && passport.is_public ? onChainMonthlyAvg : null
+  const exactScore = showExact && passport.is_public ? (onChainScore ?? passport.current_score ?? null) : null
 
   return (
     <div className="min-h-screen bg-[#ffffff] text-[#212121] font-sans">
-      {/* Header */}
       <header className="border-b border-[#f2f2f2]">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
@@ -182,10 +176,8 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
         </div>
       </header>
 
-      {/* Main card */}
       <main className="mx-auto max-w-2xl px-6 py-16 sm:py-24">
         <div className="rounded-2xl border border-[#f2f2f2] bg-[#ffffff] p-8 sm:p-12 shadow-sm">
-          {/* Verification badge */}
           <div className="mb-8 flex items-center gap-2">
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#edfce9]">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#003c33" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -196,13 +188,10 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
               {onChainVerified ? 'Verified On-Chain' : 'Verified'}
             </span>
             {onChainVerified && (
-              <span className="ml-auto text-xs text-[#75758a]">
-                Base L2
-              </span>
+              <span className="ml-auto text-xs text-[#75758a]">Base L2</span>
             )}
           </div>
 
-          {/* Score Tier badge — hero */}
           <div className="mb-8 text-center">
             <div className={`mx-auto mb-4 inline-flex items-center gap-2 rounded-full px-5 py-2 ${tierMeta.bgClass}`}>
               <span className={`text-sm font-semibold uppercase tracking-wider ${tierMeta.textColor}`}>
@@ -224,38 +213,26 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
             )}
           </div>
 
-          {/* Metrics grid */}
           <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {/* Score tier */}
             <div className="rounded-xl border border-[#f2f2f2] bg-[#ffffff] p-4 text-center">
               <div className="text-xs font-medium uppercase tracking-wider text-[#75758a]">Score</div>
               <div className={`mt-1 text-lg font-bold ${tierMeta.textColor}`} style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 {tierMeta.label}
               </div>
             </div>
-
-            {/* Income tier */}
             <div className="rounded-xl border border-[#f2f2f2] bg-[#ffffff] p-4 text-center">
               <div className="text-xs font-medium uppercase tracking-wider text-[#75758a]">Income</div>
-              <div className="mt-1 text-sm font-semibold text-[#17171c]">
-                {incomeMeta.label}
-              </div>
+              <div className="mt-1 text-sm font-semibold text-[#17171c]">{incomeMeta.label}</div>
               {exactMonthly !== null && (
-                <div className="mt-0.5 text-xs text-[#75758a]">
-                  ~${Math.round(exactMonthly / 500) * 500}/mo
-                </div>
+                <div className="mt-0.5 text-xs text-[#75758a]">~${Math.round(exactMonthly / 500) * 500}/mo</div>
               )}
             </div>
-
-            {/* Tenure */}
             <div className="rounded-xl border border-[#f2f2f2] bg-[#ffffff] p-4 text-center">
               <div className="text-xs font-medium uppercase tracking-wider text-[#75758a]">Tenure</div>
               <div className="mt-1 text-lg font-bold text-[#17171c]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 {formatMonths(tenureMonths)}
               </div>
             </div>
-
-            {/* Platforms */}
             <div className="rounded-xl border border-[#f2f2f2] bg-[#ffffff] p-4 text-center">
               <div className="text-xs font-medium uppercase tracking-wider text-[#75758a]">Platforms</div>
               <div className="mt-1 text-lg font-bold text-[#17171c]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -264,7 +241,6 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
             </div>
           </div>
 
-          {/* On-chain details */}
           <div className="rounded-xl border border-[#f2f2f2] bg-[#fafafa] p-5">
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#75758a]">On-Chain Verification</h2>
             <div className="space-y-2 text-sm">
@@ -282,20 +258,13 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
               {passport.wallet_address && (
                 <div className="flex justify-between">
                   <span className="text-[#75758a]">Worker Wallet</span>
-                  <span className="font-mono text-[#17171c]">
-                    {shortenAddress(passport.wallet_address)}
-                  </span>
+                  <span className="font-mono text-[#17171c]">{shortenAddress(passport.wallet_address)}</span>
                 </div>
               )}
               {txHash && (
                 <div className="flex justify-between">
                   <span className="text-[#75758a]">Attestation TX</span>
-                  <a
-                    href={basescanUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-mono text-[#1863dc] underline-offset-2 hover:underline"
-                  >
+                  <a href={basescanUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-[#1863dc] underline-offset-2 hover:underline">
                     {shortenAddress(txHash)}
                   </a>
                 </div>
@@ -315,15 +284,13 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
             </div>
           </div>
 
-          {/* Footer note */}
           <p className="mt-6 text-center text-xs text-[#75758a]">
-            This passport confirms a {"worker's"} credit tier as computed from verified gig platform earnings.
+            This passport confirms a worker&apos;s credit tier as computed from verified gig platform earnings.
             Exact financial details are only shown with explicit worker authorization.
           </p>
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-[#f2f2f2]">
         <div className="mx-auto max-w-4xl px-6 py-8 text-center text-xs text-[#93939f]">
           <p>Krost — Income verification for the gig economy</p>
