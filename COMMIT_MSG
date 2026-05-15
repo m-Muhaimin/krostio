@@ -1,6 +1,0 @@
-feat: Plaid as primary income connection path
-
-- Updated connections UI with sandbox seed tool and re-sync button
-- Changed button classes to design system (btn-ink, btn-outline)
-- Unified Plaid backend completes flow: Link to exchange to sync to score
-- Added Plaid env vars to Vercel for production

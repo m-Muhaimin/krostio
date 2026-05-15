@@ -102,71 +102,81 @@
       </div>
     </div>
 
-    <!-- Right: console mockup -->
+    <!-- Right: animated credit report card -->
     <div class="hero-media">
-      <div class="card-media">
-        <div class="agent-console">
-          <div class="agent-console-head">
-            <div class="agent-id">
-              <span class="agent-avatar"></span>
-              <div>
-                <p class="agent-name">Krostio identity agent</p>
-                <p class="agent-status">4 pillars &middot; 3 platforms verified</p>
-              </div>
-            </div>
-            <div class="agent-chips">
-              <span class="agent-chip"><span class="dot dot-score"></span>Score</span>
-              <span class="agent-chip"><span class="dot dot-ledger"></span>Ledger</span>
-              <span class="agent-chip"><span class="dot dot-verifier"></span>Verify</span>
-              <span class="agent-chip"><span class="dot dot-passport"></span>Passport</span>
+      <div class="crc-card">
+        <!-- Header bar -->
+        <div class="crc-header">
+          <div class="crc-brand-line">
+            <svg width="16" height="16" viewBox="0 0 80 80" fill="none"><rect width="80" height="80" rx="14" fill="#000000"/><path d="M24 62V18h10l26 24-26 20h10l20-16 6 16H24z" fill="#ffffff"/></svg>
+            <span class="crc-brand-name">KROSTIO</span>
+          </div>
+          <span class="crc-badge">VERIFIED</span>
+        </div>
+
+        <!-- Score ring -->
+        <div class="crc-score-area">
+          <div class="crc-ring">
+            <svg class="crc-ring-svg" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" class="crc-ring-bg" />
+              <circle cx="60" cy="60" r="52" class="crc-ring-progress"
+                stroke-dasharray="326.7"
+                stroke-dashoffset="65.3"
+              />
+            </svg>
+            <div class="crc-ring-inner">
+              <span class="crc-score-num">724</span>
+              <span class="crc-score-unit">/ 850</span>
             </div>
           </div>
+          <p class="crc-score-tier">Strong &mdash; Building tier</p>
+        </div>
 
-          <div class="agent-rule"></div>
-
-          <p class="agent-prompt-label">Pillar 1 &middot; Krost Score</p>
-          <p class="agent-prompt">
-            Compute attested credit score for verified user 0x71C&hellip;dE3a across Uber, DoorDash, Upwork.
-            Output: 724 / 850. Tier: Strong. Annualized income: $58,420.
-          </p>
-
-          <div class="agent-rule"></div>
-
-          <p class="agent-prompt-label">Pillar 2 &middot; Krost Ledger</p>
-          <p class="agent-prompt">
-            Multi-platform earnings timeline. 38-month career tenure. Combined monthly avg: $4,868.
-            Platform diversity: 3. Consistency: 94%.
-          </p>
-
-          <div class="agent-rule"></div>
-
-          <p class="agent-prompt-label">Pillar 3 &middot; Krost Verifier</p>
-          <p class="agent-prompt">
-            Generate lender-ready PDF + shareable link. Attested on Base L2. Shareable with
-            any lender via one-time URL with expiry and access log.
-          </p>
-
-          <div class="agent-rule"></div>
-
-          <p class="agent-prompt-label">Pillar 4 &middot; Krost Passport</p>
-          <p class="agent-prompt">
-            Soul-bound on-chain identity token. Permanently owned by worker wallet. Score tier,
-            income tier, career tenure — public. Attestation log immutable.
-          </p>
-
-          <div class="agent-rule"></div>
-
-          <div class="agent-result">
-            <div class="result-score">
-              <span class="result-score-number">724</span>
-              <span class="result-score-label">Krost Score</span>
-            </div>
-            <div class="result-meta">
-              <p><span class="meta-key">Annualized income</span><span class="meta-val">$58,420</span></p>
-              <p><span class="meta-key">Consistency</span><span class="meta-val">94%</span></p>
-              <p><span class="meta-key">Passport</span><span class="meta-val mono">0xa1f2&hellip;7c4b</span></p>
-            </div>
+        <!-- Quick stats -->
+        <div class="crc-stats">
+          <div class="crc-stat">
+            <span class="crc-stat-label">Annualized income</span>
+            <span class="crc-stat-val">$58,420</span>
           </div>
+          <div class="crc-stat">
+            <span class="crc-stat-label">Consistency</span>
+            <span class="crc-stat-val">94%</span>
+          </div>
+          <div class="crc-stat">
+            <span class="crc-stat-label">Platforms</span>
+            <span class="crc-stat-val">3</span>
+          </div>
+        </div>
+
+        <!-- Animated bars -->
+        <div class="crc-bars">
+          <div class="crc-bar-row">
+            <div class="crc-bar-head">
+              <span class="crc-bar-label">Score</span>
+              <span class="crc-bar-pct">724/850</span>
+            </div>
+            <div class="crc-bar-track"><div class="crc-bar-fill crc-bar-1"></div></div>
+          </div>
+          <div class="crc-bar-row">
+            <div class="crc-bar-head">
+              <span class="crc-bar-label">Income tier</span>
+              <span class="crc-bar-pct">72%</span>
+            </div>
+            <div class="crc-bar-track"><div class="crc-bar-fill crc-bar-2"></div></div>
+          </div>
+          <div class="crc-bar-row">
+            <div class="crc-bar-head">
+              <span class="crc-bar-label">Tenure</span>
+              <span class="crc-bar-pct">38 mo</span>
+            </div>
+            <div class="crc-bar-track"><div class="crc-bar-fill crc-bar-3"></div></div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="crc-footer">
+          <span class="crc-verify">Attested on Base L2 &middot; krostio.app/verify</span>
+          <span class="crc-stamp">ATTESTED</span>
         </div>
       </div>
     </div>
