@@ -11,6 +11,7 @@
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.105.4",
     "clsx": "^2.1.1",
     "next": "16.2.6",
     "plaid": "^42.2.0",
@@ -29,6 +30,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "supabase": "^2.98.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
