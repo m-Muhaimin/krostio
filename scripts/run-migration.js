@@ -1,6 +1,6 @@
 const { Client } = require('pg');
 const fs = require('fs');
-const sql = fs.readFileSync('db/migration.sql', 'utf8');
+const sql = fs.readFileSync('db/migration.sql', 'utf8') + '\n\n' + fs.readFileSync('db/migration-v2.sql', 'utf8');
 
 // URL-encode the & in password
 const password = encodeURIComponent('q&QiU36Uhxr44fm');

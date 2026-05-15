@@ -6,7 +6,8 @@
     "dev": "NODE_OPTIONS=--dns-result-order=ipv4first next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:migrate": "node scripts/run-migration.js"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",
