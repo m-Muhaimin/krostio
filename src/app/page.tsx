@@ -36,6 +36,7 @@ export default function HomePage() {
             <a href="#product" className="text-nav text-ink hover:text-ink-black">Product</a>
             <a href="#how-it-works" className="text-nav text-ink hover:text-ink-black">How it works</a>
             <Link href="/learn" className="text-nav text-ink hover:text-ink-black">Learn</Link>
+            <Link href="/check-score" className="text-nav text-ink hover:text-ink-black font-medium">Score check</Link>
             <a href="#pricing" className="text-nav text-ink hover:text-ink-black">Pricing</a>
           </div>
 
@@ -72,7 +73,7 @@ export default function HomePage() {
             </p>
 
             <div className="mt-10 flex flex-wrap items-center gap-6">
-              <Link href="/register" className="btn-primary">
+              <Link href="/check-score" className="btn-primary">
                 Check your score free
               </Link>
               <Link href="/register" className="btn-secondary">
@@ -499,9 +500,9 @@ export default function HomePage() {
                 Free score preview. No credit card. Takes about three minutes.
               </p>
               <div className="mt-10 flex flex-wrap items-center gap-6">
-                <Link href="/register" className="btn-primary">
-                  Get your free score
-                </Link>
+              <Link href="/check-score" className="btn-primary">
+                Get your free score
+              </Link>
                 <Link href="/login" className="btn-secondary">
                   I already have an account →
                 </Link>

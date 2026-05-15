@@ -1,11 +1,13 @@
 import { plaid } from './plaid'
+import { getSupabaseAdmin } from './supabase-admin'
+import { calculateCreditScore } from './scoring-engine'
 import type { Transaction } from 'plaid'
-import type { GigPlatform } from '@/types'
+import type { GigPlatform, IncomeRecord } from '@/types'
 
-/**
- * Map Plaid merchant/category data to our GigPlatform enum.
- * Plaid surfaces gig payouts as deposits from "UBER PAYMENTS", "DOORDASH INC", etc.
- */
+// ──────────────────────────────────────────────
+// Platform detection from Plaid merchant names
+// ──────────────────────────────────────────────
+
 const PLATFORM_PATTERNS: Array<{ pattern: RegExp; platform: GigPlatform }> = [
   // Rideshare + delivery
   { pattern: /\bUBER\s*EATS\b|UBEREATS/i, platform: 'ubereats' },
@@ -22,7 +24,7 @@ const PLATFORM_PATTERNS: Array<{ pattern: RegExp; platform: GigPlatform }> = [
   { pattern: /\bTURO\b/i, platform: 'turo' },
   { pattern: /AIRBNB/i, platform: 'airbnb' },
   { pattern: /AMAZON\s*FLEX|AMZN\s*FLEX/i, platform: 'amazon_flex' },
-  // Retail / marketplace sellers (typically show up as payment processor names)
+  // Retail / marketplace sellers
   { pattern: /SHOPIFY/i, platform: 'shopify' },
   { pattern: /\bETSY\b/i, platform: 'etsy' },
   { pattern: /MERCARI/i, platform: 'mercari' },
@@ -41,6 +43,10 @@ function detectPlatform(merchantName: string | null, name: string): GigPlatform 
   return null
 }
 
+// ──────────────────────────────────────────────
+// Types
+// ──────────────────────────────────────────────
+
 export type IncomeRow = {
   user_id: string
   platform: GigPlatform
@@ -54,13 +60,17 @@ export type IncomeRow = {
   currency: string
 }
 
-/**
- * Pull 90 days of transactions for an item, filter to gig-platform deposits,
- * and aggregate into weekly income_records rows.
- *
- * Plaid returns negative amounts for credits/deposits, so deposits have amount < 0.
- * We flip the sign to store positive earnings.
- */
+export type SyncResult = {
+  rowsAdded: number
+  platformsDetected: GigPlatform[]
+  score: Record<string, any> | null
+}
+
+// ──────────────────────────────────────────────
+// Fetch transactions from Plaid and bucket by
+// platform + ISO week
+// ──────────────────────────────────────────────
+
 export async function fetchGigIncomeForItem(
   accessToken: string,
   userId: string,
@@ -92,13 +102,7 @@ export async function fetchGigIncomeForItem(
   }
 
   // Filter to gig-platform deposits (negative amount = credit) and bucket by week+platform
-  type Bucket = {
-    platform: GigPlatform
-    weekStart: string
-    weekEnd: string
-    gross: number
-    count: number
-  }
+  type Bucket = { platform: GigPlatform; weekStart: string; weekEnd: string; gross: number; count: number }
   const buckets = new Map<string, Bucket>()
 
   for (const tx of all) {
@@ -125,13 +129,7 @@ export async function fetchGigIncomeForItem(
       existing.gross += amount
       existing.count += 1
     } else {
-      buckets.set(key, {
-        platform,
-        weekStart: weekStartIso,
-        weekEnd: weekEndIso,
-        gross: amount,
-        count: 1,
-      })
+      buckets.set(key, { platform, weekStart: weekStartIso, weekEnd: weekEndIso, gross: amount, count: 1 })
     }
   }
 
@@ -147,4 +145,156 @@ export async function fetchGigIncomeForItem(
     rating: null,
     currency: 'USD',
   }))
+}
+
+// ──────────────────────────────────────────────
+// Reusable sync: fetch Plaid data, write to
+// income_records + ledger_entries, recalculate
+// score. Used by both exchange and webhook flows.
+// ──────────────────────────────────────────────
+
+export async function syncPlaidItem(
+  accessToken: string,
+  userId: string,
+  itemId: string,
+  institution?: { name?: string; institution_id?: string }
+): Promise<SyncResult> {
+  const supabase = getSupabaseAdmin() as any
+
+  // 1. Fetch income data from Plaid
+  const incomeRows = await fetchGigIncomeForItem(accessToken, userId, 90)
+
+  // 2. Detect platforms
+  const platforms = Array.from(new Set(incomeRows.map((r) => r.platform)))
+  const platformsToRecord = platforms.length > 0 ? platforms : ['other' as const]
+
+  // 3. Upsert platform_connections
+  for (const platform of platformsToRecord) {
+    await supabase.from('platform_connections').upsert(
+      {
+        user_id: userId,
+        platform,
+        platform_user_id: `${userId}_${platform}`,
+        access_token: accessToken,
+        item_id: itemId,
+        institution_id: institution?.institution_id ?? null,
+        institution_name: institution?.name ?? null,
+        provider: 'plaid',
+        is_active: true,
+        last_sync_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,platform' }
+    )
+  }
+
+  // 4. Write to income_records
+  let insertedCount = 0
+  if (incomeRows.length > 0) {
+    const { count } = await supabase.from('income_records').upsert(
+      // Use platform + week as dedup key — upsert to avoid duplicates
+      incomeRows.map((r) => ({
+        ...r,
+        // Use a stable ID format so repeated syncs don't create duplicates
+        id: `${itemId}_${r.platform}_${r.period_start}`,
+      })),
+      { onConflict: 'id', ignoreDuplicates: true }
+    )
+    insertedCount = count ?? incomeRows.length
+
+    // 5. Also write to ledger_entries (v2 table) in parallel
+    const ledgerRows = incomeRows.map((r) => ({
+      user_id: r.user_id,
+      platform: r.platform,
+      gross_amount: r.gross_earnings,
+      net_amount: r.net_earnings,
+      currency: r.currency,
+      period_start: r.period_start,
+      period_end: r.period_end,
+      payment_date: r.period_end,
+      category: detectCategory(r.platform),
+      platform_ref_id: `${itemId}_${r.platform}_${r.period_start}`,
+      verified_at: new Date().toISOString(),
+      source: 'plaid' as const,
+    }))
+
+    await supabase.from('ledger_entries').upsert(ledgerRows, {
+      onConflict: 'user_id,platform,platform_ref_id',
+      ignoreDuplicates: true,
+    })
+  }
+
+  // 6. Recalculate score
+  let score = null
+  const { data: allIncome } = await supabase
+    .from('income_records')
+    .select('*')
+    .eq('user_id', userId)
+
+  if (allIncome && allIncome.length > 0) {
+    try {
+      const calc = calculateCreditScore(allIncome as IncomeRecord[], userId)
+      const expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+
+      await supabase.from('income_verifications').upsert(
+        {
+          user_id: calc.user_id,
+          consistency_score: calc.consistency_score,
+          annualized_income: calc.annualized_income,
+          monthly_avg_income: calc.monthly_avg_income,
+          income_volatility: calc.income_volatility,
+          tenure_months: calc.tenure_months,
+          platform_diversity: calc.platform_diversity,
+          diversity_score: calc.diversity_score,
+          trajectory_label: calc.trajectory_label,
+          trajectory_slope: calc.trajectory_slope,
+          lender_ready_status: calc.lender_ready_status,
+          score_factors: calc.score_factors,
+          calculated_at: calc.calculated_at,
+          expires_at,
+        },
+        { onConflict: 'user_id' }
+      )
+
+      score = calc
+    } catch {
+      // not enough data — score stays null
+    }
+  }
+
+  return {
+    rowsAdded: insertedCount,
+    platformsDetected: platformsToRecord,
+    score,
+  }
+}
+
+// ──────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────
+
+const CATEGORY_MAP: Record<string, string> = {
+  uber: 'rides',
+  lyft: 'rides',
+  ubereats: 'delivery',
+  doordash: 'delivery',
+  grubhub: 'delivery',
+  instacart: 'delivery',
+  fiverr: 'freelance',
+  upwork: 'freelance',
+  freelancer: 'freelance',
+  turo: 'flex',
+  airbnb: 'flex',
+  amazon_flex: 'delivery',
+  shopify: 'marketplace',
+  etsy: 'marketplace',
+  mercari: 'marketplace',
+  poshmark: 'marketplace',
+  ebay: 'marketplace',
+  depop: 'marketplace',
+  stockx: 'marketplace',
+  whatnot: 'marketplace',
+}
+
+function detectCategory(platform: GigPlatform): string {
+  return CATEGORY_MAP[platform] || 'other'
 }
