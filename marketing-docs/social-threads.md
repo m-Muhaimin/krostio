@@ -24,7 +24,7 @@
 
 **Tweet 7:** For lenders: 64M new potential customers with verifiable income data you can underwrite against. For workers: a credit identity that's actually accurate. For the system: an upgrade that was 15 years overdue.
 
-**Tweet 8:** I'm building @Krostio — a decentralized platform for gig worker credit scoring. We're in early access. If you're a gig worker or a lender who wants in: [link]
+**Tweet 8:** I'm building @Krost — the decentralized platform for gig worker credit scoring. We're in early access. If you're a gig worker or a lender who wants in: [link]
 
 **Hashtags:** #GigEconomy #Fintech #Credit #DeFi #AlternativeCredit
 

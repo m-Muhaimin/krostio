@@ -1,4 +1,5 @@
-# Competitive Intelligence Report — Krostio
+# [ARCHIVED] Competitive Intelligence Report — Krostio
+> **ARCHIVED:** This file was generated during initial research. It uses the old brand name "Krostio" throughout and has been superseded by `competitive-intel-output.md` (which uses "Krost"). Do not edit — kept for historical reference.
 
 > Phase 2 (Market): Competitive landscape analysis.
 > Produced: May 15, 2026

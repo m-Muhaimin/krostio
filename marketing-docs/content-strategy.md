@@ -1,4 +1,4 @@
-# Content Strategy — Krostio
+# Content Strategy — Krost
 
 > Phase 2 (Market) — Growth Marketer mode
 > Based on competitive intelligence (see `competitive-intelligence.md` + `competitor-comparison.md`)
@@ -10,7 +10,7 @@
 
 From competitive intel:
 
-- **Whitespace:** Krostio is the only product combining multi-platform gig income scoring + on-chain attestation + worker-owned data.
+- **Whitespace:** Krost is the only product combining multi-platform gig income scoring + on-chain attestation + worker-owned data.
 - **Biggest threat:** Plaid or Argyle adding a scoring layer. Content should build brand + community defensively.
 - **Key angle for content:** "64M Americans are invisible to credit bureaus. Here's the fix."
 
@@ -38,7 +38,7 @@ From competitive intel:
 | 2 | "The API for Gig Worker Credit Scores — Technical Overview" | credit scoring API gig workers | Hacker News, dev.to | Technical blog | /lenders |
 | 3 | "How Credit Unions Can Approve 30% More Applicants Without Changing Risk Models" | credit union gig worker lending | CU Today, NAFCU blog | Case study / whitepaper | /lenders |
 | 4 | "On-Chain Income Verification: Real-World Data Meets DeFi Lending" | DeFi real-world verification | DeFi Twitter, Telegram, ethresearch | Technical deep-dive | /lenders |
-| 5 | "Plaid vs. Argyle vs. Krostio: What Lenders Need to Know in 2026" | income verification comparison 2026 | Fintech Nexus, LinkedIn, lender blogs | Comparative analysis | /lenders |
+|| 5 | "Plaid vs. Argyle vs. Krost: What Lenders Need to Know in 2026" | income verification comparison 2026 | Fintech Nexus, LinkedIn, lender blogs | Comparative analysis | /lenders |
 
 ### Cluster 3: Category Creation (Viral/PR) — "The First Mover"
 *Target: technology press, fintech VCs, crypto-native audience*

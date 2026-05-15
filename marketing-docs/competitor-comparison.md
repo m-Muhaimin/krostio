@@ -1,4 +1,5 @@
-# Competitor Comparison — Krostio
+# [ARCHIVED] Competitor Comparison — Krostio
+> **ARCHIVED:** This file uses the old brand name "Krostio" throughout and has been superseded by `competitive-intel-output.md`. Do not edit — kept for historical reference.
 
 > For internal use and lender/sales conversations.
 > Categories: Gig worker credit scoring, income data aggregators, alternative credit scoring, credit-builder apps, DeFi income protocols, employer verification.

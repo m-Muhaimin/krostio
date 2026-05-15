@@ -64,6 +64,30 @@ const articles: Article[] = [
       'A full guide for Instacart full-service shoppers on documenting income for landlords, lenders, and underwriters — the documents that work, the pitfalls to avoid, and what to do about mileage deductions.',
     readTime: '9 min read',
   },
+  {
+    href: '/learn/gig-workers-denied-loans',
+    eyebrow: 'Credit & loans',
+    title: 'Your gig income is real. Here\'s why banks don\'t see it.',
+    excerpt:
+      'Traditional credit scores penalize gig workers. A new model based on actual platform earnings is changing that.',
+    readTime: '10 min read',
+  },
+  {
+    href: '/learn/income-verification-fails',
+    eyebrow: 'For lenders',
+    title: 'Why traditional income verification fails gig workers.',
+    excerpt:
+      '64M gig workers earn $1T+ annually. Most lenders can\'t serve them. Here\'s the fix — and the $1T opportunity.',
+    readTime: '8 min read',
+  },
+  {
+    href: '/learn/income-volatility-myth',
+    eyebrow: 'Scoring',
+    title: 'Why income volatility is the wrong proxy for creditworthiness.',
+    excerpt:
+      'Credit models treat income variability as risk. For gig workers, this misreads a feature as a bug.',
+    readTime: '9 min read',
+  },
 ]
 
 export default function LearnIndexPage() {
