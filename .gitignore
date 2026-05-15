@@ -55,3 +55,4 @@ blockchain/node_modules/
 blockchain/pnpm-lock.yaml
 blockchain/pnpm-workspace.yaml
 blockchain/keystore.json
+blockchain/deployments/
