@@ -35,6 +35,21 @@ export const INCOME_ATTESTATION_ABI = [
   },
   {
     type: 'function',
+    name: 'attestForWorker',
+    inputs: [
+      { name: 'worker', type: 'address', internalType: 'address' },
+      { name: 'score', type: 'uint256', internalType: 'uint256' },
+      { name: 'monthlyAvgIncome', type: 'uint256', internalType: 'uint256' },
+      { name: 'incomeVolatility', type: 'uint256', internalType: 'uint256' },
+      { name: 'tenureMonths', type: 'uint256', internalType: 'uint256' },
+      { name: 'platformDiversity', type: 'uint256', internalType: 'uint256' },
+      { name: 'reliabilityScore', type: 'uint256', internalType: 'uint256' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     name: 'createAttestation',
     inputs: [
       { name: 'score', type: 'uint256', internalType: 'uint256' },

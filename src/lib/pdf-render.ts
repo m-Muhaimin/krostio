@@ -126,7 +126,7 @@ export async function generateReport(userId: string): Promise<GenerateReportResu
   return {
     reportId,
     downloadUrl: signedUrl.signedUrl,
-    shareUrl: `${process.env.NEXT_PUBLIC_APP_URL}/report/${reportId}`,
+    shareUrl: `${process.env.NEXT_PUBLIC_APP_URL}/r/${report.share_token}`,
     expiresAt: expiresAt.toISOString(),
   }
 }

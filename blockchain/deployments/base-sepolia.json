@@ -3,8 +3,15 @@
   "network": "baseSepolia",
   "address": "0x54c3a111E4271bE6d7F1053d08F79Ca859737BF2",
   "deployer": "0x9A72019465d70902e4Fce9a39F4e3e739440C55d",
+  "version": "v2",
+  "v2Changes": [
+    "Added attestForWorker(address worker, ...) owner-only function"
+  ],
   "deployTx": "see basescan",
   "timestamp": "2026-05-15T13:42:00Z",
+  "lastModified": "2026-05-15T20:03:00Z",
   "chainId": 84532,
-  "explorer": "https://sepolia.basescan.org/address/0x54c3a111E4271bE6d7F1053d08F79Ca859737BF2"
+  "explorer": "https://sepolia.basescan.org/address/0x54c3a111E4271bE6d7F1053d08F79Ca859737BF2",
+  "redeployRequired": true,
+  "redeployNote": "Compiled with attestForWorker. Deploy to baseSepolia with: cd blockchain && npx hardhat run scripts/deploy.js --network baseSepolia (requires real PRIVATE_KEY in .env)"
 }

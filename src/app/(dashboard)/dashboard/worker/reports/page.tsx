@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createServiceSupabaseClient } from '@/lib/supabase-service'
 import { GenerateReportButton } from '../generate-report-button'
 import { RevokeButton } from '../revoke-button'
+import { ReportViewsSection } from './report-views'
 
 type Report = {
   id: string
@@ -10,6 +11,13 @@ type Report = {
   expires_at: string
   viewer_count: number | null
   is_expired: boolean
+}
+
+type ReportView = {
+  id: string
+  report_id: string
+  viewer_email: string | null
+  viewed_at: string
 }
 
 function formatDate(iso: string): string {
@@ -67,6 +75,24 @@ export default async function ReportsPage() {
   const activeReports = reports.filter((r) => !r.is_expired)
   const expiredReports = reports.filter((r) => r.is_expired)
   const totalViews = reports.reduce((sum, r) => sum + (r.viewer_count ?? 0), 0)
+
+  // Fetch report views for access log
+  let reportViews: ReportView[] = []
+  if (reports.length > 0) {
+    try {
+      const service = createServiceSupabaseClient()
+      const reportIds = reports.map((r) => r.id)
+      const { data: views } = await service
+        .from('report_views')
+        .select('id, report_id, viewer_email, viewed_at')
+        .in('report_id', reportIds)
+        .order('viewed_at', { ascending: false })
+        .limit(50)
+      reportViews = views ?? []
+    } catch {
+      // Views not available — skip silently
+    }
+  }
 
   return (
     <div className="space-y-14">
@@ -158,7 +184,7 @@ export default async function ReportsPage() {
                     rel="noreferrer"
                     className="link-editorial text-sm"
                   >
-                    Download →
+                    Download PDF →
                   </a>
                 </div>
               </div>
@@ -188,6 +214,18 @@ export default async function ReportsPage() {
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* Access log — who viewed your reports */}
+      {reportViews.length > 0 && (
+        <section>
+          <h2 className="mb-6 text-heading-feature text-ink-black">Recent views</h2>
+          <p className="mt-1 mb-6 text-sm text-slate">
+            Lenders who have accessed your shared reports. Viewers are logged when they enter
+            their email through the share link gate.
+          </p>
+          <ReportViewsSection views={reportViews} reports={reports} />
         </section>
       )}
 
