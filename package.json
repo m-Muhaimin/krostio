@@ -13,9 +13,12 @@
     "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
+    "@tanstack/react-query": "^5.100.10",
+    "@vercel/analytics": "^2.0.1",
     "clsx": "^2.1.1",
     "jsonwebtoken": "^9.0.3",
     "next": "16.2.6",
+    "permissionless": "^0.3.5",
     "pg": "^8.20.0",
     "plaid": "^42.2.0",
     "posthog-js": "^1.373.4",
@@ -24,7 +27,9 @@
     "react-markdown": "^10.1.0",
     "react-plaid-link": "^4.1.1",
     "stripe": "^22.1.1",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "viem": "^2.49.2",
+    "wagmi": "^3.6.15"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -149,7 +149,24 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // v2 inputs (use defaults for now — these will come from ledger_entries and tax docs later)
+  // v2 — Cross-platform growth: new platforms adopted in the last 12 months
+  let crossPlatformGrowth = 0
+  try {
+    const twelveMonthsAgo = new Date()
+    twelveMonthsAgo.setFullYear(twelveMonthsAgo.getFullYear() - 1)
+    const { data: recentConnections } = await supabase
+      .from('platform_connections')
+      .select('platform')
+      .eq('user_id', user.id)
+      .gte('connected_at', twelveMonthsAgo.toISOString())
+    if (recentConnections) {
+      crossPlatformGrowth = new Set(recentConnections.map(c => c.platform)).size
+    }
+  } catch {
+    // Non-critical — default to 0
+  }
+
+  // v2 inputs
   const input: KrostScoreInput = {
     avgMonthlyIncome: avgMonthly,
     platformTenureMonths: tenureMonths,
@@ -157,8 +174,8 @@ export async function GET(request: NextRequest) {
     platformDiversity: platforms.size,
     earningConsistency,
     incomeTrajectory: trajectorySlope,
-    taxCompliance: false,                // TODO: query tax_compliance table
-    crossPlatformGrowth: 0,              // TODO: query ledger_entries for new platforms in last 12mo
+    taxCompliance: false,                // TODO: query tax_compliance table when available
+    crossPlatformGrowth,                 // computed from platform_connections
     ledgerDepth: monthlyTotals.length,   // months of available data
   }
 

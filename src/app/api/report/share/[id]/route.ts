@@ -31,6 +31,11 @@ export async function GET(
       return NextResponse.json({ error: 'This report link has expired' }, { status: 410 })
     }
 
+    // Check revocation
+    if (report.is_revoked) {
+      return NextResponse.json({ error: 'This report has been revoked by the owner' }, { status: 410 })
+    }
+
     // Get the file from storage
     const { data: file, error: fileError } = await supabase.storage
       .from('reports')

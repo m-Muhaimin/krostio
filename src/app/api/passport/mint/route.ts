@@ -6,12 +6,13 @@ import { cookies } from 'next/headers'
  * POST /api/passport/mint
  *
  * Initiates the Passport minting flow.
- * 1. Checks that the user has a Krost Score ≥ 580 (Building tier minimum)
- * 2. Creates a passport record in DB (as a draft)
- * 3. Returns the mint payload for the client to execute the on-chain transaction
+ * 1. Checks Krost Score ≥ 580 (Building tier minimum)
+ * 2. Fetches income verification data for contract params
+ * 3. Creates a passport record in DB (draft)
+ * 4. Returns the data needed for client-side on-chain createAttestation()
  *
- * The actual on-chain mint happens client-side via wagmi/ethers.
- * After successful mint, the client calls POST /api/passport/confirm with the tx hash.
+ * The actual on-chain tx happens client-side via wagmi/viem.
+ * After successful mint, the client calls POST /api/passport/confirm.
  */
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies()
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
   // Check Krost Score — minimum 580 (Building tier)
   const { data: krost } = await supabase
     .from('krost_scores')
-    .select('score, tier, breakdown')
+    .select('score, tier')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
   if (krost.score < 580) {
     return NextResponse.json(
       {
-        error: `Krost Score ${krost.score} is below the minimum of 580 (Building tier). Continue building your income history to qualify.`,
+        error: `Krost Score ${krost.score} is below the minimum of 580 (Building tier).`,
         currentScore: krost.score,
         currentTier: krost.tier,
         minimumScore: 580,
@@ -94,6 +95,25 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Fetch income verification data for contract params
+  const { data: incomeVerification } = await supabase
+    .from('income_verifications')
+    .select('monthly_avg_income, income_volatility, tenure_months, platform_diversity, consistency_score')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  // Build contract params for createAttestation()
+  const score = Math.min(850, Math.max(300, krost.score))
+  const monthlyAvgIncome = incomeVerification?.monthly_avg_income
+    ? Math.round(Number(incomeVerification.monthly_avg_income) * 100) // convert to cents
+    : 0
+  const incomeVolatility = incomeVerification?.income_volatility
+    ? Math.min(10000, Math.max(0, Math.round(Number(incomeVerification.income_volatility) * 10000)))
+    : 0
+  const tenureMonths = incomeVerification?.tenure_months ?? 1
+  const platformDiversity = incomeVerification?.platform_diversity ?? 1
+  const reliabilityScore = incomeVerification?.consistency_score ?? 50
+
   const contractAddress = process.env.NEXT_PUBLIC_ATTESTATION_CONTRACT_ADDRESS
 
   // Create passport draft record
@@ -115,12 +135,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Return mint payload for client-side transaction
   return NextResponse.json({
     passport: {
       id: passport.id,
       walletAddress: passport.wallet_address,
-      tokenId: passport.token_id,
       chain: passport.chain,
       contractAddress: passport.contract_address,
       currentScore: passport.current_score,
@@ -128,23 +146,16 @@ export async function POST(request: NextRequest) {
     },
     mintPayload: contractAddress ? {
       contractAddress,
-      abi: [
-        'function mintPassport(address worker, tuple(uint256 krostScore, uint256 annualizedIncome, uint256 platformCount, uint256 tenureMonths, string scoreTier, uint256 lastUpdated, uint256 verificationCount, bytes32 dataHash) data) external',
-      ],
-      args: {
-        worker: walletAddress,
-        data: {
-          krostScore: krost.score,
-          annualizedIncome: Math.round((krost.breakdown as any)?.annualizedIncome || 0),
-          platformCount: (krost.breakdown as any)?.platformDiversity || 0,
-          tenureMonths: (krost.breakdown as any)?.tenureMonths || 0,
-          scoreTier: krost.tier,
-          lastUpdated: Math.floor(Date.now() / 1000),
-          verificationCount: 1,
-          dataHash: '0x' + Buffer.from(JSON.stringify({ score: krost.score, tier: krost.tier })).toString('hex').slice(0, 64),
-        },
+      method: 'createAttestation',
+      params: {
+        score: score * 100,     // 300–850 → scaled to 30000–85000
+        monthlyAvgIncome,        // USD cents
+        incomeVolatility,        // 0–10000 (4 decimals)
+        tenureMonths,
+        platformDiversity,
+        reliabilityScore,        // 0–100
       },
     } : null,
-    message: 'Passport record created. Execute the on-chain mint from the client, then call POST /api/passport/confirm to finalize.',
+    message: 'Passport record created. Use wagmi/viem to call createAttestation() on-chain, then POST /api/passport/confirm.',
   })
 }

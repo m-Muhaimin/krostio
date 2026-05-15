@@ -2,6 +2,7 @@ import { requireRole } from '@/lib/auth-guard'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createServiceSupabaseClient } from '@/lib/supabase-service'
 import { GenerateReportButton } from '../generate-report-button'
+import { RevokeButton } from '../revoke-button'
 
 type Report = {
   id: string
@@ -24,15 +25,16 @@ export default async function ReportsPage() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Check if user has a score (can generate reports)
-  const { data: verification } = await supabase
-    .from('income_verifications')
-    .select('consistency_score')
+  // Check if user has a Krost Score (300-850) — required to generate reports
+  const { data: krostScore } = await supabase
+    .from('krost_scores')
+    .select('score, tier')
     .eq('user_id', user!.id)
     .maybeSingle()
 
-  const hasScore = !!verification
-  const score = verification?.consistency_score ?? null
+  const hasScore = !!krostScore
+  const score = krostScore?.score ?? null
+  const scoreTier = krostScore?.tier ?? null
 
   // Fetch reports
   let reports: Report[] = []
@@ -105,13 +107,24 @@ export default async function ReportsPage() {
       {hasScore && (
         <section className="card-stone p-8">
           <div className="flex items-start justify-between gap-6">
-            <div>
+            <div className="max-w-lg">
               <p className="font-display text-xl text-ink-black">Generate new report</p>
               <p className="mt-2 text-sm text-slate">
-                Create a lender-ready PDF with your income summary, consistency score, and platform
+                Create a lender-ready PDF with your income summary, Krost Score, and platform
                 profile. Each report is timestamped and shareable via a unique link.
                 {reports.length === 0 ? ' Your first report is free.' : ''}
               </p>
+              <div className="mt-3 flex items-center gap-3">
+                <span className="font-display text-2xl text-ink-black">{score}</span>
+                <span className={`inline-block rounded-full px-3 py-0.5 text-xs font-semibold uppercase tracking-wider ${
+                  scoreTier === 'elite' ? 'bg-green-100 text-green-800' :
+                  scoreTier === 'strong' ? 'bg-blue-100 text-blue-800' :
+                  scoreTier === 'building' ? 'bg-amber-100 text-amber-800' :
+                  'bg-gray-100 text-gray-600'
+                }`}>
+                  {scoreTier}
+                </span>
+              </div>
             </div>
             <GenerateReportButton hasReports={reports.length > 0} />
           </div>
@@ -138,6 +151,7 @@ export default async function ReportsPage() {
                 <div className="flex items-center gap-3">
                   <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
                   <span className="text-mono-label text-xs text-deep-green">Active</span>
+                  <RevokeButton reportId={report.id} />
                   <a
                     href={`/api/report/share/${report.id}`}
                     target="_blank"

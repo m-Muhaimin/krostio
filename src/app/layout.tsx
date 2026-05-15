@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { AnalyticsProvider } from '@/lib/analytics-provider'
+import { WalletProvider } from '@/lib/web3-provider'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://krostio.vercel.app'
 
@@ -58,7 +59,9 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className="min-h-screen bg-white text-ink antialiased">
-        <AnalyticsProvider>{children}</AnalyticsProvider>
+        <AnalyticsProvider>
+          <WalletProvider>{children}</WalletProvider>
+        </AnalyticsProvider>
       </body>
     </html>
   )

@@ -47,4 +47,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.vercel
+# Hardhat / blockchain artifacts
+blockchain/cache/
+blockchain/artifacts/
+blockchain/typechain-types/
+blockchain/node_modules/
+blockchain/pnpm-lock.yaml
+blockchain/pnpm-workspace.yaml
+blockchain/keystore.json

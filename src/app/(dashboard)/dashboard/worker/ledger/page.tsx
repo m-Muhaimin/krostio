@@ -37,6 +37,37 @@ type LedgerData = {
   entryCount: number
 }
 
+/** SE tax estimate on YTD net earnings */
+function calcSETax(ytdNet: number): { annualSE: number; quarterlySE: number } {
+  // 15.3% applied to 92.35% of net self-employment earnings
+  const SE_TAX_RATE = 0.153
+  const SE_DEDUCTION = 0.9235
+  const annualSE = ytdNet * SE_DEDUCTION * SE_TAX_RATE
+  const quarterlySE = annualSE / 4
+  return { annualSE, quarterlySE }
+}
+
+type AnomalyFlag = { month: string; pctDrop: number }
+
+/** Find months where income dropped >40% vs trailing 3-month average */
+function detectAnomalies(
+  months: { month: string; gross: number }[]
+): AnomalyFlag[] {
+  const sorted = [...months].sort((a, b) => a.month.localeCompare(b.month))
+  const flags: AnomalyFlag[] = []
+  for (let i = 3; i < sorted.length; i++) {
+    const trailing = sorted.slice(i - 3, i)
+    const avg = trailing.reduce((s, m) => s + m.gross, 0) / 3
+    if (avg <= 0) continue
+    const current = sorted[i].gross
+    const pctDrop = ((avg - current) / avg) * 100
+    if (pctDrop > 40) {
+      flags.push({ month: sorted[i].month, pctDrop: Math.round(pctDrop) })
+    }
+  }
+  return flags
+}
+
 async function loadLedgerData(userId: string): Promise<LedgerData | null> {
   const supabase = await createServerSupabaseClient()
 
@@ -140,9 +171,18 @@ export default async function LedgerPage() {
         platformCount: new Set(monthRows.map((r) => r.platform)).size,
       }
     })
-    .reverse()
+
+  const sortedChron = combinedMonthly
+  const reversedMonthly = [...combinedMonthly].reverse()
 
   const avgMonthly = totalActiveMonths > 0 ? totals.gross_total / totalActiveMonths : 0
+
+  // Pillar 2 — Tax estimation
+  const { annualSE, quarterlySE } = calcSETax(totals.net_total)
+
+  // Pillar 2 — Anomaly detection
+  const anomalies = detectAnomalies(sortedChron)
+  const anomalyMonths = new Set(anomalies.map((a) => a.month))
 
   return (
     <div className="space-y-14">
@@ -169,6 +209,32 @@ export default async function LedgerPage() {
         ))}
       </section>
 
+      {/* Pillar 2 — Tax estimation */}
+      {totals.net_total > 0 && (
+        <section className="card-bordered px-6 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-mono-label text-slate">Self-employment tax estimate</p>
+              <p className="mt-1 text-sm text-slate max-w-lg">
+                Based on your YTD net earnings of <strong>{formatCurrency(totals.net_total)}</strong>.
+                SE tax (15.3% on 92.35% of net earnings).
+              </p>
+            </div>
+            <div className="flex items-center gap-8">
+              <div className="text-right">
+                <p className="text-mono-label text-xs text-slate">Estimated annual</p>
+                <p className="font-display text-2xl tracking-tight text-ink-black">{formatCurrency(annualSE)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-mono-label text-xs text-slate">Quarterly estimated</p>
+                <p className="font-display text-2xl tracking-tight text-signal-orange">{formatCurrency(quarterlySE)}</p>
+                <p className="text-[10px] text-slate">≈ ${Math.round(quarterlySE / 3).toLocaleString()}/mo set aside</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Monthly chart */}
       <section>
         <div className="mb-6 flex items-baseline justify-between">
@@ -177,8 +243,8 @@ export default async function LedgerPage() {
         </div>
         <div className="card-bordered px-6 py-8">
           <div className="flex items-end gap-1.5" style={{ height: 120 }}>
-            {combinedMonthly.slice(0, 12).reverse().map((m) => {
-              const maxGross = Math.max(...combinedMonthly.map((cm) => cm.gross), 1)
+            {reversedMonthly.slice(0, 12).reverse().map((m) => {
+              const maxGross = Math.max(...reversedMonthly.map((cm) => cm.gross), 1)
               const heightPct = Math.max(4, (m.gross / maxGross) * 100)
               return (
                 <div key={m.month} className="group relative flex flex-1 flex-col items-center justify-end" style={{ height: '100%' }}>
@@ -194,7 +260,7 @@ export default async function LedgerPage() {
             })}
           </div>
           <div className="mt-4 flex gap-1.5">
-            {combinedMonthly.slice(0, 12).reverse().map((m) => (
+            {reversedMonthly.slice(0, 12).reverse().map((m) => (
               <span key={m.month} className="flex-1 text-center text-[10px] text-slate">{formatMonth(m.month).slice(0, 3)}</span>
             ))}
           </div>
@@ -249,15 +315,29 @@ export default async function LedgerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline">
-              {combinedMonthly.slice(0, 24).map((m) => (
-                <tr key={m.month} className="hover:bg-soft-stone transition-colors">
-                  <td className="px-5 py-4 font-medium text-ink-black">{formatMonth(m.month)}</td>
+              {reversedMonthly.slice(0, 24).map((m) => {
+                const anomaly = anomalies.find((a) => a.month === m.month)
+                return (
+                  <tr key={m.month} className={`hover:bg-soft-stone transition-colors ${anomaly ? 'bg-red-50/30' : ''}`}>
+                    <td className="px-5 py-4 font-medium text-ink-black">
+                      <div className="flex items-center gap-2">
+                        {anomaly && (
+                          <span title={`${anomaly.pctDrop}% drop from trailing average`} className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                            style={{ backgroundColor: 'var(--color-error-red)', minWidth: 20 }}
+                          >
+                            ⚠
+                          </span>
+                        )}
+                        {formatMonth(m.month)}
+                      </div>
+                    </td>
                   <td className="px-5 py-4 text-right text-ink-black">{formatCurrency(m.gross)}</td>
                   <td className="px-5 py-4 text-right text-slate">{formatCurrency(m.net)}</td>
                   <td className="px-5 py-4 text-center text-slate">{m.platformCount}</td>
                   <td className="px-5 py-4 text-right text-slate">{m.payments}</td>
                 </tr>
-              ))}
+              );
+            })}
             </tbody>
           </table>
         </div>
