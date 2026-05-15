@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createServiceSupabaseClient } from '@/lib/supabase-service'
+import {
+  checkLenderQuota,
+  hasAlreadyVerifiedThisMonth,
+  recordVerification,
+} from '@/lib/lender-quota'
 
 /**
  * GET /api/lender/search?q=alice
@@ -12,6 +17,10 @@ import { createServiceSupabaseClient } from '@/lib/supabase-service'
  *
  * Uses the service-role client to bypass profiles RLS for search, then redacts
  * the response before returning.
+ *
+ * Quota: each unique worker whose full score is revealed this calendar month
+ * counts as ONE verification against the lender's plan. If the lender has run
+ * out of verifications, the API returns 402 Payment Required.
  */
 export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
@@ -81,6 +90,42 @@ export async function GET(request: NextRequest) {
       .in('user_id', approvedIds)
     for (const s of scores ?? []) {
       scoresByWorker.set(s.user_id, s)
+    }
+  }
+
+  // Quota gating: only workers whose FULL score is about to be revealed and
+  // who haven't already been billed this month count toward the cap.
+  const revealedWorkerIds = approvedIds.filter((id) => scoresByWorker.has(id))
+
+  if (revealedWorkerIds.length > 0) {
+    const quota = await checkLenderQuota(user.id)
+
+    // Figure out which of the revealed workers are new this month
+    const newWorkers: string[] = []
+    for (const wid of revealedWorkerIds) {
+      const seen = await hasAlreadyVerifiedThisMonth(user.id, wid)
+      if (!seen) newWorkers.push(wid)
+    }
+
+    if (newWorkers.length > 0 && quota.remaining < newWorkers.length) {
+      return NextResponse.json(
+        {
+          error: 'Verification quota exceeded',
+          message: `You've used ${quota.used} of ${quota.limit} verifications on the ${quota.plan} plan this month. Upgrade to continue.`,
+          quota,
+          upgrade_url: '/dashboard/billing',
+        },
+        { status: 402 },
+      )
+    }
+
+    // Record one verification per new worker revealed
+    for (const wid of newWorkers) {
+      try {
+        await recordVerification(user.id, wid, 'search')
+      } catch (err) {
+        console.error('[lender/search] recordVerification failed', err)
+      }
     }
   }
 

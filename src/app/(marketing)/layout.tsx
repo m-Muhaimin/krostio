@@ -36,14 +36,17 @@ export default function MarketingLayout({
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-8 text-xs text-slate md:flex-row md:items-center md:justify-between">
           <p>© {new Date().getFullYear()} Krost. All rights reserved.</p>
           <div className="flex items-center gap-6">
+            <Link href="/learn" className="hover:text-ink-black">
+              Learn
+            </Link>
+            <Link href="/pricing" className="hover:text-ink-black">
+              Pricing
+            </Link>
             <Link href="/privacy" className="hover:text-ink-black">
               Privacy
             </Link>
             <Link href="/terms" className="hover:text-ink-black">
               Terms
-            </Link>
-            <Link href="/pricing" className="hover:text-ink-black">
-              Pricing
             </Link>
           </div>
         </div>

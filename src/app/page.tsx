@@ -36,7 +36,7 @@ export default function HomePage() {
           <div className="hidden items-center gap-10 md:flex">
             <a href="#product" className="text-nav text-ink hover:text-ink-black">Product</a>
             <a href="#how-it-works" className="text-nav text-ink hover:text-ink-black">How it works</a>
-            <a href="#research" className="text-nav text-ink hover:text-ink-black">Research</a>
+            <Link href="/learn" className="text-nav text-ink hover:text-ink-black">Learn</Link>
             <a href="#pricing" className="text-nav text-ink hover:text-ink-black">Pricing</a>
           </div>
 
@@ -532,12 +532,12 @@ export default function HomePage() {
                 ],
               },
               {
-                heading: 'Research',
+                heading: 'Learn',
                 links: [
-                  ['Methodology', '#research'],
-                  ['Case studies', '#research'],
-                  ['Verification', '#research'],
-                  ['Policy', '#research'],
+                  ['All guides', '/learn'],
+                  ['DoorDash income proof', '/learn/doordash-income-proof'],
+                  ['Uber mortgage', '/learn/uber-mortgage'],
+                  ['1099 car loans', '/learn/1099-income-verification'],
                 ],
               },
               {

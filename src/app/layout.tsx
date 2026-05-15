@@ -2,23 +2,51 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { AnalyticsProvider } from '@/lib/analytics-provider'
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://krostio.vercel.app'
+
 export const metadata: Metadata = {
-  title: 'Krost — Turn Your Gig Income Into Credit',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'Krost — Income verification for the gig economy',
+    template: '%s | Krost',
+  },
   description:
-    'Alternative credit scoring for gig workers. Connect your platforms, get a verifiable credit score, and share it with lenders — you own your data.',
+    'Income verification for gig workers and freelancers. Connect your platforms, get a 0–100 income consistency score, and share a lender-ready report. You own your data.',
+  applicationName: 'Krost',
+  keywords: [
+    'income verification',
+    'gig worker income',
+    'DoorDash income proof',
+    'Uber mortgage',
+    '1099 income verification',
+    'Instacart shopper income',
+    'self-employed income verification',
+    'freelancer income proof',
+  ],
   openGraph: {
-    title: 'Krost',
+    title: 'Krost — Income verification for the gig economy',
     description:
-      'Your gig income is real. We make lenders see it. Decentralized credit scoring for the 60M Americans banks ignore.',
-    images: [{ url: '/og-image.svg', width: 1200, height: 630, alt: 'Krost' }],
+      'Turn multi-platform earnings into a verified income report lenders trust. Built for the 76 million Americans in the gig economy.',
     type: 'website',
     siteName: 'Krost',
+    url: SITE_URL,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Krost',
-    description: 'Decentralized credit scoring for gig workers.',
-    images: ['/og-image.svg'],
+    title: 'Krost — Income verification for the gig economy',
+    description:
+      'Turn multi-platform earnings into a verified income report lenders trust.',
+    creator: '@krostapp',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 }
 

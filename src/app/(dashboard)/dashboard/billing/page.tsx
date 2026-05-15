@@ -1,5 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { PRO_MONTHLY_PRICE_ID, ONE_TIME_PRICE_ID } from '@/lib/stripe'
+import {
+  PRO_MONTHLY_PRICE_ID,
+  ONE_TIME_PRICE_ID,
+  LENDER_PRO_PRICE_ID,
+  LENDER_SCALE_PRICE_ID,
+} from '@/lib/stripe'
 import { SubscribeButton } from './subscribe-button'
 import { BillingAutoStart, BillingSuccessBanner } from './billing-client'
 
@@ -7,6 +12,17 @@ import { BillingAutoStart, BillingSuccessBanner } from './billing-client'
 export const dynamic = 'force-dynamic'
 
 type SearchParams = Promise<{ start?: string; upgraded?: string }>
+
+type Plan = {
+  id: string
+  name: string
+  description: string
+  price: number
+  priceId: string
+  popular: boolean
+  priceSuffix: string
+  features: string[]
+}
 
 export default async function BillingPage({
   searchParams,
@@ -18,15 +34,17 @@ export default async function BillingPage({
   const { data: { user } } = await supabase.auth.getUser()
 
   let subscription: { status: string; price_id: string | null } | null = null
+  let role: string = 'gig_worker'
 
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_status, stripe_price_id')
+      .select('subscription_status, stripe_price_id, role')
       .eq('id', user.id)
       .single()
 
     if (profile) {
+      role = profile.role ?? 'gig_worker'
       if (profile.subscription_status && profile.subscription_status !== 'free') {
         subscription = {
           status: profile.subscription_status,
@@ -36,7 +54,9 @@ export default async function BillingPage({
     }
   }
 
-  const plans = [
+  const isLender = role === 'lender'
+
+  const workerPlans: Plan[] = [
     {
       id: 'pro_monthly',
       name: 'Pro',
@@ -71,10 +91,85 @@ export default async function BillingPage({
     },
   ]
 
+  const lenderPlans: Plan[] = [
+    {
+      id: 'lender_pro',
+      name: 'Lender Pro',
+      description: 'For lending teams ramping up',
+      price: 99,
+      priceId: LENDER_PRO_PRICE_ID,
+      popular: true,
+      priceSuffix: '/ month',
+      features: [
+        'Up to 50 verifications / month',
+        'Approved-request and full-score views',
+        'Worker search across the network',
+        'Usage dashboard',
+        'Email support',
+      ],
+    },
+    {
+      id: 'lender_scale',
+      name: 'Lender Scale',
+      description: 'For teams running serious volume',
+      price: 199,
+      priceId: LENDER_SCALE_PRICE_ID,
+      popular: false,
+      priceSuffix: '/ month',
+      features: [
+        'Up to 150 verifications / month',
+        'Approved-request and full-score views',
+        'Worker search across the network',
+        'Usage dashboard',
+        'Priority support',
+      ],
+    },
+  ]
+
+  const plans = isLender ? lenderPlans : workerPlans
+
   const isSubscribed = subscription?.status === 'active' || subscription?.status === 'trialing'
 
-  // Resolve a `?start=worker` hint into the matching Stripe price id.
-  const autoStartPriceId = start === 'worker' ? PRO_MONTHLY_PRICE_ID : null
+  // Resolve a `?start=...` hint into the matching Stripe price id.
+  const autoStartPriceId =
+    start === 'worker'
+      ? PRO_MONTHLY_PRICE_ID
+      : start === 'lender_pro'
+        ? LENDER_PRO_PRICE_ID
+        : start === 'lender_scale'
+          ? LENDER_SCALE_PRICE_ID
+          : null
+
+  // Current plan name resolver
+  const currentPlanName = (() => {
+    if (!isSubscribed) return 'Free'
+    const pid = subscription!.price_id
+    if (pid === PRO_MONTHLY_PRICE_ID) return 'Pro'
+    if (pid === LENDER_PRO_PRICE_ID) return 'Lender Pro'
+    if (pid === LENDER_SCALE_PRICE_ID) return 'Lender Scale'
+    return 'Free'
+  })()
+
+  // Free-tier copy depends on audience
+  const freeTierCopy = isLender
+    ? {
+        eyebrow: 'Free trial tier',
+        description: 'Try the lender portal with 3 verifications a month. No card required.',
+        features: [
+          '3 verifications / month',
+          'Worker search',
+          'Request-based score access',
+        ],
+      }
+    : {
+        eyebrow: 'Always free',
+        description: 'Get started with a verified income snapshot. No card required.',
+        features: [
+          '1 platform connection',
+          'Income snapshot (no PDF)',
+          '90 days history',
+        ],
+      }
 
   return (
     <div className="space-y-14">
@@ -92,7 +187,9 @@ export default async function BillingPage({
           Subscription &amp; payments.
         </h1>
         <p className="mt-3 text-body text-slate">
-          Manage your subscription and payment methods.
+          {isLender
+            ? 'Manage your lender plan, verification quota, and payment methods.'
+            : 'Manage your subscription and payment methods.'}
         </p>
       </div>
 
@@ -102,11 +199,7 @@ export default async function BillingPage({
           <div>
             <p className="text-mono-label text-slate">Current plan</p>
             <p className="mt-3 font-display text-3xl tracking-tight text-ink-black">
-              {isSubscribed
-                ? subscription!.price_id === PRO_MONTHLY_PRICE_ID
-                  ? 'Pro'
-                  : 'Free'
-                : 'Free'}
+              {currentPlanName}
             </p>
             {subscription && (
               <p className="mt-2 text-xs text-slate">
@@ -140,7 +233,7 @@ export default async function BillingPage({
       <section className="card-stone">
         <div className="flex items-start justify-between gap-6">
           <div>
-            <span className="chip-coral-outline mb-5">Always free</span>
+            <span className="chip-coral-outline mb-5">{freeTierCopy.eyebrow}</span>
             <p className="text-mono-label text-slate">Free</p>
             <div className="mt-4 flex items-baseline gap-2">
               <span className="font-display text-5xl font-normal tracking-tight text-ink-black">
@@ -148,23 +241,15 @@ export default async function BillingPage({
               </span>
               <span className="text-sm text-slate">/ forever</span>
             </div>
-            <p className="mt-3 text-sm text-slate">
-              Get started with a verified income snapshot. No card required.
-            </p>
+            <p className="mt-3 text-sm text-slate">{freeTierCopy.description}</p>
           </div>
           <ul className="mt-2 space-y-3 text-sm text-ink max-w-sm">
-            <li className="flex items-start gap-3">
-              <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
-              1 platform connection
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
-              Income snapshot (no PDF)
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
-              90 days history
-            </li>
+            {freeTierCopy.features.map((f) => (
+              <li key={f} className="flex items-start gap-3">
+                <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
+                {f}
+              </li>
+            ))}
           </ul>
         </div>
       </section>
