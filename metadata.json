@@ -1,0 +1,8 @@
+{
+  "name": "Krostio",
+  "description": "Decentralised Credit Scoring \u0026 Earnings Ledger for Gig Workers",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

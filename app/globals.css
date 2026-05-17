@@ -1,0 +1,243 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #eeece7;
+  --color-ink: #17171c;
+  --color-brand-black: #000000;
+  --color-soft-stone: #eeece7;
+  --color-hairline: #d9d9dd;
+  --color-coral: #ff7759;
+  --color-action-blue: #1863dc;
+  --color-muted-slate: #93939f;
+  --color-card-border: #f2f2f2;
+  --color-form-focus: #9b60aa;
+
+  --radius-cohere-sm: 8px;
+  --radius-cohere-md: 16px;
+  --radius-cohere-lg: 22px;
+  --radius-cohere-xl: 30px;
+  --radius-cohere-pill: 32px;
+  --radius-cohere-xs: 4px;
+  --radius-cohere-full: 9999px;
+  
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+  }
+  ::selection {
+    background-color: var(--color-coral);
+    color: var(--color-brand-black);
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-brand-black text-white px-6 py-3 rounded-cohere-pill font-medium transition-all hover:opacity-90 active:scale-95 text-[14px] inline-flex items-center justify-center gap-2;
+  }
+  
+  .card-cohere {
+    @apply bg-white rounded-cohere-lg p-6 border border-hairline transition-all duration-300;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-cohere-sm text-[14px] font-medium transition-colors;
+  }
+
+  .sidebar-link-active {
+    @apply bg-ink text-white;
+  }
+
+  .sidebar-link-inactive {
+    @apply text-ink/60 hover:bg-black/5 hover:text-ink;
+  }
+}
+
+@layer utilities {
+  /* ── Typography roles ── */
+  .text-mono-label {
+    font-family: var(--font-mono, monospace);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+  .text-eyebrow {
+    font-family: var(--font-mono, monospace);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .text-body-lg {
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+  .text-body {
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+  .text-button {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.71;
+  }
+  .text-caption {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+  .text-micro {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+  .text-nav {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Buttons ── */
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--color-ink);
+    border: 0;
+    padding: 0;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1px;
+    cursor: pointer;
+  }
+  .btn-secondary:hover {
+    text-decoration-thickness: 2px;
+  }
+  .btn-pill-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--color-ink);
+    border: 1px solid var(--color-ink);
+    border-radius: var(--radius-cohere-xl);
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .btn-pill-outline:hover {
+    background-color: var(--color-ink);
+    color: #ffffff;
+  }
+
+  /* ── Cards & surfaces ── */
+  .card-bordered {
+    border-radius: var(--radius-cohere-sm);
+    border: 1px solid var(--color-card-border);
+    background-color: #ffffff;
+  }
+  .card-stone {
+    border-radius: var(--radius-cohere-sm);
+    background-color: var(--color-soft-stone);
+    padding: 32px;
+  }
+
+  /* ── Forms ── */
+  .input-pill {
+    width: 100%;
+    background-color: #ffffff;
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-cohere-full);
+    padding: 12px 18px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--color-ink);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .input-pill::placeholder {
+    color: var(--color-muted-slate);
+  }
+  .input-pill:focus {
+    border-color: var(--color-form-focus);
+    box-shadow: 0 0 0 3px rgba(155, 96, 170, 0.15);
+  }
+  .input-rect {
+    width: 100%;
+    background-color: #ffffff;
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-cohere-xs);
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--color-ink);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .input-rect::placeholder {
+    color: var(--color-muted-slate);
+  }
+  .input-rect:focus {
+    border-color: var(--color-form-focus);
+    box-shadow: 0 0 0 3px rgba(155, 96, 170, 0.15);
+  }
+
+  /* ── Editorial chips & labels ── */
+  .chip-coral {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: var(--radius-cohere-sm);
+    background-color: var(--color-coral);
+    color: var(--color-ink);
+    border: 1px solid var(--color-coral);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* ── Editorial link ── */
+  .link-editorial {
+    color: var(--color-action-blue);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+  .link-editorial:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  /* ── Rules / dividers ── */
+  .rule-hairline {
+    border-top: 1px solid var(--color-hairline);
+  }
+
+  /* ── Announcement bar ── */
+  .announcement-bar {
+    background-color: var(--color-brand-black);
+    color: #ffffff;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 400;
+  }
+}
