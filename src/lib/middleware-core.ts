@@ -43,43 +43,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Force onboarding for authenticated users who haven't completed it.
-  // Applies to any non-onboarding page once they're signed in (except API/auth routes,
-  // which are filtered out by the matcher or handled below). The /onboarding page
-  // itself short-circuits below if onboarding is already done.
-  if (user && request.nextUrl.pathname !== '/onboarding') {
-    const onboardingDone = user.user_metadata?.onboarding_completed === true
-    // Don't trap users on auth callback / signout endpoints.
-    const isAuthRoute =
-      request.nextUrl.pathname.startsWith('/api/auth') ||
-      request.nextUrl.pathname.startsWith('/login') ||
-      request.nextUrl.pathname.startsWith('/signup') ||
-      request.nextUrl.pathname.startsWith('/auth')
-    if (!onboardingDone && !isAuthRoute && request.nextUrl.pathname !== '/') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/onboarding'
-      return NextResponse.redirect(url)
-    }
-  }
-
-  // Role-based redirects
+  // Role-based redirects from root
   if (user && request.nextUrl.pathname === '/') {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
-
-    // OAuth users who haven't completed onboarding — redirect to onboarding
-    const onboardingDone = user.user_metadata?.onboarding_completed === true
-    const isOAuthUser = user.identities?.some(
-      (id: any) => id.provider === 'google'
-    )
-    if (isOAuthUser && !onboardingDone) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/onboarding'
-      return NextResponse.redirect(url)
-    }
 
     if (profile?.role === 'lender') {
       const url = request.nextUrl.clone()
@@ -91,31 +61,6 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard/worker'
       return NextResponse.redirect(url)
-    }
-  }
-
-  // Skip onboarding if user already has a role AND completed onboarding
-  if (user && request.nextUrl.pathname === '/onboarding') {
-    const onboardingDone = user.user_metadata?.onboarding_completed === true
-
-    if (onboardingDone) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-      if (profile?.role === 'lender') {
-        const url = request.nextUrl.clone()
-        url.pathname = '/dashboard/lender'
-        return NextResponse.redirect(url)
-      }
-
-      if (profile?.role === 'gig_worker') {
-        const url = request.nextUrl.clone()
-        url.pathname = '/dashboard/worker'
-        return NextResponse.redirect(url)
-      }
     }
   }
 

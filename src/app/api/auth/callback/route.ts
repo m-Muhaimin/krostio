@@ -32,8 +32,6 @@ export async function GET(request: Request) {
 
   if (code) {
     const cookieStore = await cookies()
-    const onboardingUrl = new URL('/onboarding', origin)
-    onboardingUrl.searchParams.set('next', next)
 
     // Collect cookies from supabase exchange so we can write them
     // directly onto the redirect response (bypasses Next.js's
@@ -90,7 +88,7 @@ export async function GET(request: Request) {
         }
       } else if (roleParam) {
         // New OAuth signup with role intent — auto-create profile &
-        // redirect directly to the correct dashboard, skipping onboarding.
+        // redirect directly to the correct dashboard.
         const displayName =
           user.user_metadata?.full_name ||
           user.user_metadata?.name ||
@@ -110,19 +108,13 @@ export async function GET(request: Request) {
           console.warn('[auth/callback] profile insert:', insertError.message)
         }
 
-        // Also mark onboarding as completed in user_metadata so the
-        // middleware doesn't force onboarding on the first page load.
-        await supabase.auth.updateUser({
-          data: { onboarding_completed: true, role: roleParam },
-        })
-
         redirectUrl =
           roleParam === 'lender'
             ? `${origin}/dashboard/lender`
             : `${origin}/dashboard/worker`
       } else {
-        // New user without role intent — send to onboarding to pick role
-        redirectUrl = onboardingUrl.toString()
+        // New user without role intent — send to register to pick a role
+        redirectUrl = `${origin}/register?message=Choose+gig+worker+or+lender+to+continue`
       }
     } else {
       // No user after exchange — redirect home; proxy will catch if unauthenticated

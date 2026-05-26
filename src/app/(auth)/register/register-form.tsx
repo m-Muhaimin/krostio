@@ -10,6 +10,7 @@ export default function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const planParam = searchParams.get('plan')
+  const message = searchParams.get('message')
   const defaultRole = planParam === 'lender' ? 'lender' : 'gig_worker'
 
   const [email, setEmail] = useState('')
@@ -49,12 +50,13 @@ export default function RegisterForm() {
 
   const handleGoogleSignup = async () => {
     const supabase = createClient()
-    // After OAuth, send to a dashboard route that knows the plan intent
+    // Pass role intent to callback so it can auto-create the profile
+    // and redirect directly to the correct dashboard.
     const next = planParam ? `/dashboard?plan=${planParam}` : '/dashboard'
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(next)}`,
+        redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(next)}&role=${role}`,
       },
     })
   }
@@ -95,6 +97,12 @@ export default function RegisterForm() {
             Lender
           </button>
         </div>
+
+        {message && (
+          <div className="mb-6 rounded-sm border border-card-border bg-soft-stone px-4 py-3 text-sm text-ink-black">
+            {message}
+          </div>
+        )}
 
         <form onSubmit={handleRegister} className="space-y-5">
           <div>
