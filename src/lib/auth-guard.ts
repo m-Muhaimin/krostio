@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from './supabase-server'
 import { redirect } from 'next/navigation'
 
-export type UserRole = 'gig_worker' | 'lender' | 'admin'
+export type UserRole = 'gig_worker' | 'admin'
 
 export async function getCurrentUserRole(): Promise<{ role: UserRole | null; userId: string | null }> {
   const supabase = await createServerSupabaseClient()
@@ -31,12 +31,7 @@ export async function requireRole(allowedRoles: UserRole[]): Promise<{ role: Use
   }
 
   if (!allowedRoles.includes(role)) {
-    // Redirect to the appropriate dashboard based on their actual role
-    if (role === 'lender') {
-      redirect('/dashboard/lender')
-    } else {
-      redirect('/dashboard/worker')
-    }
+    redirect('/dashboard/worker')
   }
 
   return { role, userId }

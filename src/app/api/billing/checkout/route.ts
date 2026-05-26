@@ -3,8 +3,6 @@ import {
   stripe,
   PRO_MONTHLY_PRICE_ID,
   ONE_TIME_PRICE_ID,
-  LENDER_PRO_PRICE_ID,
-  LENDER_SCALE_PRICE_ID,
 } from '@/lib/stripe'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
@@ -38,10 +36,7 @@ export async function POST(request: NextRequest) {
 
   // Determine if this is a subscription or one-time purchase
   const isOneTime = priceId === ONE_TIME_PRICE_ID
-  const isSubscription =
-    priceId === PRO_MONTHLY_PRICE_ID ||
-    priceId === LENDER_PRO_PRICE_ID ||
-    priceId === LENDER_SCALE_PRICE_ID
+  const isSubscription = priceId === PRO_MONTHLY_PRICE_ID
 
   if (!isOneTime && !isSubscription) {
     return NextResponse.json({ error: 'Unknown price ID' }, { status: 400 })

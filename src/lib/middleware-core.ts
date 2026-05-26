@@ -43,24 +43,29 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Role-based redirects from root
-  if (user && request.nextUrl.pathname === '/') {
+  // Auto-create profile for authenticated users who signed up via email
+  // (email signup stores role in user_metadata but doesn't create a profiles row)
+  if (user) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
-    if (profile?.role === 'lender') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard/lender'
-      return NextResponse.redirect(url)
-    }
-
-    if (profile?.role === 'gig_worker') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard/worker'
-      return NextResponse.redirect(url)
+    if (!profile?.role) {
+      const metaRole = user.user_metadata?.role as string | undefined
+      if (metaRole === 'gig_worker') {
+        await supabase.from('profiles').insert({
+          id: user.id,
+          email: user.email,
+          name:
+            (user.user_metadata?.full_name as string) ||
+            (user.user_metadata?.name as string) ||
+            user.email?.split('@')[0] ||
+            'User',
+          role: 'gig_worker',
+        })
+      }
     }
   }
 

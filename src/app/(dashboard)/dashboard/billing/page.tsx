@@ -2,8 +2,6 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import {
   PRO_MONTHLY_PRICE_ID,
   ONE_TIME_PRICE_ID,
-  LENDER_PRO_PRICE_ID,
-  LENDER_SCALE_PRICE_ID,
 } from '@/lib/stripe'
 import { SubscribeButton } from './subscribe-button'
 import { BillingAutoStart, BillingSuccessBanner } from './billing-client'
@@ -54,9 +52,7 @@ export default async function BillingPage({
     }
   }
 
-  const isLender = role === 'lender'
-
-  const workerPlans: Plan[] = [
+  const plans: Plan[] = [
     {
       id: 'pro_monthly',
       name: 'Pro',
@@ -91,85 +87,32 @@ export default async function BillingPage({
     },
   ]
 
-  const lenderPlans: Plan[] = [
-    {
-      id: 'lender_pro',
-      name: 'Lender Pro',
-      description: 'For lending teams ramping up',
-      price: 99,
-      priceId: LENDER_PRO_PRICE_ID,
-      popular: true,
-      priceSuffix: '/ month',
-      features: [
-        'Up to 50 verifications / month',
-        'Approved-request and full-score views',
-        'Worker search across the network',
-        'Usage dashboard',
-        'Email support',
-      ],
-    },
-    {
-      id: 'lender_scale',
-      name: 'Lender Scale',
-      description: 'For teams running serious volume',
-      price: 199,
-      priceId: LENDER_SCALE_PRICE_ID,
-      popular: false,
-      priceSuffix: '/ month',
-      features: [
-        'Up to 150 verifications / month',
-        'Approved-request and full-score views',
-        'Worker search across the network',
-        'Usage dashboard',
-        'Priority support',
-      ],
-    },
-  ]
-
-  const plans = isLender ? lenderPlans : workerPlans
-
   const isSubscribed = subscription?.status === 'active' || subscription?.status === 'trialing'
 
   // Resolve a `?start=...` hint into the matching Stripe price id.
   const autoStartPriceId =
     start === 'worker'
       ? PRO_MONTHLY_PRICE_ID
-      : start === 'lender_pro'
-        ? LENDER_PRO_PRICE_ID
-        : start === 'lender_scale'
-          ? LENDER_SCALE_PRICE_ID
-          : null
+      : null
 
   // Current plan name resolver
   const currentPlanName = (() => {
     if (!isSubscribed) return 'Free'
     const pid = subscription!.price_id
     if (pid === PRO_MONTHLY_PRICE_ID) return 'Pro'
-    if (pid === LENDER_PRO_PRICE_ID) return 'Lender Pro'
-    if (pid === LENDER_SCALE_PRICE_ID) return 'Lender Scale'
     return 'Free'
   })()
 
-  // Free-tier copy depends on audience
-  const freeTierCopy = isLender
-    ? {
-        eyebrow: 'Free trial tier',
-        description: 'Try the lender portal with 3 verifications a month. No card required.',
-        features: [
-          '3 verifications / month',
-          'Worker search',
-          'Request-based score access',
-        ],
-      }
-    : {
-        eyebrow: 'Always free',
-        description: 'Get started with a verified income snapshot. No card required.',
-        features: [
-          '1 platform connection',
-          'Income snapshot (no PDF)',
-          '90 days history',
-        ],
-      }
+  // Free-tier copy
+  const freeTierCopy = {
+    eyebrow: 'Always free',
+    description: 'Get started with a verified income snapshot. No card required.',
+    features: [
+      '1 platform connection',
+      'Income snapshot (no PDF)',
+      '90 days history',
+    ],
+  }
 
   return (
     <div className="space-y-14">
@@ -187,9 +130,7 @@ export default async function BillingPage({
           Subscription &amp; payments.
         </h1>
         <p className="mt-3 text-body text-slate">
-          {isLender
-            ? 'Manage your lender plan, verification quota, and payment methods.'
-            : 'Manage your subscription and payment methods.'}
+            Manage your subscription and payment methods.
         </p>
       </div>
 

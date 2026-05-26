@@ -29,15 +29,6 @@ const workerNav: NavSection = {
   ],
 }
 
-const lenderNav: NavSection = {
-  label: 'Lender',
-  items: [
-    { label: 'Overview', href: '/dashboard/lender' },
-    { label: 'Search workers', href: '/dashboard/lender/search' },
-    { label: 'Requests', href: '/dashboard/lender/requests' },
-  ],
-}
-
 function NavGroup({ section }: { section: NavSection }) {
   return (
     <div className="mb-8">
@@ -63,9 +54,9 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { role } = await getCurrentUserRole()
+  const { role, userId } = await getCurrentUserRole()
 
-  if (!role) {
+  if (!role || !userId) {
     redirect('/login')
   }
 
@@ -82,28 +73,14 @@ export default async function DashboardLayout({
 
         <nav className="flex-1">
           <NavGroup section={commonNav} />
-
-          {role === 'gig_worker' && (
-            <>
-              <div className="mb-6 border-t border-hairline" />
-              <NavGroup section={workerNav} />
-            </>
-          )}
-
-          {role === 'lender' && (
-            <>
-              <div className="mb-6 border-t border-hairline" />
-              <NavGroup section={lenderNav} />
-            </>
-          )}
+          <div className="mb-6 border-t border-hairline" />
+          <NavGroup section={workerNav} />
         </nav>
 
         <div className="border-t border-hairline pt-5">
           <div className="mb-3 px-3 text-xs text-muted-slate">
             Signed in as{' '}
-            <span className="font-medium text-ink-black">
-              {role === 'gig_worker' ? 'Gig worker' : 'Lender'}
-            </span>
+            <span className="font-medium text-ink-black">Gig worker</span>
           </div>
           <form action="/api/auth/signout" method="POST">
             <button

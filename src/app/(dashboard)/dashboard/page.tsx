@@ -10,9 +10,7 @@ function DashboardRedirect() {
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
 
-  // Came back from Stripe Checkout (success_url)
   const upgraded = searchParams.get('upgraded') === 'true'
-  // Came in with a plan intent from landing/pricing
   const plan = searchParams.get('plan')
 
   useEffect(() => {
@@ -23,30 +21,17 @@ function DashboardRedirect() {
         return
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      // 1. Stripe just sent the user back — route to billing so they see the updated plan.
       if (upgraded) {
         router.replace('/dashboard/billing?upgraded=true')
         return
       }
 
-      // 2. User signed up via a plan CTA — auto-open the checkout flow.
-      if (plan === 'worker' || plan === 'lender') {
-        router.replace(`/dashboard/billing?start=${plan}`)
+      if (plan === 'worker') {
+        router.replace('/dashboard/billing?start=worker')
         return
       }
 
-      // 3. Normal role-based home.
-      if (profile?.role === 'lender') {
-        router.push('/dashboard/lender')
-      } else {
-        router.push('/dashboard/worker')
-      }
+      router.replace('/dashboard/worker')
       setLoading(false)
     }
     load()

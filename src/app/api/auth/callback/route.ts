@@ -28,7 +28,6 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
-  const roleParam = searchParams.get('role') as 'gig_worker' | 'lender' | null
 
   if (code) {
     const cookieStore = await cookies()
@@ -80,15 +79,10 @@ export async function GET(request: Request) {
         .single()
 
       if (profile?.role) {
-        // Existing user — redirect to their dashboard
-        if (profile.role === 'lender') {
-          redirectUrl = `${origin}/dashboard/lender`
-        } else {
-          redirectUrl = `${origin}/dashboard/worker`
-        }
-      } else if (roleParam) {
-        // New OAuth signup with role intent — auto-create profile &
-        // redirect directly to the correct dashboard.
+        // Existing user — redirect to dashboard
+        redirectUrl = `${origin}/dashboard/worker`
+      } else {
+        // New user — create profile as gig_worker and go to dashboard
         const displayName =
           user.user_metadata?.full_name ||
           user.user_metadata?.name ||
@@ -101,20 +95,13 @@ export async function GET(request: Request) {
             id: user.id,
             email: user.email,
             name: displayName,
-            role: roleParam,
+            role: 'gig_worker',
           })
         if (insertError) {
-          // Profile may already exist if race with another OAuth callback
           console.warn('[auth/callback] profile insert:', insertError.message)
         }
 
-        redirectUrl =
-          roleParam === 'lender'
-            ? `${origin}/dashboard/lender`
-            : `${origin}/dashboard/worker`
-      } else {
-        // New user without role intent — send to register to pick a role
-        redirectUrl = `${origin}/register?message=Choose+gig+worker+or+lender+to+continue`
+        redirectUrl = `${origin}/dashboard/worker`
       }
     } else {
       // No user after exchange — redirect home; proxy will catch if unauthenticated

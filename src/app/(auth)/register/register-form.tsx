@@ -9,14 +9,11 @@ import { Button } from '@/components/ui/button'
 export default function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const planParam = searchParams.get('plan')
   const message = searchParams.get('message')
-  const defaultRole = planParam === 'lender' ? 'lender' : 'gig_worker'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
-  const [role, setRole] = useState<'gig_worker' | 'lender'>(defaultRole)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -30,7 +27,7 @@ export default function RegisterForm() {
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name, role } },
+      options: { data: { name, role: 'gig_worker' } },
     })
 
     if (signUpError) {
@@ -39,24 +36,19 @@ export default function RegisterForm() {
       return
     }
 
-    // Preserve plan intent through email confirmation → login
     const loginParams = new URLSearchParams({
       message: 'Check your email to confirm your account',
     })
-    if (planParam) loginParams.set('plan', planParam)
     router.push(`/login?${loginParams.toString()}`)
     router.refresh()
   }
 
   const handleGoogleSignup = async () => {
     const supabase = createClient()
-    // Pass role intent to callback so it can auto-create the profile
-    // and redirect directly to the correct dashboard.
-    const next = planParam ? `/dashboard?plan=${planParam}` : '/dashboard'
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(next)}&role=${role}`,
+        redirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard&role=gig_worker`,
       },
     })
   }
@@ -72,30 +64,6 @@ export default function RegisterForm() {
           <p className="mt-4 text-body text-slate">
             Start building an on-chain credit score from your existing gig-platform earnings.
           </p>
-        </div>
-
-        {/* Role toggle — pill-outline segment */}
-        <div className="mb-8 inline-flex rounded-full border border-hairline bg-white p-1">
-          <button
-            onClick={() => setRole('gig_worker')}
-            className={`rounded-full px-5 py-2 text-sm font-medium transition ${
-              role === 'gig_worker'
-                ? 'bg-ink-black text-white'
-                : 'text-slate hover:text-ink-black'
-            }`}
-          >
-            Gig worker
-          </button>
-          <button
-            onClick={() => setRole('lender')}
-            className={`rounded-full px-5 py-2 text-sm font-medium transition ${
-              role === 'lender'
-                ? 'bg-ink-black text-white'
-                : 'text-slate hover:text-ink-black'
-            }`}
-          >
-            Lender
-          </button>
         </div>
 
         {message && (

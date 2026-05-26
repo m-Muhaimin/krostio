@@ -1,6 +1,6 @@
 // Types for Krost Income Verification System
 
-export type Role = 'gig_worker' | 'lender' | 'admin'
+export type Role = 'gig_worker' | 'admin'
 export type SubscriptionStatus = 'free' | 'trialing' | 'active' | 'past_due' | 'canceled'
 export type RequestStatus = 'pending' | 'approved' | 'denied'
 export type ConnectionProvider = 'plaid' | 'manual' | 'oauth'
