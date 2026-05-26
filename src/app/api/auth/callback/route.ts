@@ -27,12 +27,15 @@ function serializeCookie(
 export async function GET(request: Request) {
   const { searchParams, origin, hostname } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
-  // Use .kristo.com domain so PKCE cookies work across both apex and www
-  const cookieDomain = hostname.includes('kristo.com') ? '.kristo.com' : undefined
+  // Read redirect destination from cookie (set by login page before OAuth)
+  // Avoids passing query params in redirectTo which breaks Supabase's glob matching.
+  const cookieStore = await cookies()
+  const next = cookieStore.get('oauth_next')?.value ?? '/dashboard'
+
+  // Use .krostio.com domain so PKCE cookies work across both apex and www
+  const cookieDomain = hostname.includes('krostio.com') ? '.krostio.com' : undefined
 
   if (code) {
-    const cookieStore = await cookies()
 
     // Collect cookies from supabase exchange so we can write them
     // directly onto the redirect response (bypasses Next.js's
@@ -69,6 +72,13 @@ export async function GET(request: Request) {
       })
     }
 
+    // Flush the microtask queue so the onAuthStateChange handler
+    // (registered by createServerClient) runs applyServerStorage,
+    // which calls our setAll to populate cookiesToSet. Without this,
+    // the handler's await getAll() yields before setAll is reached
+    // and the 302 response leaves before the session cookies are collected.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
     // Use the session user directly from the exchange instead of calling getUser()
     // because the session cookies haven't propagated to the incoming request yet.
     const user = data?.session?.user ?? null
@@ -94,16 +104,16 @@ export async function GET(request: Request) {
           user.email?.split('@')[0] ||
           'User'
 
-        const { error: insertError } = await supabase
+        const { error: upsertError } = await supabase
           .from('profiles')
-          .insert({
+          .upsert({
             id: user.id,
             email: user.email,
             name: displayName,
             role: 'gig_worker',
-          })
-        if (insertError) {
-          console.warn('[auth/callback] profile insert:', insertError.message)
+          }, { onConflict: 'id' })
+        if (upsertError) {
+          console.warn('[auth/callback] profile upsert:', upsertError.message)
         }
 
         redirectUrl = `${origin}${next}`

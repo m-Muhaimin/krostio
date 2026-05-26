@@ -44,11 +44,15 @@ function LoginForm() {
 
   const handleGoogleLogin = async () => {
     const next = planParam ? `/dashboard?plan=${planParam}` : '/dashboard'
+    // Store redirect destination in a cookie before OAuth redirect.
+    // Don't pass query params in redirectTo — Supabase's redirect URL
+    // validation uses glob matching and ?next= breaks exact/wildcard matches.
+    document.cookie = `oauth_next=${next}; Path=/; Max-Age=300; SameSite=Lax; Secure`
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     const { error: oAuthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${baseUrl}/api/auth/callback?next=${next}`,
+        redirectTo: `${baseUrl}/api/auth/callback`,
       },
     })
 

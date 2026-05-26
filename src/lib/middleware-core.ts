@@ -3,10 +3,10 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  const supabaseResponse = NextResponse.next({ request })
 
-  // Use .kristo.com so cookies work across both apex and www domains
-  const cookieDomain = request.nextUrl.hostname.includes('kristo.com') ? '.kristo.com' : undefined
+  // Use .krostio.com so cookies work across both apex and www domains
+  const cookieDomain = request.nextUrl.hostname.includes('krostio.com') ? '.krostio.com' : undefined
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,13 +17,10 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
+          cookiesToSet.forEach(({ name, value, options }) => {
             request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
-          )
+          })
         },
       },
       cookieOptions: {

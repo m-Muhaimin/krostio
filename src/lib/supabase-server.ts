@@ -12,10 +12,9 @@ export async function createServerSupabaseClient() {
         getAll() {
           return cookieStore.getAll()
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          )
+        setAll() {
+          // No-op: server components cannot write cookies via cookieStore.set().
+          // Token refresh is handled by middleware on the next request.
         },
       },
     }
