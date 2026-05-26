@@ -25,7 +25,6 @@ const workerNav: NavSection = {
     { label: 'Platforms', href: '/dashboard/worker/connections' },
     { label: 'Ledger', href: '/dashboard/worker/ledger' },
     { label: 'Reports', href: '/dashboard/worker/reports' },
-    { label: 'Passport', href: '/dashboard/worker/passport' },
   ],
 }
 

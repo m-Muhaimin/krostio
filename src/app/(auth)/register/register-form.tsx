@@ -62,7 +62,7 @@ export default function RegisterForm() {
             Create your account.
           </h1>
           <p className="mt-4 text-body text-slate">
-            Start building an on-chain credit score from your existing gig-platform earnings.
+            See all your gig income in one place. Download professional statements for loans, apartments, and financial planning.
           </p>
         </div>
 

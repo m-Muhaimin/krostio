@@ -272,7 +272,7 @@ export default function CheckScorePage() {
               <span className="eyebrow-dot" />Free score check
             </p>
             <h1 className="text-heading-section mb-4">
-              See your gig worker credit score — for free
+              See your gig worker income consistency score — for free
             </h1>
             <p className="text-body-lg text-slate max-w-xl mx-auto">
               Pick a platform you work on. We&apos;ll estimate your Krost Score
@@ -352,7 +352,7 @@ export default function CheckScorePage() {
               <div className="flex-1 text-center md:text-left">
                 <p className="text-mono-label text-slate mb-1">Your estimated Krost Score</p>
                 <p className="text-body-lg text-ink mt-2 leading-relaxed">
-                  Based on earnings patterns from {result.platforms} platform{result.platforms > 1 ? 's' : ''} over {result.tenureMonths} months, your estimated income-based credit score is <strong>{result.score}</strong>.
+                  Based on earnings patterns from {result.platforms} platform{result.platforms > 1 ? 's' : ''} over {result.tenureMonths} months, your estimated income consistency score is <strong>{result.score}</strong>.
                 </p>
                 <div className="flex flex-wrap gap-3 mt-4 justify-center md:justify-start">
                   <span className="chip-coral-outline text-xs">~${result.monthlyIncome.toLocaleString()}/mo</span>
@@ -492,13 +492,13 @@ export default function CheckScorePage() {
               <p className="text-xs text-muted-slate mb-3">Share your score</p>
               <div className="flex justify-center gap-3">
                 <button
-                  onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`My gig worker credit score is ${result?.score}! Check yours free →`)}&url=${encodeURIComponent('https://krost.xyz/check-score')}`, '_blank')}
+                  onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`My gig worker income consistency score is ${result?.score}! Check yours free →`)}&url=${encodeURIComponent('https://krost.xyz/check-score')}`, '_blank')}
                   className="btn-pill-outline text-xs"
                 >
                   Share on X
                 </button>
                 <button
-                  onClick={() => navigator.clipboard.writeText(`My gig worker credit score is ${result?.score}! Check yours free → https://krost.xyz/check-score`)}
+                  onClick={() => navigator.clipboard.writeText(`My gig worker income consistency score is ${result?.score}! Check yours free → https://krost.xyz/check-score`)}
                   className="btn-pill-outline text-xs"
                 >
                   Copy link

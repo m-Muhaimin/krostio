@@ -25,9 +25,11 @@ function serializeCookie(
 }
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams, origin, hostname } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
+  // Use .kristo.com domain so PKCE cookies work across both apex and www
+  const cookieDomain = hostname.includes('kristo.com') ? '.kristo.com' : undefined
 
   if (code) {
     const cookieStore = await cookies()
@@ -51,6 +53,9 @@ export async function GET(request: Request) {
               cookiesToSet.push(c)
             }
           },
+        },
+        cookieOptions: {
+          domain: cookieDomain,
         },
       }
     )
@@ -79,8 +84,8 @@ export async function GET(request: Request) {
         .single()
 
       if (profile?.role) {
-        // Existing user — redirect to dashboard
-        redirectUrl = `${origin}/dashboard/worker`
+        // Existing user — redirect to intended destination
+        redirectUrl = `${origin}${next}`
       } else {
         // New user — create profile as gig_worker and go to dashboard
         const displayName =
@@ -101,7 +106,7 @@ export async function GET(request: Request) {
           console.warn('[auth/callback] profile insert:', insertError.message)
         }
 
-        redirectUrl = `${origin}/dashboard/worker`
+        redirectUrl = `${origin}${next}`
       }
     } else {
       // No user after exchange — redirect home; proxy will catch if unauthenticated

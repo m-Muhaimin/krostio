@@ -133,9 +133,9 @@ export default function Page() {
                 <td className="py-2 pr-4 text-slate">Owned by worker, shared on-demand</td>
               </tr>
               <tr className="border-b border-hairline/50">
-                <td className="py-2 pr-4 text-slate">Score output</td>
+<td className="py-2 pr-4 text-slate">Score output</td>
                 <td className="py-2 pr-4 text-slate">Raw income data</td>
-                <td className="py-2 pr-4 text-slate">300&ndash;850 credit score</td>
+                <td className="py-2 pr-4 text-slate">0&ndash;100 consistency score</td>
               </tr>
               <tr className="border-b border-hairline/50">
                 <td className="py-2 pr-4 text-slate">Portability</td>

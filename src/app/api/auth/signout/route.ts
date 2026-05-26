@@ -24,9 +24,10 @@ function serializeCookie(
   return cookie
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   const cookieStore = await cookies()
   const redirectUrl = new URL('/', process.env.NEXT_PUBLIC_APP_URL).toString()
+  const cookieDomain = new URL(request.url).hostname.includes('kristo.com') ? '.kristo.com' : undefined
 
   const cookiesToSet: { name: string; value: string; options: any }[] = []
 
@@ -43,6 +44,9 @@ export async function POST() {
             cookiesToSet.push(c)
           }
         },
+      },
+      cookieOptions: {
+        domain: cookieDomain,
       },
     }
   )

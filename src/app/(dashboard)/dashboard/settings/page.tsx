@@ -25,12 +25,6 @@ export default function SettingsPage() {
               <label className="mb-2 block text-mono-label text-slate">Email</label>
               <input type="email" placeholder="you@example.com" className="input-rect" />
             </div>
-            <div>
-              <label className="mb-2 block text-mono-label text-slate">
-                Wallet address (for on-chain attestations)
-              </label>
-              <input type="text" placeholder="0x…" className="input-rect" />
-            </div>
             <button className="btn-primary">Save changes</button>
           </div>
         </div>
@@ -47,7 +41,7 @@ export default function SettingsPage() {
           </div>
           <ul className="divide-y divide-hairline">
             {[
-              { label: 'Score changes', desc: 'Get notified when your credit score updates' },
+              { label: 'Score changes', desc: 'Get notified when your income consistency score changes' },
               { label: 'Lender requests', desc: 'When a lender requests access to your score' },
               { label: 'Billing alerts', desc: 'Payment failures, subscription changes' },
               { label: 'Platform sync', desc: 'When your gig platforms sync new data' },

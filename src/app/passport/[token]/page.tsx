@@ -1,9 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
-import { createPublicClient, http } from 'viem'
-import { baseSepolia } from 'viem/chains'
-import { INCOME_ATTESTATION_ABI, getContractAddress } from '@/lib/contract'
 import type { Metadata } from 'next'
 
 const SCORE_TIER_META: Record<string, { label: string; color: string; textColor: string; bgClass: string }> = {
@@ -27,11 +24,6 @@ function deriveIncomeTier(monthlyAvgUsd: number): string {
   return 'entry'
 }
 
-function shortenAddress(addr: string): string {
-  if (!addr || addr.length < 10) return addr
-  return addr.slice(0, 6) + '...' + addr.slice(-4)
-}
-
 function formatMonths(months: number): string {
   if (months >= 24) {
     const yrs = Math.round(months / 12)
@@ -53,112 +45,55 @@ interface PageProps {
 
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params
-  const { data: passport } = await admin
-    .from('passports')
-    .select('score_tier, current_score')
+  const { data: report } = await admin
+    .from('krost_scores')
+    .select('tier, score')
     .eq('id', token)
-    .eq('is_public', true)
     .maybeSingle()
 
-  const tierLabel = passport?.score_tier
-    ? (SCORE_TIER_META[passport.score_tier]?.label ?? 'Verified')
+  const tierLabel = report?.tier
+    ? (SCORE_TIER_META[report.tier]?.label ?? 'Verified')
     : 'Verified'
 
   return {
-    title: `Krost Passport — ${tierLabel} Worker`,
-    description: `Verified gig worker credit profile. Score tier: ${tierLabel}. On-chain attestation on Base L2.`,
+    title: `Krostio — ${tierLabel} Worker Income Report`,
+    description: `Verified gig worker income profile. Score tier: ${tierLabel}. Income data sourced from connected financial accounts via Plaid.`,
     openGraph: {
-      title: `Krost Passport — ${tierLabel} Worker`,
-      description: 'On-chain verified gig worker credit profile. Lender-ready income attestation.',
+      title: `Krostio — ${tierLabel} Worker Income Report`,
+      description: 'Verified gig worker income profile with professional reports.',
     },
   }
 }
 
-export default async function PassportPage({ params, searchParams }: PageProps) {
+export default async function IncomeReportPage({ params, searchParams }: PageProps) {
   const { token } = await params
   const { show_exact } = await searchParams
   const showExact = show_exact === 'true'
 
-  const { data: passport } = await admin
-    .from('passports')
+  const { data: report } = await admin
+    .from('krost_scores')
     .select('*')
     .eq('id', token)
-    .eq('is_public', true)
     .maybeSingle()
 
-  if (!passport) {
+  if (!report) {
     notFound()
   }
 
-  const { data: attestations } = await admin
-    .from('attestation_history')
-    .select('*')
-    .eq('passport_id', passport.id)
-    .order('attested_at', { ascending: false })
-    .limit(1)
-
-  const latestAttestation = attestations?.[0] ?? null
-
-  // On-chain verification via viem
-  let onChainVerified = false
-  let onChainScore: number | null = null
-  let onChainMonthlyAvg: number | null = null
-  let onChainTenure: number | null = null
-  let onChainPlatforms: number | null = null
-
-  if (passport.wallet_address) {
-    try {
-      const publicClient = createPublicClient({
-        chain: baseSepolia,
-        transport: http('https://sepolia.base.org'),
-      })
-      const contractAddress = getContractAddress()
-
-      const ids = (await publicClient.readContract({
-        address: contractAddress,
-        abi: INCOME_ATTESTATION_ABI,
-        functionName: 'getWorkerAttestationIds',
-        args: [passport.wallet_address as `0x${string}`],
-      })) as bigint[]
-
-      for (let i = ids.length - 1; i >= 0; i--) {
-        const att = (await publicClient.readContract({
-          address: contractAddress,
-          abi: INCOME_ATTESTATION_ABI,
-          functionName: 'attestations',
-          args: [ids[i]],
-        })) as any
-
-        if (att.isActive) {
-          onChainVerified = true
-          onChainScore = Number(att.score) / 100
-          onChainMonthlyAvg = Number(att.monthlyAvgIncome) / 100
-          onChainTenure = Number(att.tenureMonths)
-          onChainPlatforms = Number(att.platformDiversity)
-          break
-        }
-      }
-    } catch {
-      console.warn('On-chain query failed for wallet', passport.wallet_address)
-    }
-  }
-
-  const scoreTier = passport.score_tier ?? 'emerging'
+  const score = report.score ?? 0
+  const scoreTier = report.tier ?? 'emerging'
   const tierMeta = SCORE_TIER_META[scoreTier] ?? SCORE_TIER_META.emerging
-  const incomeTier = latestAttestation?.income_tier
-    ?? (onChainMonthlyAvg ? deriveIncomeTier(onChainMonthlyAvg) : 'moderate')
+
+  const breakdown = report.breakdown as Record<string, number> | null
+  const monthlyAvg = breakdown?.monthly_avg_income ?? 0
+  const tenureMonths = breakdown?.tenure_months ?? 12
+  const platformCount = breakdown?.platform_diversity ?? 1
+
+  const incomeTier = deriveIncomeTier(monthlyAvg)
   const incomeMeta = INCOME_TIER_META[incomeTier] ?? INCOME_TIER_META.moderate
-  const tenureMonths = onChainTenure ?? 12
-  const platformCount = onChainPlatforms ?? 1
-  const txHash = latestAttestation?.tx_hash ?? null
-  const attestedAt = latestAttestation?.attested_at ?? passport.last_attested_at ?? passport.created_at
 
-  const basescanUrl = txHash
-    ? `https://sepolia.basescan.org/tx/${txHash}`
-    : `https://sepolia.basescan.org/address/${passport.wallet_address ?? ''}`
-
-  const exactMonthly = showExact && passport.is_public ? onChainMonthlyAvg : null
-  const exactScore = showExact && passport.is_public ? (onChainScore ?? passport.current_score ?? null) : null
+  const displayScore = showExact ? score : null
+  const displayMonthly = showExact ? monthlyAvg : null
 
   return (
     <div className="min-h-screen bg-[#ffffff] text-[#212121] font-sans">
@@ -166,13 +101,10 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-xl font-semibold tracking-tight text-[#17171c]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Krost
-            </span>
-            <span className="rounded-full bg-[#eeece7] px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-[#75758a]">
-              Passport
+              Krostio
             </span>
           </Link>
-          <span className="text-sm text-[#75758a]">Lender Verification Portal</span>
+          <span className="text-sm text-[#75758a]">Income Verification Report</span>
         </div>
       </header>
 
@@ -185,11 +117,9 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
               </svg>
             </span>
             <span className="text-sm font-medium text-[#003c33]">
-              {onChainVerified ? 'Verified On-Chain' : 'Verified'}
+              Verified Income Data
             </span>
-            {onChainVerified && (
-              <span className="ml-auto text-xs text-[#75758a]">Base L2</span>
-            )}
+            <span className="ml-auto text-xs text-[#75758a]">Plaid</span>
           </div>
 
           <div className="mb-8 text-center">
@@ -197,16 +127,16 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
               <span className={`text-sm font-semibold uppercase tracking-wider ${tierMeta.textColor}`}>
                 {tierMeta.label}
               </span>
-              {exactScore !== null && (
+              {displayScore !== null && (
                 <span className={`text-2xl font-bold ${tierMeta.textColor}`} style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  {exactScore}
+                  {displayScore}
                 </span>
               )}
             </div>
             <h1 className="text-2xl font-semibold text-[#17171c]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Gig Worker Credit Profile
+              Gig Worker Income Profile
             </h1>
-            {!exactScore && (
+            {!displayScore && (
               <p className="mt-2 text-sm text-[#75758a]">
                 Score tier is shown. Add ?show_exact=true to reveal exact score when authorized.
               </p>
@@ -223,8 +153,8 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
             <div className="rounded-xl border border-[#f2f2f2] bg-[#ffffff] p-4 text-center">
               <div className="text-xs font-medium uppercase tracking-wider text-[#75758a]">Income</div>
               <div className="mt-1 text-sm font-semibold text-[#17171c]">{incomeMeta.label}</div>
-              {exactMonthly !== null && (
-                <div className="mt-0.5 text-xs text-[#75758a]">~${Math.round(exactMonthly / 500) * 500}/mo</div>
+              {displayMonthly !== null && (
+                <div className="mt-0.5 text-xs text-[#75758a]">~${Math.round(displayMonthly / 500) * 500}/mo</div>
               )}
             </div>
             <div className="rounded-xl border border-[#f2f2f2] bg-[#ffffff] p-4 text-center">
@@ -242,50 +172,29 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
           </div>
 
           <div className="rounded-xl border border-[#f2f2f2] bg-[#fafafa] p-5">
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#75758a]">On-Chain Verification</h2>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#75758a]">Verification Details</h2>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-[#75758a]">Contract</span>
-                <a
-                  href={`https://sepolia.basescan.org/address/${process.env.NEXT_PUBLIC_ATTESTATION_CONTRACT_ADDRESS ?? ''}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-mono text-[#1863dc] underline-offset-2 hover:underline"
-                >
-                  {shortenAddress(process.env.NEXT_PUBLIC_ATTESTATION_CONTRACT_ADDRESS ?? '')}
-                </a>
+                <span className="text-[#75758a]">Verification Source</span>
+                <span className="text-[#17171c]">Plaid — financial accounts</span>
               </div>
-              {passport.wallet_address && (
-                <div className="flex justify-between">
-                  <span className="text-[#75758a]">Worker Wallet</span>
-                  <span className="font-mono text-[#17171c]">{shortenAddress(passport.wallet_address)}</span>
-                </div>
-              )}
-              {txHash && (
-                <div className="flex justify-between">
-                  <span className="text-[#75758a]">Attestation TX</span>
-                  <a href={basescanUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-[#1863dc] underline-offset-2 hover:underline">
-                    {shortenAddress(txHash)}
-                  </a>
-                </div>
-              )}
               <div className="flex justify-between">
-                <span className="text-[#75758a]">Attested</span>
+                <span className="text-[#75758a]">Income Tier</span>
+                <span className="text-[#17171c]">{incomeMeta.label} — {incomeMeta.desc}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#75758a]">Calculated</span>
                 <span className="text-[#17171c]">
-                  {new Date(attestedAt).toLocaleDateString('en-US', {
+                  {new Date(report.calculated_at).toLocaleDateString('en-US', {
                     year: 'numeric', month: 'long', day: 'numeric',
                   })}
                 </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#75758a]">Attestations</span>
-                <span className="text-[#17171c]">{passport.attestation_count ?? 0}</span>
               </div>
             </div>
           </div>
 
           <p className="mt-6 text-center text-xs text-[#75758a]">
-            This passport confirms a worker&apos;s credit tier as computed from verified gig platform earnings.
+            This report confirms a worker&apos;s income consistency tier as computed from verified gig platform earnings.
             Exact financial details are only shown with explicit worker authorization.
           </p>
         </div>
@@ -293,9 +202,9 @@ export default async function PassportPage({ params, searchParams }: PageProps) 
 
       <footer className="border-t border-[#f2f2f2]">
         <div className="mx-auto max-w-4xl px-6 py-8 text-center text-xs text-[#93939f]">
-          <p>Krost — Income verification for the gig economy</p>
+          <p>Krostio — Income verification for the gig economy</p>
           <p className="mt-1">
-            <Link href="/" className="text-[#1863dc] hover:underline">krost.xyz</Link>
+            <Link href="/" className="text-[#1863dc] hover:underline">krostio.com</Link>
             {' · '}
             <Link href="/privacy" className="text-[#1863dc] hover:underline">Privacy</Link>
           </p>

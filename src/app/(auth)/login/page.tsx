@@ -44,10 +44,11 @@ function LoginForm() {
 
   const handleGoogleLogin = async () => {
     const next = planParam ? `/dashboard?plan=${planParam}` : '/dashboard'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     const { error: oAuthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard`,
+        redirectTo: `${baseUrl}/api/auth/callback?next=${next}`,
       },
     })
 

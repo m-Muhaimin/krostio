@@ -146,8 +146,8 @@ export default function Page() {
             trend, earnings consistency, platform diversity, and tenure
           </li>
           <li>
-            <strong>Score generation</strong> &mdash; A 300&ndash;850 credit score
-            is generated based on income data rather than debt repayment history
+            <strong>Score generation</strong> &mdash; A 0&ndash;100 income consistency
+            score is generated based on earnings data rather than debt repayment history
           </li>
           <li>
             <strong>Share with lenders</strong> &mdash; When you apply for a loan,
@@ -206,19 +206,17 @@ export default function Page() {
           The most important innovation: <strong>the score is owned by you, not a credit bureau.</strong>
         </P>
         <P>
-          On a decentralized platform like Krost, your credit score lives on a
-          blockchain. No company can revoke it. No bureau can &ldquo;lose&rdquo;
-          your file. When you authorize a lender to check it, they receive a
-          cryptographically verified score &mdash; or a zero-knowledge proof that
-          confirms your score meets their threshold without revealing the exact
-          number.
+          With Krostio, your income score is derived from your real earnings data, not
+          debt repayment history. No company can revoke it. When you authorize a lender
+          to see it, they receive a verifiable report with your complete income picture
+          — sourced directly from your connected financial accounts.
         </P>
         <P>
-          <strong>For workers:</strong> You build one portable credit identity
-          that follows you across lenders, banks, and fintech apps.
+          <strong>For workers:</strong> You build one portable income history
+          that follows you across lenders, landlords, and financial apps.
         </P>
         <P>
-          <strong>For lenders:</strong> You can now confidently serve the 64
+          <strong>For lenders:</strong> You can now confidently serve the 76
           million Americans the current system ignores.
         </P>
 

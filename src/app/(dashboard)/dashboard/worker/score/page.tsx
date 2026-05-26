@@ -127,9 +127,6 @@ export default async function ScoreBreakdownPage() {
     : 0
   const ringDash = `${ringPct * 264} 264`
 
-  const contractAddress = process.env.NEXT_PUBLIC_ATTESTATION_CONTRACT_ADDRESS
-  const hasContract = contractAddress && contractAddress !== '0x0000000000000000000000000000000000000000'
-
   return (
     <div className="space-y-14">
       <div>
@@ -215,8 +212,8 @@ export default async function ScoreBreakdownPage() {
                   No score yet.
                 </h2>
                 <p className="mt-2 max-w-xl text-sm text-white/65">
-                  Connect your gig platforms to calculate your Krost Score — a 300–850 income
-                  verification metric that speaks the lender&apos;s language.
+                  Connect your gig platforms to calculate your Consistency Score — a 0–100 income
+                  stability metric that shows how reliable your earnings are.
                 </p>
               </>
             )}
@@ -352,36 +349,25 @@ export default async function ScoreBreakdownPage() {
         </ul>
       </section>
 
-      {/* On-chain attestation */}
+      {/* Income Reports */}
       <section className="card-stone">
-        <p className="text-mono-label text-slate">Attestation</p>
-        <h2 className="mt-3 text-heading-feature text-ink-black">On-chain proof</h2>
+        <p className="text-mono-label text-slate">Income Reports</p>
+        <h2 className="mt-3 text-heading-feature text-ink-black">Professional statements</h2>
         <p className="mt-4 max-w-2xl text-sm text-slate">
-          Your income score is attested on Base L2 — you own it, and only you can grant lenders
-          permission to view it. Each attestation is cryptographically signed and verifiable
-          on-chain.
+          Generate a downloadable PDF with your complete income history, consistency analysis,
+          platform breakdown, and verification notes. Share via expiring link or download
+          instantly.
         </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <div className="rounded-md border border-hairline bg-white px-4 py-3">
-            <p className="text-mono-label text-slate">Contract</p>
-            <p className="mt-1 font-mono text-sm text-ink-black">
-              {hasContract
-                ? `${contractAddress.slice(0, 6)}…${contractAddress.slice(-4)}`
-                : 'Not deployed'}
-            </p>
-          </div>
-          <div className="rounded-md border border-hairline bg-white px-4 py-3">
-            <p className="text-mono-label text-slate">Network</p>
-            <p className="mt-1 text-sm text-ink-black">Base Sepolia (Testnet)</p>
-          </div>
-          {typedScore?.attestation_id && (
-            <div className="rounded-md border border-hairline bg-white px-4 py-3">
-              <p className="text-mono-label text-slate">Attestation ID</p>
-              <p className="mt-1 font-mono text-sm text-ink-black">
-                {typedScore.attestation_id.slice(0, 10)}…
-              </p>
-            </div>
-          )}
+        <div className="mt-6">
+          <Link
+            href="/dashboard/worker/reports"
+            className="btn-primary inline-flex items-center gap-2"
+          >
+            Generate your report
+          </Link>
+          <p className="mt-3 text-xs text-slate">
+            Professional PDF with income history, consistency analysis, platform breakdown, and verification notes.
+          </p>
         </div>
       </section>
     </div>

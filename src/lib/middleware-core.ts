@@ -5,6 +5,9 @@ import { createServerClient } from '@supabase/ssr'
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
+  // Use .kristo.com so cookies work across both apex and www domains
+  const cookieDomain = request.nextUrl.hostname.includes('kristo.com') ? '.kristo.com' : undefined
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -22,6 +25,9 @@ export async function updateSession(request: NextRequest) {
             supabaseResponse.cookies.set(name, value, options)
           )
         },
+      },
+      cookieOptions: {
+        domain: cookieDomain,
       },
     }
   )

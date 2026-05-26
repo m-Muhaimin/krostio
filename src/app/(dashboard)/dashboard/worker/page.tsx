@@ -70,12 +70,6 @@ export default async function WorkerDashboard() {
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user!.id)
 
-  const { data: passportRecord } = await supabase
-    .from('passports')
-    .select('*')
-    .eq('user_id', user!.id)
-    .maybeSingle()
-
   // Recent reports — use service client so we get the latest list bypassing RLS edge cases
   let recentReports: RecentReport[] = []
   try {
@@ -105,7 +99,6 @@ export default async function WorkerDashboard() {
   const krostScore = krostRecord?.score ?? null
   const krostTier = krostRecord?.tier ?? null
   const krostBreakdown = krostRecord?.breakdown ?? null
-  const hasPassport = !!passportRecord
 
   const krostTierColor =
     krostTier === 'elite'
@@ -266,7 +259,7 @@ export default async function WorkerDashboard() {
           <div className="space-y-4 border-l border-white/10 pl-8">
             <div>
               <p className="text-mono-label text-white/40">Score range</p>
-              <p className="mt-2 text-2xl font-normal text-white">300 – 850</p>
+              <p className="mt-2 text-2xl font-normal text-white">0 – 100</p>
             </div>
             <div>
               <p className="text-mono-label text-white/40">Tiers</p>
@@ -398,16 +391,16 @@ export default async function WorkerDashboard() {
               {
                 icon: '📋',
                 title: 'Generate a report',
-                desc: 'Once connected, generate a Krost Score and create a lender-ready PDF report in minutes.',
+                desc: 'Once connected, generate a Consistency Score and create a professional PDF report in minutes.',
                 action: 'Learn more →',
                 href: '/dashboard/worker/score',
               },
               {
-                icon: '🔒',
-                title: 'Mint your digital Passport',
-                desc: 'After reaching a score of 580, you can mint a permanent on-chain financial identity — yours forever.',
-                action: 'About Passport →',
-                href: '/dashboard/worker/passport',
+                icon: '📎',
+                title: 'Download your report',
+                desc: 'Generate and download a professional income statement. Share via expiring link or send directly to a lender.',
+                action: 'Generate →',
+                href: '/dashboard/worker/reports',
               },
             ].map((tip) => (
               <Link
@@ -477,43 +470,6 @@ export default async function WorkerDashboard() {
           ))}
         </div>
       </section>
-
-      {/* Krost Passport Minting — Pillar 4 */}
-      {hasKrost && krostScore >= 580 && (
-        <section>
-          <div className="card-bordered bg-pale-blue/30 border-blue-100 p-8">
-            <div className="flex items-start justify-between gap-6">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-display text-2xl text-ink-black">Krost Passport</p>
-                  {hasPassport && (
-                    <span className="chip-coral py-0.5 px-2 text-[10px]">Minted</span>
-                  )}
-                </div>
-                <p className="mt-2 text-sm text-slate">
-                  {hasPassport
-                    ? `Your financial identity is attested on Base L2. Token ID: ${passportRecord.token_id}`
-                    : 'Your score qualifies for a Digital Passport. Permanently attest your financial identity on-chain.'}
-                </p>
-                {hasPassport && (
-                  <p className="mt-2 text-xs font-mono text-action-blue">
-                    TX: {passportRecord.wallet_address}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col gap-2">
-                {!hasPassport ? (
-                   <MintPassportButton />
-                ) : (
-                  <Link href={`/passport/${passportRecord.token_id}`} className="btn-pill-outline text-xs">
-                    View Passport →
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Generate report CTA */}
       {hasScore && (
@@ -595,4 +551,3 @@ export default async function WorkerDashboard() {
 
 // Client component for report generation with loading state
 import { GenerateReportButton } from './generate-report-button'
-import { MintPassportButton } from './mint-passport-button'

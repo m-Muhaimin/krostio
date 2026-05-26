@@ -69,7 +69,7 @@ export default function HomePage() {
             <p className="text-body-lg text-slate">
               76 million Americans work gig jobs. Banks reject them because they can&apos;t see W-2s.
               Krostio turns multi-platform earnings into a portable, verifiable financial identity —
-              built on four pillars: a credit score, an earnings ledger, lender-ready reports, and an on-chain passport.
+              built on three pillars: an earnings ledger, income reports, and a consistency score.
             </p>
 
             <div className="mt-10 flex flex-wrap items-center gap-6">
@@ -83,12 +83,12 @@ export default function HomePage() {
           </div>
 
           {/* Four-pillar hero cards */}
-          <div className="mt-20 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-20 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
                 label: 'Pillar 01',
-                title: 'Krost Score',
-                desc: '300–850 income-based creditworthiness score built entirely on gig earnings, not credit history.',
+                title: 'Consistency Score',
+                desc: 'A 0–100 score measuring how reliable your gig income is month-to-month. Built entirely on real earnings data.',
                 accent: 'bg-ink-black',
               },
               {
@@ -99,15 +99,9 @@ export default function HomePage() {
               },
               {
                 label: 'Pillar 03',
-                title: 'Krost Verifier',
-                desc: 'Lender-ready PDF reports and shareable links that any underwriter can accept. Expiring, revocable, verifiable.',
+                title: 'Income Reports',
+                desc: 'Professional PDF reports and shareable links for loans, apartments, and credit applications. Data from your connected accounts.',
                 accent: 'bg-coral',
-              },
-              {
-                label: 'Pillar 04',
-                title: 'Krost Passport',
-                desc: 'Permanent on-chain identity attested on Base L2. Soul-bound. Portable. Yours forever, not a platform\'s.',
-                accent: 'bg-deep-green',
               },
             ].map((p) => (
               <div key={p.label} className="flex flex-col gap-3 rounded-md border border-hairline p-6">
@@ -131,13 +125,13 @@ export default function HomePage() {
                 Krost Score
               </p>
               <h2 className="text-display-product mt-6 text-white">
-                A credit score that
+                An income score that
                 <br />
                 works for gig workers.
               </h2>
               <p className="text-body-lg mt-8 max-w-lg text-white/70">
-                The Krost Score is a 300–850 income-based creditworthiness metric — built on
-                9 factors from real earnings data. It&apos;s not a FICO score. It&apos;s better
+                The Krost Consistency Score is a 0–100 income-stability metric — built on
+                real earnings data from your connected platforms. It&apos;s not a credit score. It&apos;s better
                 for anyone without a W-2.
               </p>
               <div className="mt-10 flex flex-wrap items-center gap-6">
@@ -193,7 +187,7 @@ export default function HomePage() {
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-mono-label text-slate">
               <span className="eyebrow-dot" />
-              The four pillars
+              The four building blocks
             </p>
             <h2 className="text-heading-section mt-4">
               Everything a gig worker needs to own their financial identity.
@@ -204,30 +198,30 @@ export default function HomePage() {
             {[
               {
                 num: '01',
-                title: 'Krost Score',
-                subtitle: '300–850 income-based creditworthiness metric',
-                body: 'A deterministic 9-factor scoring model purpose-built for 1099 workers. Tiers: Elite (750+), Strong (680+), Building (580+), Emerging. The score is computed from real ledger data — not a FICO equivalent or FCRA-regulated credit report.',
+                title: 'Consistency Score',
+                subtitle: '0–100 income-stability metric for gig workers',
+                body: 'A deterministic scoring model purpose-built for 1099 workers. The score measures month-to-month income volatility, trajectory, and platform diversity — computed from real ledger data. Not a credit score. Better for anyone without a W-2.',
                 accent: 'bg-ink-black',
               },
               {
                 num: '02',
-                title: 'Krost Ledger',
+                title: 'Earnings Ledger',
                 subtitle: 'Permanent, unified earnings record across all platforms',
                 body: 'Connect every gig platform — Uber, DoorDash, Lyft, Fiverr, Upwork, Instacart, and more — via Plaid. The Ledger aggregates all earnings into a single timeline. Export as CSV. Track monthly rollups. See your complete career earnings record in one place.',
                 accent: 'bg-action-blue',
               },
               {
                 num: '03',
-                title: 'Krost Verifier',
-                subtitle: 'Lender-ready reports you control',
-                body: 'Generate on-demand PDF reports with 10 sections: executive summary, income history, earnings charts, platform profiles, stability analysis, trajectory statement, and verification footnotes. Share via expiring links with email-gated access. Revoke any time. Full access log.',
+                title: 'Income Reports',
+                subtitle: 'Professional PDF reports you control',
+                body: 'Generate on-demand PDF reports with income history, earnings charts, platform profiles, stability analysis, and trajectory. Share via expiring links with gated access. Revoke any time. Full access log.',
                 accent: 'bg-coral',
               },
               {
                 num: '04',
-                title: 'Krost Passport',
-                subtitle: 'Permanent, soul-bound on-chain identity',
-                body: 'When your score reaches 580+, attest it on Base L2 as a soul-bound token (SBT). No wallet needed — Krostio creates one via Account Abstraction (gasless, email-based). Your Passport is a verifiable financial identity you own forever, even if Krostio shuts down.',
+                title: 'Share & Verify',
+                subtitle: 'Share your income truth with who you choose',
+                body: 'Download a professional PDF or share an expiring link with a lender, landlord, or credit app. Track who has viewed your report. Revoke access anytime. Your data, your control — no blockchain required.',
                 accent: 'bg-deep-green',
               },
             ].map((p) => (
@@ -294,12 +288,12 @@ export default function HomePage() {
               {
                 num: '03',
                 title: 'Get your Score',
-                body: 'A deterministic 9-factor engine computes your Krost Score (300–850). See exactly what factors help or hurt, with personalized improvement tips.',
+                body: 'Your Consistency Score (0–100) is computed from real earnings data. See exactly what factors help or hurt, with personalized improvement tips.',
               },
               {
                 num: '04',
-                title: 'Share & attest',
-                body: 'Generate a lender-ready report, share an expiring link, or mint your on-chain Passport. Your financial identity, fully under your control.',
+                title: 'Share & report',
+                body: 'Generate a professional PDF report with your income history and consistency analysis. Share via expiring link or download instantly.',
               },
             ].map((s) => (
               <div key={s.num} className="flex flex-col gap-3">
@@ -344,7 +338,7 @@ export default function HomePage() {
               {
                 date: 'Mar 2026',
                 topic: 'Verification',
-                title: 'Designing a 300–850 Krost Score that lenders actually trust',
+                title: 'Designing a 0–100 Consistency Score that lenders actually trust',
               },
               {
                 date: 'Feb 2026',
@@ -427,8 +421,12 @@ export default function HomePage() {
               </p>
               <div className="my-8 border-t border-hairline" />
               <div className="flex items-baseline gap-2">
-                <span className="font-display text-5xl font-normal tracking-tight">$19</span>
+                <span className="font-display text-5xl font-normal tracking-tight">$14.99</span>
                 <span className="text-sm text-slate">/ month</span>
+              </div>
+              <div className="mt-2 text-center text-xs text-slate">
+                or $149{' '}
+                <span className="text-slate/60">/ year (save 17%)</span>
               </div>
               <ul className="mt-8 space-y-3 text-sm text-ink">
                 {[
@@ -436,7 +434,7 @@ export default function HomePage() {
                   'Unlimited PDF reports',
                   'Expiring shareable links (7/30 day)',
                   '24 months income history',
-                  'Krost Passport minting',
+                  'Weekly income summary email',
                   'Priority support',
                 ].map((f) => (
                   <li key={f} className="flex items-start gap-3">
@@ -461,7 +459,7 @@ export default function HomePage() {
               </p>
               <div className="my-8 border-t border-hairline" />
               <div className="flex items-baseline gap-2">
-                <span className="font-display text-5xl font-normal tracking-tight">$9</span>
+                <span className="font-display text-5xl font-normal tracking-tight">$6.99</span>
                 <span className="text-sm text-slate">one-time</span>
               </div>
               <ul className="mt-8 space-y-3 text-sm text-ink">
@@ -570,10 +568,10 @@ export default function HomePage() {
               {
                 heading: 'Product',
                 links: [
-                  ['Krost Score', '#product'],
-                  ['Krost Ledger', '#product'],
-                  ['Krost Verifier', '#product'],
-                  ['Krost Passport', '#product'],
+                  ['Consistency Score', '#product'],
+                  ['Earnings Ledger', '#product'],
+                  ['Income Reports', '#product'],
+                  ['Share & Verify', '#product'],
                   ['Pricing', '#pricing'],
                 ],
               },

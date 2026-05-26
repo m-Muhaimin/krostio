@@ -3,7 +3,6 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { calculateKrostScore } from '@/lib/scoring-engine'
 import type { KrostScoreInput } from '@/types'
-import { syncOnChainAttestation } from '@/lib/score-sync'
 
 /**
  * GET /api/score/krost
@@ -205,37 +204,6 @@ export async function GET(request: NextRequest) {
       .eq('id', existingRecord.id)
   } else {
     await supabase.from('krost_scores').insert(payload)
-  }
-
-  // ─── Auto-sync to on-chain if user has a passport with wallet ───
-  try {
-    const { data: passport } = await supabase
-      .from('passports')
-      .select('wallet_address')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (passport?.wallet_address) {
-      // Non-blocking — don't await, fire and forget on-chain sync
-      syncOnChainAttestation({
-        workerAddress: passport.wallet_address as `0x${string}`,
-        score: result.score,
-        monthlyAvgIncome: avgMonthly,
-        incomeVolatility: cv,
-        tenureMonths,
-        platformDiversity: platforms.size,
-        reliabilityScore: earningConsistency,
-      }).then(syncResult => {
-        if (syncResult.success) {
-          console.log(`[krost-sync] On-chain attestation complete: tx=${syncResult.txHash}`)
-        } else {
-          console.warn(`[krost-sync] On-chain sync skipped: ${syncResult.error}`)
-        }
-      })
-    }
-  } catch {
-    // Non-critical — score saved even if on-chain fails
-    console.warn('[krost-sync] Failed to check passport for on-chain sync')
   }
 
   return NextResponse.json({ ...result, cached: false })
