@@ -1,7 +1,6 @@
 'use client'
 
 import { createClient } from '@/lib/supabase-browser'
-import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, Suspense } from 'react'
 import { usePlaidLink } from 'react-plaid-link'
 import Link from 'next/link'
@@ -21,9 +20,9 @@ const PLATFORMS = [
 ]
 
 const PROGRESS_STATES = [
-  'Connecting to platform…',
-  'Downloading earnings history…',
-  'Calculating your score…',
+  'Connecting to platform\u2026',
+  'Downloading earnings history\u2026',
+  'Calculating your score\u2026',
 ]
 
 function StepDots({ step }: { step: Step }) {
@@ -38,6 +37,49 @@ function StepDots({ step }: { step: Step }) {
         />
       ))}
       <span className="ml-3 text-mono-label text-slate">Step {step} of 4</span>
+    </div>
+  )
+}
+
+function RoleSelect({
+  onSelect,
+}: {
+  onSelect: (role: 'gig_worker' | 'lender') => void
+}) {
+  return (
+    <div>
+      <p className="text-mono-label text-slate">Welcome to Krost</p>
+      <h1 className="mt-3 font-display text-[44px] leading-none tracking-tight text-ink-black">
+        How will you use Krost?
+      </h1>
+      <p className="mt-4 text-body text-slate">
+        Choose your path to get started.
+      </p>
+      <div className="mt-10 space-y-4">
+        <button
+          onClick={() => onSelect('gig_worker')}
+          className="card-bordered w-full px-6 py-6 text-left transition hover:border-ink-black"
+        >
+          <h3 className="font-display text-xl text-ink-black">
+            I&apos;m a gig worker
+          </h3>
+          <p className="mt-2 text-sm text-slate">
+            Verify your income, build a credit score, and get lender-ready
+            reports.
+          </p>
+        </button>
+        <button
+          onClick={() => onSelect('lender')}
+          className="card-bordered w-full px-6 py-6 text-left transition hover:border-ink-black"
+        >
+          <h3 className="font-display text-xl text-ink-black">
+            I&apos;m a lender
+          </h3>
+          <p className="mt-2 text-sm text-slate">
+            Verify gig-worker income and access attested credit scores.
+          </p>
+        </button>
+      </div>
     </div>
   )
 }
@@ -58,7 +100,7 @@ function StepOne({ onNext }: { onNext: () => void }) {
           {
             label: '01',
             title: 'Connect your gig platforms via Plaid',
-            body: 'Securely link your bank or accounts. Read-only — we never move money.',
+            body: 'Securely link your bank or accounts. Read-only \u2014 we never move money.',
           },
           {
             label: '02',
@@ -83,7 +125,7 @@ function StepOne({ onNext }: { onNext: () => void }) {
 
       <div className="mt-10">
         <Button variant="primary" className="w-full" onClick={onNext}>
-          Next →
+          Next \u2192
         </Button>
       </div>
     </div>
@@ -168,8 +210,8 @@ function StepTwo({
         Pick a platform.
       </h1>
       <p className="mt-4 text-body text-slate">
-        Connect your bank via Plaid and we&apos;ll auto-detect deposits from the gig
-        platforms below.
+        Connect your bank via Plaid and we&apos;ll auto-detect deposits from the
+        gig platforms below.
       </p>
 
       <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -200,10 +242,10 @@ function StepTwo({
           className="flex-1"
         >
           {exchanging
-            ? 'Connecting…'
+            ? 'Connecting\u2026'
             : ready && linkToken
-            ? 'Connect with Plaid'
-            : 'Loading…'}
+              ? 'Connect with Plaid'
+              : 'Loading\u2026'}
         </Button>
         <button
           onClick={onSkip}
@@ -215,7 +257,7 @@ function StepTwo({
 
       <p className="mt-4 text-xs text-slate">
         {process.env.NEXT_PUBLIC_PLAID_ENV !== 'production' &&
-          'Sandbox mode — use test bank credentials.'}
+          'Sandbox mode \u2014 use test bank credentials.'}
       </p>
     </div>
   )
@@ -237,10 +279,10 @@ function StepThree({ onDone }: { onDone: () => void }) {
     <div>
       <p className="text-mono-label text-slate">Processing</p>
       <h1 className="mt-3 font-display text-[44px] leading-none tracking-tight text-ink-black">
-        Pulling your income data…
+        Pulling your income data\u2026
       </h1>
       <p className="mt-4 text-body text-slate">
-        Hang tight — this takes just a few seconds.
+        Hang tight \u2014 this takes just a few seconds.
       </p>
 
       <div className="mt-14 flex flex-col items-center gap-8">
@@ -263,8 +305,8 @@ function StepThree({ onDone }: { onDone: () => void }) {
                     done
                       ? 'border-ink-black bg-ink-black'
                       : active
-                      ? 'border-ink-black'
-                      : 'border-hairline'
+                        ? 'border-ink-black'
+                        : 'border-hairline'
                   }`}
                 >
                   {done && (
@@ -319,7 +361,7 @@ function StepFour({
 }) {
   const fmt = (n: number | null) =>
     n === null
-      ? '—'
+      ? '\u2014'
       : n.toLocaleString('en-US', {
           style: 'currency',
           currency: 'USD',
@@ -341,7 +383,7 @@ function StepFour({
           <div>
             <p className="text-mono-label text-slate">Annualized income</p>
             <p className="mt-3 font-display text-3xl tracking-tight text-ink-black">
-              {summary.annualized === null ? '—' : fmt(summary.annualized)}
+              {summary.annualized === null ? '\u2014' : fmt(summary.annualized)}
             </p>
           </div>
           <div>
@@ -365,14 +407,14 @@ function StepFour({
           disabled={finishing}
           className="btn-primary flex-1 disabled:opacity-50"
         >
-          {finishing ? 'Saving…' : 'Generate Report — $9'}
+          {finishing ? 'Saving\u2026' : 'Generate Report \u2014 $9'}
         </button>
         <button
           onClick={() => onFinish('/dashboard/worker')}
           disabled={finishing}
           className="btn-pill-outline flex-1 disabled:opacity-50"
         >
-          Go to Dashboard →
+          Go to Dashboard \u2192
         </button>
       </div>
 
@@ -380,21 +422,50 @@ function StepFour({
         Free plan: see income summary. Upgrade for PDF reports.
       </p>
 
-      <p className="mt-3 text-xs text-slate">
-        Not a worker?{' '}
-        <Link href="/dashboard/lender" className="underline">
-          Continue as lender
-        </Link>
+      {/*
+      The lender link in Step 4 is no longer needed because lenders
+      now select their role at the start of onboarding.
+      */}
+    </div>
+  )
+}
+
+function LenderComplete({
+  finishing,
+  onFinish,
+}: {
+  finishing: boolean
+  onFinish: (destination: string) => void
+}) {
+  return (
+    <div>
+      <p className="text-mono-label text-coral">All set</p>
+      <h1 className="mt-3 font-display text-[44px] leading-none tracking-tight text-ink-black">
+        You&apos;re ready to verify.
+      </h1>
+      <p className="mt-4 text-body text-slate">
+        As a lender, you can look up gig-worker income scores, request
+        verifications, and access attested credit data on Base L2.
       </p>
+
+      <div className="mt-10">
+        <button
+          onClick={() => onFinish('/dashboard/lender')}
+          disabled={finishing}
+          className="btn-primary w-full disabled:opacity-50"
+        >
+          {finishing ? 'Saving\u2026' : 'Go to Lender Dashboard \u2192'}
+        </button>
+      </div>
     </div>
   )
 }
 
 function OnboardingContent() {
-  const router = useRouter()
   const supabase = createClient()
 
-  const [step, setStep] = useState<Step>(1)
+  const [step, setStep] = useState<Step | null>(null)
+  const [selectedRole, setSelectedRole] = useState<'gig_worker' | 'lender' | null>(null)
   const [summary, setSummary] = useState<Summary>({
     annualized: null,
     score: null,
@@ -402,6 +473,22 @@ function OnboardingContent() {
   })
   const [finishing, setFinishing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Detect role from user_metadata on mount (email signup or OAuth with role intent).
+  useEffect(() => {
+    async function detectRole() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) return
+      const metaRole = user.user_metadata?.role as string | undefined
+      if (metaRole === 'gig_worker' || metaRole === 'lender') {
+        setSelectedRole(metaRole)
+        setStep(metaRole === 'gig_worker' ? 1 : 4)
+      }
+    }
+    detectRole()
+  }, [supabase])
 
   // Fetch real summary data after processing step completes.
   const loadSummary = useCallback(async () => {
@@ -426,8 +513,9 @@ function OnboardingContent() {
     }
   }, [])
 
-  // Ensure profile exists with gig_worker role (this wizard targets workers).
+  // Ensure profile exists with the selected role.
   const ensureProfile = useCallback(async () => {
+    if (!selectedRole) return null
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -441,22 +529,24 @@ function OnboardingContent() {
       id: user.id,
       email: user.email,
       name,
-      role: 'gig_worker',
+      role: selectedRole,
     })
     if (insertError) {
-      // Likely already exists — try update to ensure role is set.
+      // Likely already exists \u2014 try update to ensure role is set.
       await supabase
         .from('profiles')
-        .update({ role: 'gig_worker' })
+        .update({ role: selectedRole })
         .eq('id', user.id)
         .is('role', null)
     }
     return user
-  }, [supabase])
+  }, [supabase, selectedRole])
 
   useEffect(() => {
-    ensureProfile()
-  }, [ensureProfile])
+    if (selectedRole) {
+      ensureProfile()
+    }
+  }, [ensureProfile, selectedRole])
 
   const goToStepThree = () => setStep(3)
   const skipToStepFour = () => setStep(4)
@@ -466,28 +556,37 @@ function OnboardingContent() {
     setStep(4)
   }, [loadSummary])
 
+  const handleRoleSelect = useCallback((role: 'gig_worker' | 'lender') => {
+    setSelectedRole(role)
+    setStep(role === 'gig_worker' ? 1 : 4)
+  }, [])
+
   const finishOnboarding = useCallback(
     async (destination: string) => {
       setFinishing(true)
       setError(null)
       const { error: updateError } = await supabase.auth.updateUser({
-        data: { onboarding_completed: true, role: 'gig_worker' },
+        data: { onboarding_completed: true, role: selectedRole },
       })
       if (updateError) {
         setError(updateError.message)
         setFinishing(false)
         return
       }
-      router.push(destination)
-      router.refresh()
+      // Force a full page navigation so the proxy sees fresh session cookies
+      // after updateUser. router.push() can race with cookie writes and cause
+      // the proxy to see a stale/invalid session, redirecting to /login.
+      window.location.href = destination
     },
-    [router, supabase]
+    [supabase, selectedRole]
   )
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-start justify-center px-6 py-16">
       <div className="w-full max-w-2xl">
-        <StepDots step={step} />
+        {step !== null && selectedRole === 'gig_worker' && (
+          <StepDots step={step} />
+        )}
 
         {error && (
           <div
@@ -501,14 +600,22 @@ function OnboardingContent() {
           </div>
         )}
 
+        {step === null && <RoleSelect onSelect={handleRoleSelect} />}
+
         {step === 1 && <StepOne onNext={() => setStep(2)} />}
         {step === 2 && (
           <StepTwo onConnected={goToStepThree} onSkip={skipToStepFour} />
         )}
         {step === 3 && <StepThree onDone={handleStepThreeDone} />}
-        {step === 4 && (
+        {step === 4 && selectedRole === 'gig_worker' && (
           <StepFour
             summary={summary}
+            finishing={finishing}
+            onFinish={finishOnboarding}
+          />
+        )}
+        {step === 4 && selectedRole === 'lender' && (
+          <LenderComplete
             finishing={finishing}
             onFinish={finishOnboarding}
           />
