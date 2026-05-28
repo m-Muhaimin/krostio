@@ -133,9 +133,9 @@ export default function Page() {
       </section>
 
       <section>
-        <H2>What Krost does about it</H2>
+        <H2>What Krostio does about it</H2>
         <P>
-          Krost is built on a simple bet: lenders are not refusing gig workers because they want to.
+          Krostio is built on a simple bet: lenders are not refusing gig workers because they want to.
           They are refusing them because the data infrastructure to underwrite them well does not
           exist. Once that infrastructure exists, the loans get made.
         </P>

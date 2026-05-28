@@ -1,17 +1,11 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-/**
- * Auto-starts a Stripe Checkout session when the billing page is loaded with
- * a `?start=worker|lender` hint (set by post-auth redirect from a plan CTA).
- *
- * Runs at most once per page mount, then strips the param from the URL so a
- * back-button doesn't re-trigger checkout.
- */
 export function BillingAutoStart({ priceId }: { priceId: string }) {
   const fired = useRef(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (fired.current) return
@@ -19,18 +13,23 @@ export function BillingAutoStart({ priceId }: { priceId: string }) {
 
     ;(async () => {
       try {
-        const res = await fetch('/api/billing/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ priceId }),
+        const { initializePaddle } = await import('@paddle/paddle-js')
+        const paddle = await initializePaddle({
+          token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN!,
+          environment: process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT === 'production' ? 'production' : 'sandbox',
         })
-        const data = await res.json()
-        if (data.url) {
-          window.location.href = data.url
-        } else {
-          // Drop the start param so the user sees the plan picker instead of a stuck spinner.
+        if (!paddle) {
           window.history.replaceState({}, '', '/dashboard/billing')
+          return
         }
+        paddle.Checkout.open({
+          items: [{ priceId, quantity: 1 }],
+          settings: {
+            displayMode: 'overlay',
+            theme: 'light',
+            successUrl: `${window.location.origin}/dashboard/billing?upgraded=true`,
+          },
+        })
       } catch {
         window.history.replaceState({}, '', '/dashboard/billing')
       }
@@ -38,7 +37,7 @@ export function BillingAutoStart({ priceId }: { priceId: string }) {
   }, [priceId])
 
   return (
-    <div className="rounded-md border border-hairline bg-soft-stone px-5 py-4 text-sm text-ink">
+    <div className="rounded-lg border border-hairline bg-soft-stone px-5 py-4 text-sm text-ink-black mb-4">
       <div className="flex items-center gap-3">
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-ink-black border-t-transparent" />
         Starting your checkout…
@@ -47,16 +46,10 @@ export function BillingAutoStart({ priceId }: { priceId: string }) {
   )
 }
 
-/**
- * Shown after a successful return from Stripe Checkout (`?upgraded=true`).
- * Also nudges a refresh once after a short delay in case the webhook is still
- * landing (Stripe usually fires within a few seconds in test mode).
- */
 export function BillingSuccessBanner() {
   const router = useRouter()
 
   useEffect(() => {
-    // Strip the query so reloads don't keep showing the banner.
     const t = setTimeout(() => {
       router.replace('/dashboard/billing')
     }, 4000)
@@ -65,15 +58,15 @@ export function BillingSuccessBanner() {
 
   return (
     <div
-      className="rounded-md border px-5 py-4 text-sm"
+      className="rounded-lg border px-5 py-4 text-sm mb-4"
       style={{
-        backgroundColor: '#edfce9',
+        backgroundColor: 'var(--color-pale-green)',
         borderColor: '#cfe9c8',
-        color: '#003c33',
+        color: 'var(--color-deep-green)',
       }}
     >
       <div className="flex items-start gap-3">
-        <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-coral" />
+        <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-coral shrink-0" />
         <div>
           <p className="font-medium">You&apos;re subscribed.</p>
           <p className="mt-1 text-xs opacity-80">

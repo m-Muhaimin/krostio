@@ -1,25 +1,26 @@
+import { getCurrentUser } from './auth-utils'
 import { createServerSupabaseClient } from './supabase-server'
 import { redirect } from 'next/navigation'
 
 export type UserRole = 'gig_worker' | 'admin'
 
 export async function getCurrentUserRole(): Promise<{ role: UserRole | null; userId: string | null }> {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const currentUser = await getCurrentUser()
 
-  if (!user) {
+  if (!currentUser) {
     return { role: null, userId: null }
   }
 
+  const supabase = createServerSupabaseClient()
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', user.id)
+    .eq('id', currentUser.user.id)
     .single()
 
   return {
     role: profile?.role as UserRole | null,
-    userId: user.id,
+    userId: currentUser.user.id,
   }
 }
 

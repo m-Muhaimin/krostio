@@ -26,7 +26,7 @@ export const PLAID_PRODUCTS: Products[] = [Products.Transactions]
 
 export const PLAID_COUNTRY_CODES: CountryCode[] = [CountryCode.Us]
 
-export const PLAID_CLIENT_NAME = 'Krost'
+export const PLAID_CLIENT_NAME = 'Krostio'
 
 export const PLAID_REDIRECT_URI =
   process.env.PLAID_REDIRECT_URI || 'http://localhost:3000/auth/plaid/callback'

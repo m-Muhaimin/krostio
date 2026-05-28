@@ -483,4 +483,42 @@
     margin-right: 8px;
     vertical-align: middle;
   }
+
+  /* ── Platform carousel ── */
+  .carousel-track {
+    overflow: hidden;
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 5%,
+      black 95%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 5%,
+      black 95%,
+      transparent 100%
+    );
+  }
+  .carousel-inner {
+    display: flex;
+    gap: 6rem;
+    width: max-content;
+    animation: carousel-scroll 30s linear infinite;
+  }
+  .carousel-item {
+    flex-shrink: 0;
+    white-space: nowrap;
+    opacity: 0.55;
+    transition: opacity 0.2s;
+  }
+  .carousel-item:hover {
+    opacity: 1;
+  }
+  @keyframes carousel-scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
 }

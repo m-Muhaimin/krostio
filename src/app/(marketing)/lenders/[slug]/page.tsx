@@ -57,7 +57,7 @@ export async function generateMetadata({
   if (!data) return { title: 'Lender not found' }
   return {
     title: `${data.company_name} — Loans for gig workers`,
-    description: data.tagline ?? `Apply for financing with ${data.company_name} using a Krost income verification report.`,
+    description: data.tagline ?? `Apply for financing with ${data.company_name} using a Krostio income verification report.`,
   }
 }
 
@@ -148,8 +148,8 @@ export default async function LenderDetailPage({
           )}
 
           <p className="mt-10 text-xs text-slate">
-            This is a paid placement. Krost may earn a referral fee if you connect with this
-            lender. Listings on the Krost directory are not endorsements; review each lender&apos;s
+            This is a paid placement. Krostio may earn a referral fee if you connect with this
+            lender. Listings on the Krostio directory are not endorsements; review each lender&apos;s
             terms and licensing before applying.
           </p>
         </article>
@@ -171,7 +171,7 @@ export default async function LenderDetailPage({
             <dl className="space-y-3 text-sm">
               {l.min_consistency_score != null && (
                 <div className="flex justify-between">
-                  <dt className="text-slate">Min Krost score</dt>
+                  <dt className="text-slate">Min Krostio score</dt>
                   <dd className="text-ink-black">{l.min_consistency_score}+</dd>
                 </div>
               )}

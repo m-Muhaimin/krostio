@@ -1,46 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { getCurrentUser } from '@/lib/auth-utils'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll() },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const currentUser = await getCurrentUser()
+  if (!currentUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = currentUser.user
+  const supabase = createServerSupabaseClient()
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('stripe_customer_id')
+    .select('paddle_customer_id, paddle_subscription_id, subscription_status, email')
     .eq('id', user.id)
     .single()
 
-  if (!profile?.stripe_customer_id) {
-    return NextResponse.json({ error: 'No subscription found' }, { status: 404 })
-  }
-
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
 
-  const portalSession = await stripe.billingPortal.sessions.create({
-    customer: profile.stripe_customer_id,
-    return_url: `${appUrl}/dashboard/billing`,
+  return NextResponse.json({
+    url: `${appUrl}/dashboard/billing`,
+    message: 'Manage your subscription from the billing page. Contact support for changes.',
   })
-
-  return NextResponse.json({ url: portalSession.url })
 }

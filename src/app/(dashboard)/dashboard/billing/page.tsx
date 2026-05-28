@@ -1,12 +1,9 @@
+import { getCurrentUser } from '@/lib/auth-utils'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import {
-  PRO_MONTHLY_PRICE_ID,
-  ONE_TIME_PRICE_ID,
-} from '@/lib/stripe'
+import { PRO_MONTHLY_PRICE_ID, ONE_TIME_PRICE_ID } from '@/lib/paddle'
 import { SubscribeButton } from './subscribe-button'
 import { BillingAutoStart, BillingSuccessBanner } from './billing-client'
 
-// Always re-fetch profile after Stripe redirects.
 export const dynamic = 'force-dynamic'
 
 type SearchParams = Promise<{ start?: string; upgraded?: string }>
@@ -28,8 +25,9 @@ export default async function BillingPage({
   searchParams: SearchParams
 }) {
   const { start, upgraded } = await searchParams
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const currentUser = await getCurrentUser()
+  const user = currentUser?.user ?? null
+  const supabase = createServerSupabaseClient()
 
   let subscription: { status: string; price_id: string | null } | null = null
   let role: string = 'gig_worker'
@@ -37,7 +35,7 @@ export default async function BillingPage({
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_status, stripe_price_id, role')
+      .select('subscription_status, paddle_price_id, role')
       .eq('id', user.id)
       .single()
 
@@ -46,7 +44,7 @@ export default async function BillingPage({
       if (profile.subscription_status && profile.subscription_status !== 'free') {
         subscription = {
           status: profile.subscription_status,
-          price_id: profile.stripe_price_id,
+          price_id: profile.paddle_price_id,
         }
       }
     }
@@ -87,14 +85,8 @@ export default async function BillingPage({
   ]
 
   const isSubscribed = subscription?.status === 'active' || subscription?.status === 'trialing'
+  const autoStartPriceId = start === 'worker' ? PRO_MONTHLY_PRICE_ID : null
 
-  // Resolve a `?start=...` hint into the matching Stripe price id.
-  const autoStartPriceId =
-    start === 'worker'
-      ? PRO_MONTHLY_PRICE_ID
-      : null
-
-  // Current plan name resolver
   const currentPlanName = (() => {
     if (!isSubscribed) return 'Free'
     const pid = subscription!.price_id
@@ -102,7 +94,6 @@ export default async function BillingPage({
     return 'Free'
   })()
 
-  // Free-tier copy
   const freeTierCopy = {
     eyebrow: 'Always free',
     description: 'Get started with a verified income snapshot. No card required.',
@@ -114,115 +105,91 @@ export default async function BillingPage({
   }
 
   return (
-    <div className="space-y-14">
+    <div>
       {upgraded === 'true' && <BillingSuccessBanner />}
-
-      {/* If the user landed here from a plan CTA and is not yet subscribed,
-          auto-open the Stripe Checkout session client-side. Safe no-op otherwise. */}
       {autoStartPriceId && !isSubscribed && (
         <BillingAutoStart priceId={autoStartPriceId} />
       )}
 
-      <div>
-        <p className="text-mono-label text-slate">Billing</p>
-        <h1 className="mt-3 font-display text-[44px] leading-none tracking-tight text-ink-black">
-          Subscription &amp; payments.
-        </h1>
-        <p className="mt-3 text-body text-slate">
-            Manage your subscription and payment methods.
-        </p>
+      <div className="page-header fade-up d0">
+        <h1 className="page-title">Billing</h1>
+        <p className="page-sub">Manage your subscription and payment methods.</p>
       </div>
 
-      {/* Current plan */}
-      <section className="card-stone">
-        <div className="flex items-start justify-between gap-6">
-          <div>
-            <p className="text-mono-label text-slate">Current plan</p>
-            <p className="mt-3 font-display text-3xl tracking-tight text-ink-black">
-              {currentPlanName}
-            </p>
-            {subscription && (
-              <p className="mt-2 text-xs text-slate">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <div className="card fade-up d1">
+          <div className="card-head">
+            <div>
+              <p className="card-title">Current Plan</p>
+              <p className="card-sub">{currentPlanName}</p>
+            </div>
+            {isSubscribed && (
+              <span className="chip-coral-outline text-xs capitalize">{subscription!.status}</span>
+            )}
+          </div>
+          <div className="card-body p-5">
+            {subscription ? (
+              <p className="text-sm text-slate">
                 Status:{' '}
-                <span
-                  className="font-medium"
-                  style={{
-                    color:
-                      subscription.status === 'active' ||
-                      subscription.status === 'trialing'
-                        ? 'var(--color-ink-black)'
-                        : 'var(--color-error-red)',
-                  }}
-                >
-                  {subscription.status}
-                </span>
+                <span className="font-medium text-ink-black capitalize">{subscription.status}</span>
+              </p>
+            ) : (
+              <p className="text-sm text-slate">
+                You are on the Free plan. Upgrade to unlock more features.
               </p>
             )}
           </div>
-          <span
-            className={`rounded-full px-4 py-1 text-mono-label ${
-              isSubscribed ? 'bg-ink-black text-white' : 'bg-white text-slate border border-hairline'
-            }`}
-          >
-            {isSubscribed ? subscription!.status : 'Free'}
-          </span>
         </div>
-      </section>
 
-      {/* Free tier callout */}
-      <section className="card-stone">
-        <div className="flex items-start justify-between gap-6">
-          <div>
-            <span className="chip-coral-outline mb-5">{freeTierCopy.eyebrow}</span>
-            <p className="text-mono-label text-slate">Free</p>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="font-display text-5xl font-normal tracking-tight text-ink-black">
-                $0
-              </span>
-              <span className="text-sm text-slate">/ forever</span>
+        <div className="card fade-up d2">
+          <div className="card-head">
+            <div>
+              <p className="card-title">Always Free</p>
+              <p className="card-sub">{freeTierCopy.description}</p>
             </div>
-            <p className="mt-3 text-sm text-slate">{freeTierCopy.description}</p>
+            <span className="chip-coral text-xs">$0 forever</span>
           </div>
-          <ul className="mt-2 space-y-3 text-sm text-ink max-w-sm">
-            {freeTierCopy.features.map((f) => (
-              <li key={f} className="flex items-start gap-3">
-                <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
-                {f}
-              </li>
-            ))}
-          </ul>
+          <div className="card-body p-5">
+            <ul className="space-y-2">
+              {freeTierCopy.features.map((f) => (
+                <li key={f} className="flex items-start gap-3 text-sm text-slate">
+                  <span className="mt-[7px] h-1 w-1 rounded-full bg-coral shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-      </section>
+      </div>
 
-      {/* Plans */}
-      <section>
-        <h2 className="mb-6 text-heading-feature text-ink-black">
-          {isSubscribed ? 'Switch plan' : 'Choose a plan'}
-        </h2>
-        <div className="grid gap-6 md:grid-cols-2">
-          {plans.map((plan) => {
-            const isCurrentPlan = isSubscribed && subscription?.price_id === plan.priceId
-
-            return (
-              <div key={plan.id} className="card-stone">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        {plans.map((plan, i) => {
+          const isCurrentPlan = isSubscribed && subscription?.price_id === plan.priceId
+          return (
+            <div key={plan.id} className={`card fade-up d${3 + i}`}>
+              <div className="card-head">
+                <div>
+                  <p className="card-title">{plan.name}</p>
+                  <p className="card-sub">{plan.description}</p>
+                </div>
                 {plan.popular && !isSubscribed && (
-                  <span className="chip-coral mb-5">Recommended</span>
+                  <span className="chip-coral text-xs">Recommended</span>
                 )}
                 {isCurrentPlan && (
-                  <span className="chip-coral-outline mb-5">Current</span>
+                  <span className="chip-coral-outline text-xs">Current</span>
                 )}
-                <p className="text-mono-label text-slate">{plan.name}</p>
-                <div className="mt-4 flex items-baseline gap-2">
-                  <span className="font-display text-5xl font-normal tracking-tight text-ink-black">
+              </div>
+              <div className="card-body p-5">
+                <div className="flex items-baseline gap-2 mb-4">
+                  <span className="font-display text-4xl tracking-tight text-ink-black">
                     ${plan.price}
                   </span>
-                  <span className="text-sm text-slate">{plan.priceSuffix}</span>
+                  <span className="text-sm text-muted-slate">{plan.priceSuffix}</span>
                 </div>
-                <p className="mt-3 text-sm text-slate">{plan.description}</p>
-                <ul className="mt-6 space-y-3 text-sm text-ink">
+                <ul className="space-y-2 mb-6">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-3">
-                      <span className="mt-[7px] h-1 w-1 rounded-full bg-coral" />
+                    <li key={f} className="flex items-start gap-3 text-sm text-slate">
+                      <span className="mt-[7px] h-1 w-1 rounded-full bg-coral shrink-0" />
                       {f}
                     </li>
                   ))}
@@ -241,46 +208,54 @@ export default async function BillingPage({
                   disabled={isCurrentPlan}
                 />
               </div>
-            )
-          })}
-        </div>
-      </section>
+            </div>
+          )
+        })}
+      </div>
 
-      {/* Payment method */}
-      <section className="border-t border-hairline pt-10">
-        <div className="grid gap-12 md:grid-cols-[1fr_2fr]">
-          <div>
-            <p className="text-mono-label text-slate">Payments</p>
-            <h2 className="mt-3 text-heading-feature text-ink-black">Payment method</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="card fade-up d5">
+          <div className="card-head">
+            <div>
+              <p className="card-title">Payment Method</p>
+              <p className="card-sub">
+                {isSubscribed
+                  ? 'Managed via Paddle'
+                  : 'No payment method on file'}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-slate">
-              {isSubscribed ? 'Managed via Stripe Customer Portal' : 'No payment method on file'}
-            </p>
-            <SubscribeButton
-              priceId="portal"
-              label={isSubscribed ? 'Manage via Stripe portal' : 'Add payment method'}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* History */}
-      <section className="border-t border-hairline pt-10">
-        <div className="grid gap-12 md:grid-cols-[1fr_2fr]">
-          <div>
-            <p className="text-mono-label text-slate">History</p>
-            <h2 className="mt-3 text-heading-feature text-ink-black">Billing history</h2>
-          </div>
-          <div className="card-bordered px-8 py-12 text-center">
+          <div className="card-body p-5">
             <p className="text-sm text-slate">
               {isSubscribed
-                ? 'View full history in Stripe Customer Portal'
-                : 'No billing history yet'}
+                ? 'Payment is managed securely via Paddle.'
+                : 'Add a payment method when you upgrade.'}
             </p>
           </div>
         </div>
-      </section>
+
+        <div className="card fade-up d6">
+          <div className="card-head">
+            <div>
+              <p className="card-title">Billing History</p>
+              <p className="card-sub">
+                {isSubscribed
+                  ? 'View in Paddle dashboard'
+                  : 'No billing history yet'}
+              </p>
+            </div>
+          </div>
+          <div className="card-body p-5">
+            {isSubscribed ? (
+              <p className="text-sm text-slate">
+                Billing history is available in your Paddle account.
+              </p>
+            ) : (
+              <p className="text-sm text-slate">No billing history yet.</p>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

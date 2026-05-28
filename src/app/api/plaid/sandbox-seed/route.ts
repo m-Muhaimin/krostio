@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getCurrentUser } from '@/lib/auth-utils'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { plaid } from '@/lib/plaid'
 import { fetchGigIncomeForItem } from '@/lib/plaid-sync'
@@ -49,11 +50,10 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const currentUser = await getCurrentUser()
+  if (!currentUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = currentUser.user
+  const supabase = createServerSupabaseClient()
 
   const { access_token: rawToken, weeks, resync } = await request.json()
 
@@ -82,69 +82,70 @@ export async function POST(request: NextRequest) {
     resolvedItemId = conn.item_id
   }
 
-  const numWeeks = Math.min(Math.max(weeks ?? 13, 1), 26)
+  const numWeeks = Math.min(Math.max(weeks ?? 0, 0), 26)
 
-  // Build fake transactions
   const today = new Date()
   const start = addDays(today, -(numWeeks * 7))
-
-  const allTransactions: Array<{
-    amount: number
-    date_transacted: string
-    date_posted: string
-    description: string
-    name: string
-    iso_currency_code: string
-  }> = []
-
-  for (let w = 0; w < numWeeks; w++) {
-    const weekStart = addDays(start, w * 7)
-    const depositsPerWeek = 15 + Math.floor(Math.random() * 16) // 15-30 per week
-
-    for (let d = 0; d < depositsPerWeek; d++) {
-      const platform = GIG_DEPOSITS[Math.floor(Math.random() * GIG_DEPOSITS.length)]
-      const amount = -randBetween(platform.min, platform.max)
-      const dateOffset = Math.floor(Math.random() * 7)
-      const date = addDays(weekStart, dateOffset)
-
-      if (date > today) continue
-
-      allTransactions.push({
-        name: platform.name,
-        amount,
-        date_transacted: date.toISOString().slice(0, 10),
-        date_posted: date.toISOString().slice(0, 10),
-        description: `${platform.name} payout`,
-        iso_currency_code: 'USD',
-      })
-    }
-  }
-
-  // Seed in batches of 300
   let totalSeeded = 0
-  const batchSize = 300
-  for (let i = 0; i < allTransactions.length; i += batchSize) {
-    const batch = allTransactions.slice(i, i + batchSize)
-    try {
-      await plaid.sandboxTransactionsCreate({
-        access_token: accessToken,
-        transactions: batch,
-      } as any)
-      totalSeeded += batch.length
-    } catch (err: any) {
-      const msg = err?.response?.data?.error_message || err?.message || 'Sandbox seed failed'
-      return NextResponse.json(
-        { error: msg, total_seeded: totalSeeded },
-        { status: 500 }
-      )
+
+  if (numWeeks > 0) {
+
+    const allTransactions: Array<{
+      amount: number
+      date_transacted: string
+      date_posted: string
+      description: string
+      iso_currency_code: string
+    }> = []
+
+    for (let w = 0; w < numWeeks; w++) {
+      const weekStart = addDays(start, w * 7)
+      const depositsPerWeek = 15 + Math.floor(Math.random() * 16)
+
+      for (let d = 0; d < depositsPerWeek; d++) {
+        const platform = GIG_DEPOSITS[Math.floor(Math.random() * GIG_DEPOSITS.length)]
+        const amount = -randBetween(platform.min, platform.max)
+        const dateOffset = Math.floor(Math.random() * 7)
+        const date = addDays(weekStart, dateOffset)
+
+        if (date > today) continue
+
+        allTransactions.push({
+          amount,
+          date_transacted: date.toISOString().slice(0, 10),
+          date_posted: date.toISOString().slice(0, 10),
+          description: `${platform.name} payout`,
+          iso_currency_code: 'USD',
+        })
+      }
+    }
+
+    // Seed in batches of 10 (Plaid sandbox limit)
+    const batchSize = 10
+    for (let i = 0; i < allTransactions.length; i += batchSize) {
+      const batch = allTransactions.slice(i, i + batchSize)
+      try {
+        await plaid.sandboxTransactionsCreate({
+          access_token: accessToken,
+          transactions: batch,
+        } as any)
+        totalSeeded += batch.length
+      } catch (err: any) {
+        const msg = err?.response?.data?.error_message || err?.message || 'Sandbox seed failed'
+        return NextResponse.json(
+          { error: msg, total_seeded: totalSeeded },
+          { status: 500 }
+        )
+      }
     }
   }
 
   // Resync: fetch transactions + recalculate score
   let syncResult = null
   if (resync) {
+    const lookbackDays = numWeeks > 0 ? numWeeks * 7 : 90
     try {
-      const { incomeRows, ledgerRows } = await fetchGigIncomeForItem(accessToken, user.id, numWeeks * 7)
+      const { incomeRows, ledgerRows } = await fetchGigIncomeForItem(accessToken, user.id, lookbackDays)
 
       // Write income_records (delete existing ones from this item's previous sync first?)
       // We upsert to avoid duplicates: one row per (user_id, platform, period_start)

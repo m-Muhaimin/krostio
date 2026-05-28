@@ -59,7 +59,7 @@ export default function HomePage() {
             The financial identity platform for gig workers
           </p>
 
-          <h1 className="text-display-hero max-w-5xl">
+          <h1 className="text-display-product max-w-5xl">
             Your gig income is real.
             <br />
             Own your financial identity.
@@ -104,82 +104,18 @@ export default function HomePage() {
                 accent: 'bg-coral',
               },
             ].map((p) => (
-              <div key={p.label} className="flex flex-col gap-3 rounded-md border border-hairline p-6">
+              <div key={p.label} className="card-bordered p-6 flex flex-col gap-3">
                 <div className={`h-1 w-12 rounded-full ${p.accent}`} />
                 <p className="text-mono-label text-slate mt-2">{p.label}</p>
-                <h3 className="text-xl font-medium text-ink-black">{p.title}</h3>
-                <p className="text-sm text-slate leading-relaxed">{p.desc}</p>
+                <h3 className="text-heading-feature text-ink-black">{p.title}</h3>
+                <p className="text-body text-slate">{p.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Score demo band ── */}
-      <section className="px-6 py-24" style={{ backgroundColor: 'var(--color-deep-green)' }}>
-        <div className="mx-auto max-w-7xl text-white">
-          <div className="grid gap-16 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-            <div>
-              <p className="text-mono-label text-white/50">
-                <span className="eyebrow-dot" style={{ backgroundColor: '#ffad9b' }} />
-                Krost Score
-              </p>
-              <h2 className="text-display-product mt-6 text-white">
-                An income score that
-                <br />
-                works for gig workers.
-              </h2>
-              <p className="text-body-lg mt-8 max-w-lg text-white/70">
-                The Krost Consistency Score is a 0–100 income-stability metric — built on
-                real earnings data from your connected platforms. It&apos;s not a credit score. It&apos;s better
-                for anyone without a W-2.
-              </p>
-              <div className="mt-10 flex flex-wrap items-center gap-6">
-                <Link href="/register" className="btn-primary-light">
-                  Check your score
-                </Link>
-                <Link href="/learn" className="btn-secondary text-white">
-                  How it&apos;s calculated →
-                </Link>
-              </div>
-            </div>
 
-            <div className="space-y-4">
-              {[
-                {
-                  label: 'Income reliability',
-                  title: 'Average monthly + trajectory over 24 months',
-                  body: 'Higher income relative to $5K benchmark, weighted by 6-month trend slope.',
-                },
-                {
-                  label: 'Platform diversity',
-                  title: 'Multi-platform diversification bonus',
-                  body: 'Workers with 3+ platforms score higher — less concentration risk for lenders.',
-                },
-                {
-                  label: 'Consistency & tenure',
-                  title: 'Months of history and earning consistency',
-                  body: 'Longer track record with fewer zero-earning months signals reliability.',
-                },
-                {
-                  label: 'Tax & ledger depth',
-                  title: 'Verified history and tax compliance signals',
-                  body: '1099-K filing and months of verified ledger history add bonus points.',
-                },
-              ].map((f) => (
-                <div
-                  key={f.label}
-                  className="rounded-md border border-white/10 bg-white/[0.04] p-5"
-                >
-                  <p className="text-mono-label text-white/50">{f.label}</p>
-                  <h3 className="mt-2 text-lg font-normal text-white">{f.title}</h3>
-                  <p className="mt-1 text-sm text-white/65">{f.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ── Four-pillar detail ── */}
       <section id="product" className="px-6 py-24">
@@ -225,12 +161,12 @@ export default function HomePage() {
                 accent: 'bg-deep-green',
               },
             ].map((p) => (
-              <div key={p.num} className="flex flex-col gap-4 rounded-xl border border-hairline p-8">
+              <div key={p.num} className="card-stone flex flex-col gap-4">
                 <div className={`h-1.5 w-16 rounded-full ${p.accent}`} />
                 <p className="text-mono-label text-coral mt-3">{p.num}</p>
-                <h3 className="text-2xl font-medium text-ink-black">{p.title}</h3>
-                <p className="text-sm font-medium text-slate">{p.subtitle}</p>
-                <p className="text-sm text-slate leading-relaxed">{p.body}</p>
+                <h3 className="text-heading-card text-ink-black">{p.title}</h3>
+                <p className="text-body font-medium text-slate">{p.subtitle}</p>
+                <p className="text-body text-slate">{p.body}</p>
                 <Link
                   href="/register"
                   className="link-editorial mt-2 inline-block text-sm"
@@ -243,27 +179,47 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Platform strip ── */}
+      {/* ── Platform carousel ── */}
       <section className="border-t border-hairline px-6 py-20">
         <div className="mx-auto max-w-6xl text-center">
           <p className="text-mono-label text-slate">
             Connecting with the platforms you already work on
           </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-16 gap-y-8 text-ink-black/40">
-            {['UBER', 'DOORDASH', 'LYFT', 'INSTACART', 'UPWORK', 'FIVERR', 'GRUBHUB', 'AMAZON FLEX'].map((logo) => (
-              <span
-                key={logo}
-                className="font-display text-2xl font-medium tracking-tight"
-              >
-                {logo}
-              </span>
-            ))}
+          <div className="carousel-track mt-10">
+            <div className="carousel-inner">
+              {[
+                { name: 'UBER', color: '#000000' },
+                { name: 'DOORDASH', color: '#FF3008' },
+                { name: 'LYFT', color: '#FF00BF' },
+                { name: 'INSTACART', color: '#00AB66' },
+                { name: 'UPWORK', color: '#6FDA44' },
+                { name: 'FIVERR', color: '#1DBF73' },
+                { name: 'GRUBHUB', color: '#F63440' },
+                { name: 'AMAZON FLEX', color: '#FF9900' },
+                { name: 'UBER', color: '#000000' },
+                { name: 'DOORDASH', color: '#FF3008' },
+                { name: 'LYFT', color: '#FF00BF' },
+                { name: 'INSTACART', color: '#00AB66' },
+                { name: 'UPWORK', color: '#6FDA44' },
+                { name: 'FIVERR', color: '#1DBF73' },
+                { name: 'GRUBHUB', color: '#F63440' },
+                { name: 'AMAZON FLEX', color: '#FF9900' },
+              ].map((p, i) => (
+                <span
+                  key={`${p.name}-${i}`}
+                  className="carousel-item font-display text-2xl font-medium tracking-tight"
+                  style={{ color: p.color }}
+                >
+                  {p.name}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── How it works ── */}
-      <section id="how-it-works" className="px-6 py-24" style={{ backgroundColor: 'var(--color-dark-navy)' }}>
+      <section id="how-it-works" className="px-6 py-24 bg-dark-navy">
         <div className="mx-auto max-w-7xl text-white">
           <p className="text-mono-label text-white/50">
             <span className="eyebrow-dot" style={{ backgroundColor: '#ffad9b' }} />
@@ -486,7 +442,7 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="px-6 py-24" style={{ backgroundColor: 'var(--color-pale-blue)' }}>
+      <section className="px-6 py-24 bg-pale-blue">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
@@ -520,11 +476,11 @@ export default function HomePage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="px-6 py-20" style={{ backgroundColor: 'var(--color-ink-black)', color: 'rgba(255,255,255,0.7)' }}>
+      <footer className="px-6 py-20 bg-ink-black text-white/70">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-12 border-b border-white/10 pb-16 lg:grid-cols-[1fr_1fr]">
             <div>
-              <p className="text-mono-label" style={{ color: 'var(--color-coral)' }}>
+              <p className="text-mono-label text-coral">
                 Stay in the loop
               </p>
               <h2 className="mt-4 text-[40px] leading-tight text-white">

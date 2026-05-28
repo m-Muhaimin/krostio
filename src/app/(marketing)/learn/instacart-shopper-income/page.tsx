@@ -129,9 +129,9 @@ export default function Page() {
       </section>
 
       <section>
-        <H2>How Krost handles Instacart income</H2>
+        <H2>How Krostio handles Instacart income</H2>
         <P>
-          Krost connects to the Instacart shopper account and pulls 12–24 months of batch-level
+          Krostio connects to the Instacart shopper account and pulls 12–24 months of batch-level
           earnings. We then combine it with any other gig platforms you work on and produce one
           unified verification report with:
         </P>

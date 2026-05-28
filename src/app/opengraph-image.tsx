@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'Krost — Income verification for the gig economy'
+export const alt = 'Krostio — Income verification for the gig economy'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -40,7 +40,7 @@ export default async function OpengraphImage() {
           >
             K
           </div>
-          <div style={{ fontSize: 36, fontWeight: 500, letterSpacing: '-0.02em' }}>Krost</div>
+          <div style={{ fontSize: 36, fontWeight: 500, letterSpacing: '-0.02em' }}>Krostio</div>
         </div>
 
         {/* main wordmark + tagline */}
@@ -54,7 +54,7 @@ export default async function OpengraphImage() {
               color: '#ffffff',
             }}
           >
-            Krost
+            Krostio
           </div>
           <div
             style={{

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { getCurrentUser } from '@/lib/auth-utils'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 /**
  * GET /api/ledger/summary
@@ -12,26 +12,10 @@ import { cookies } from 'next/headers'
  *   ?months=12  — number of trailing months (default 12, max 48)
  */
 export async function GET(request: NextRequest) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll() },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const currentUser = await getCurrentUser()
+  if (!currentUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = currentUser.user
+  const supabase = createServerSupabaseClient()
 
   const { searchParams } = new URL(request.url)
   const months = Math.min(parseInt(searchParams.get('months') || '12', 10), 48)

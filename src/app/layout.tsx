@@ -3,17 +3,17 @@ import './globals.css'
 import { AnalyticsProvider } from '@/lib/analytics-provider'
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://krostio.vercel.app'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://krostio.com'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Krost — Income verification for the gig economy',
-    template: '%s | Krost',
+    default: 'Krostio — Income verification for the gig economy',
+    template: '%s | Krostio',
   },
   description:
     'Income verification for gig workers and freelancers. Connect your platforms, get a 0–100 income consistency score, and share a lender-ready report. You own your data.',
-  applicationName: 'Krost',
+  applicationName: 'Krostio',
   keywords: [
     'income verification',
     'gig worker income',
@@ -24,20 +24,26 @@ export const metadata: Metadata = {
     'self-employed income verification',
     'freelancer income proof',
   ],
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
   openGraph: {
-    title: 'Krost — Income verification for the gig economy',
+    title: 'Krostio — Income verification for the gig economy',
     description:
       'Turn multi-platform earnings into a verified income report lenders trust. Built for the 76 million Americans in the gig economy.',
     type: 'website',
-    siteName: 'Krost',
+    siteName: 'Krostio',
     url: SITE_URL,
+    images: ['/logo.png'],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Krost — Income verification for the gig economy',
+    title: 'Krostio — Income verification for the gig economy',
     description:
       'Turn multi-platform earnings into a verified income report lenders trust.',
     creator: '@krostapp',
+    images: ['/logo.png'],
   },
   robots: {
     index: true,

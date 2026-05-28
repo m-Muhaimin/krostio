@@ -231,7 +231,7 @@ export default function Page() {
 
         <P>
           <strong>Ready to see your score?</strong>{' '}
-          <a href="/check-score" className="link-editorial">Check your free Krost Score &rarr;</a>
+          <a href="/check-score" className="link-editorial">Check your free Krostio Score &rarr;</a>
         </P>
       </section>
     </ArticleShell>

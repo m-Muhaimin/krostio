@@ -1,12 +1,5 @@
-import type { NextRequest } from 'next/server'
-import { updateSession } from '@/lib/middleware-core'
-
-export async function proxy(request: NextRequest) {
-  return await updateSession(request)
-}
+export { updateSession as proxy } from '@/lib/middleware-core'
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon\\.svg|robots\\.txt|sitemap\\.xml).*)'],
 }

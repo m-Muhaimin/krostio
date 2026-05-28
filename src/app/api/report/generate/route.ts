@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getCurrentUser } from '@/lib/auth-utils'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { generateReport } from '@/lib/pdf-render'
 
@@ -9,11 +10,10 @@ import { generateReport } from '@/lib/pdf-render'
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const currentUser = await getCurrentUser()
+    if (!currentUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const user = currentUser.user
+    const supabase = createServerSupabaseClient()
 
     // Check subscription status
     const { data: profile } = await supabase

@@ -4,7 +4,7 @@ import { ArticleShell, H2, P, UL } from '../_components/article-shell'
 export const metadata: Metadata = {
   title: 'How to Prove Income as a DoorDash Driver (2026 Guide)',
   description:
-    'A practical guide for DoorDash drivers on proving income to landlords, lenders, and underwriters — what counts as proof, what doesn\'t, and how Krost turns Dasher earnings into a verified report.',
+    'A practical guide for DoorDash drivers on proving income to landlords, lenders, and underwriters — what counts as proof, what doesn\'t, and how Krostio turns Dasher earnings into a verified report.',
   alternates: { canonical: '/learn/doordash-income-proof' },
   openGraph: {
     title: 'How to Prove Income as a DoorDash Driver',
@@ -105,7 +105,7 @@ export default function Page() {
           </li>
           <li>
             <span className="text-ink-black">An income verification report.</span> A standardized
-            document — like what Krost produces — that pulls all your gig earnings into one signed,
+            document — like what Krostio produces — that pulls all your gig earnings into one signed,
             shareable file so an underwriter does not have to assemble it themselves.
           </li>
         </UL>
@@ -129,9 +129,9 @@ export default function Page() {
       </section>
 
       <section>
-        <H2>How Krost helps</H2>
+        <H2>How Krostio helps</H2>
         <P>
-          Krost connects directly to DoorDash and the other platforms you work on (Uber, Instacart,
+          Krostio connects directly to DoorDash and the other platforms you work on (Uber, Instacart,
           Upwork, and others), pulls your earnings history, and produces a single document an
           underwriter actually trusts:
         </P>

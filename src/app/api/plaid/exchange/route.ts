@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getCurrentUser } from '@/lib/auth-utils'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { plaid } from '@/lib/plaid'
 import { fetchGigIncomeForItem } from '@/lib/plaid-sync'
@@ -14,11 +15,10 @@ import { calculateCreditScore } from '@/lib/scoring-engine'
  * 4. Recalculates credit_score
  */
 export async function POST(request: NextRequest) {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const currentUser = await getCurrentUser()
+  if (!currentUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = currentUser.user
+  const supabase = createServerSupabaseClient()
 
   const { public_token, institution } = await request.json()
   if (!public_token) {

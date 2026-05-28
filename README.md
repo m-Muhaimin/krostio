@@ -1,139 +1,129 @@
-# Krost
+# Krostio
 
-Decentralized alternative credit scoring for gig workers. Connect your gig platforms (Uber, DoorDash, Fiverr, Upwork, etc.), get a verified credit score, and share it with lenders — you own your data on-chain.
+Income verification for gig workers and freelancers. Connect your gig platforms (Uber, Lyft, DoorDash, Instacart, etc.) via Plaid, get a 0–100 income consistency score, and share a lender-ready report — you own your data.
 
-## Architecture
+**Operated by SuprBuild, LLC (DBA Krostio).**
 
-```
-Frontend (Next.js + Tailwind) → Supabase (Auth + DB) → Scoring Engine → Base L2 (Attestations)
-                                                                ↓
-                                                    Stripe (Billing)
-```
+---
 
-## Tech Stack
+## Stack
 
-- **Frontend:** Next.js 16, TypeScript, Tailwind CSS 4
-- **Auth & DB:** Supabase (PostgreSQL + Auth)
-- **Payments:** Stripe
-- **Blockchain:** Solidity on Base L2 (EVM, low gas)
-- **Scoring:** Custom algorithm (income stability × platform diversity × tenure × trajectory)
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16.2.6 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS 4 + custom mockup CSS classes |
+| Database | Supabase (PostgreSQL) |
+| Auth | Custom JWT (jose, HS256) — Google OAuth (PKCE) + email/password |
+| Billing | Paddle |
+| Platform data | Plaid (sandbox) |
+| Blockchain | Solidity 0.8.20 on Base L2 (Sepolia + Mainnet) via Hardhat |
+| PDF | `@react-pdf/renderer` |
+| Email | Nodemailer (SMTP) |
+| Analytics | PostHog |
 
 ## Quick Start
 
-### 1. Clone & Install
-
 ```bash
-cd X:/income-verifier
 npm install
-```
-
-### 2. Set Up Supabase
-
-1. Create a project at [supabase.com](https://supabase.com)
-2. Run the migration in `db/migration.sql` in Supabase SQL Editor
-3. Copy your project URL and anon key
-4. Enable Google Auth in Supabase Auth settings
-
-### 3. Configure Environment
-
-```bash
 cp .env.example .env.local
-```
-
-Edit `.env.local` with your:
-- `NEXT_PUBLIC_SUPABASE_URL` — from Supabase project settings
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — from Supabase project settings
-- `SUPABASE_SERVICE_ROLE_KEY` — from Supabase project settings
-- Stripe test keys (from [dashboard.stripe.com/test/apikeys](https://dashboard.stripe.com/test/apikeys))
-- Stripe price IDs (create products in Stripe dashboard)
-- Wallet private key for contract deployment
-
-### 4. Deploy Smart Contract
-
-```bash
-cd blockchain
-npm install
-npx hardhat compile
-npx hardhat run scripts/deploy.js --network baseSepolia
-```
-
-Update `NEXT_PUBLIC_ATTESTATION_CONTRACT_ADDRESS` in `.env.local` with the deployed address.
-
-### 5. Run Development Server
-
-```bash
+# fill in your env vars
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+### Required env vars
+
+| Variable | Source |
+|----------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project settings |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase project settings |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase project settings |
+| `JWT_SECRET` | Any 256-bit secret (or `SUPABASE_JWT_SECRET`) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Cloud Console |
+| `PLAID_CLIENT_ID` / `PLAID_SECRET` / `PLAID_ENV=sandbox` | Plaid Dashboard |
+| `PADDLE_VENDOR_ID` / `PADDLE_API_KEY` / `PADDLE_ENVIRONMENT=sandbox` | Paddle Dashboard |
+| `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | Your email provider |
+
+Full list in `.env.example`.
+
+### Database
+
+Migrations are auto-applied via Supabase Management API:
+
+```bash
+npm run db:migrate
+```
+
+Foundation schema in `db/migration.sql` + `db/migration-v2.sql`.
+
+## Commands
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Dev server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint 9 |
+| `npm run db:migrate` | Apply Supabase migrations |
+| `npx vercel --prod` | Deploy to production |
 
 ## Project Structure
 
 ```
-X:/income-verifier/
-├── src/
-│   ├── app/
-│   │   ├── (auth)/login        # Sign in page
-│   │   ├── (auth)/register     # Sign up page
-│   │   ├── (dashboard)         # Dashboard (worker + lender)
-│   │   ├── (marketing)/pricing # Pricing page
-│   │   ├── api/                # API routes
-│   │   ├── page.tsx            # Landing page
-│   │   └── layout.tsx          # Root layout
-│   ├── components/             # Reusable UI components
-│   ├── lib/
-│   │   ├── scoring-engine.ts   # Credit score calculation algorithm
-│   │   ├── stripe.ts           # Stripe configuration
-│   │   ├── supabase-browser.ts # Supabase client (browser)
-│   │   ├── supabase-server.ts  # Supabase client (server)
-│   │   └── utils.ts            # Shared utilities
-│   ├── types/index.ts          # TypeScript types
-│   └── middleware.ts           # Auth middleware
-├── blockchain/
-│   ├── contracts/IncomeAttestation.sol  # On-chain attestation contract
-│   ├── scripts/deploy.js                # Deployment script
-│   └── hardhat.config.js                # Hardhat configuration
-├── db/
-│   └── migration.sql           # Supabase/PostgreSQL schema
-└── .env.example                # Environment template
+src/
+├── app/
+│   ├── (auth)/              # Login, register, MFA challenge
+│   ├── (dashboard)/         # Dashboard shell + worker pages
+│   │   └── dashboard/worker/
+│   │       ├── page.tsx             # Worker dashboard overview
+│   │       ├── earnings/            # Earnings page
+│   │       ├── statements/          # Transaction statement (was /reports)
+│   │       ├── report/              # Income verification report
+│   │       ├── score/               # Consistency score breakdown
+│   │       ├── ledger/              # Detailed ledger
+│   │       ├── connections/         # Platform connections
+│   │       ├── analytics/           # Analytics
+│   │       ├── alerts/              # Alerts
+│   │       └── privacy/             # Privacy controls
+│   ├── (marketing)/         # Landing, learn, lenders, pricing, privacy, terms
+│   ├── api/                 # All API routes
+│   └── page.tsx             # Landing page
+├── components/              # Reusable UI components
+├── lib/                     # Core utilities (auth, scoring, plaid, paddle, email)
+├── proxy.ts                 # Next.js middleware (not middleware.ts)
+└── types/                   # TypeScript types
+dashboard-mockup.html        # Source of truth for dashboard CSS classes
+blockchain/                  # Hardhat + Solidity contracts
+db/                          # SQL migrations
 ```
 
-## Pricing
+## Auth Flow
 
-| Plan | Price | Who |
-|------|-------|-----|
-| Gig Worker | $29/mo | Freelancers building their credit score |
-| Gig Worker Multi | $49/mo | Workers with 4+ platforms |
-| Lender | $99/mo | 50 verifications/mo |
-| Lender Unlimited | $199/mo | Unlimited verifications + API |
+```
+Google OAuth (PKCE) or email/password → sign custom JWT (jose, HS256) → krost_session cookie
+```
 
-14-day free trial on all plans.
+- Middleware at `src/proxy.ts` (not `middleware.ts`)
+- Server components / API routes use `getCurrentUser()` from `@/lib/auth-utils`
+- Role guard: `requireRole(['gig_worker'])` from `@/lib/auth-guard`
+- DB queries use service-role client (`supabase-server.ts`) — RLS bypassed
+- Profiles table: no FK to `auth.users`; `id` defaults to `gen_random_uuid()`
+- MFA via TOTP (`otplib`)
 
-## Scoring Algorithm
+## Scoring
 
-The credit score (300-850) factors:
+The 0–100 income consistency score factors:
+1. **Consistency** — regularity of deposits
+2. **Income level** — annualized gross income
+3. **Trajectory** — month-over-month growth/decline
+4. **Platform diversity** — number of distinct income sources
+5. **Tenure** — length of earnings history
 
-1. **Average Monthly Income** (up to +80) — higher income = higher score
-2. **Platform Tenure** (up to +70) — longer history = more reliable
-3. **Income Volatility** (up to +60) — stable income = better score
-4. **Platform Diversity** (up to +50) — multiple income streams = less risk
-5. **Earning Consistency** (up to +50) — regular earnings = reliable
-6. **Income Trajectory** (up to +40) — growing income = positive signal
+Scores can optionally be attested on-chain via `IncomeAttestation.sol` on Base L2.
 
-Scores are attested on-chain via `IncomeAttestation.sol` on Base L2.
+## Pricing (Paddle)
 
-## Launch Checklist
-
-- [ ] Supabase project created + migration applied
-- [ ] Auth providers configured (email + Google)
-- [ ] Stripe products created (gig_worker, lender)
-- [ ] Smart contract deployed on Base Sepolia
-- [ ] Environment variables configured
-- [ ] Landing page content finalized
-- [ ] Product Hunt listing prepared
-- [ ] Reddit engagement posts drafted
-- [ ] 5 beta testers onboarded
-
-## License
-
-MIT
+| Plan | Price |
+|------|-------|
+| Single Report | $6.99 |
+| Pro Monthly | $29.99/mo |
+| Pro Annual | $129.99/yr |

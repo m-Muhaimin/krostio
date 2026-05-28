@@ -1,2182 +1,1081 @@
-# KROSTIO PLATFORM — TECHNICAL PRD v3.0
-## *Unified System Specification: Four-Pillar Financial Identity Platform for Gig Workers*
-
-**Repository:** `github.com/m-Muhaimin/krostio`  
-**Supersedes:** PRD v1.0 (income verification), PRD v2.0 (strategic refactor)  
-**Document Type:** Unified Technical Specification  
-**Audience:** AI coding agents, senior engineers, technical founders  
-**Status:** Authoritative Build Directive  
-**Date:** May 2026
+```markdown
+# Krostio — Product Requirements Document (B2C Edition)
+## Income Tracking & Earnings Clarity for Gig Workers
+**Version:** 3.2 B2C (Paddle + Fully Custom Auth)  
+**Author:** @m-Muhaimin  
+**Date:** May 2026  
+**Status:** Phase 0 Foundation Complete → Phase 1 Build  
 
 ---
 
-## SYSTEM PROMPT: HOW TO READ THIS DOCUMENT
+## 0. Executive Summary
 
-You are an AI coding agent or senior engineer building the Krostio platform. This document is your single source of truth. It consolidates strategic vision (PRD v2.0) with technical implementation patterns (existing codebase) into executable specifications.
+Krostio is a B2C income-tracking and earnings clarification tool for gig workers. It aggregates earnings from multiple gig platforms (Uber, DoorDash, Lyft, Instacart, Upwork, Fiverr, etc.) into a unified dashboard and generates professional income statements workers can use for loans, apartments, credit applications, or personal financial planning.
 
-**Reading Protocol:**
-1. **Part I (Architecture)** defines the complete system structure — read this first to understand what you're building
-2. **Part II (Data Models)** specifies every database table, API contract, and type definition — reference this when writing code
-3. **Part III (Build Sequence)** dictates the exact order of implementation — never skip phases
-4. **Part IV (Technical Constraints)** documents non-negotiable conventions — violating these breaks the system
-5. **Part V (Integration Specs)** provides concrete implementation guidance for external services
+**Positioning:** The personal finance app for the gig economy. Think Mint for gig earnings. Workers get a clear view of what they actually earn, trends, consistency, and a professional document they own and control. No lender middleman — the worker owns their data and chooses how to use it.
 
-**Document Conventions:**
-- `Code snippets` are production-ready unless marked `// Example`
-- **Bold terms** are defined concepts used consistently throughout
-- Table schemas use TypeScript notation for clarity; translate to SQL/Supabase as needed
-- All file paths relative to repository root unless prefixed with `/mnt/`
-
-**Change Management:**
-This document supersedes all prior PRDs. If conflict arises between v1.0, v2.0, or existing code comments, **this document wins**. Update `AGENTS.md` and `CLAUDE.md` to reference this PRD as the authoritative spec.
+**Key Technical Changes in v3.2:**
+- ✅ **Auth:** Fully custom Google OAuth implementation (zero third-party auth dependencies)
+- ✅ **Payments:** Paddle Merchant of Record integration (`apikey_01ksn75asqmrnx16h7ea8g8aeh`)
+- ✅ **Compliance:** Enhanced legal language to ensure payment processor approval + data sovereignty
 
 ---
 
-## PART I — SYSTEM ARCHITECTURE OVERVIEW
+## 1. Strategic Market Validation
 
-### 1.1 The Complete Mental Model
+### 1.1 Market Size & Urgency
+| Signal | Data Point |
+|--------|-----------|
+| US gig workers (2025) | 76.4 million (≈36% of US workforce) |
+| Projected by 2027 | 86.5 million (>50% of total US workforce) |
+| Global gig market (2026) | $674.1 billion projected |
+| Global gig market (2034) | $2.17 trillion projected |
+| CAGR | 15.79% |
+| Average US freelancer income | $108,028/year (2025) |
+| Pain point | Earnings scattered across 2–6 platforms with no consolidated view |
 
-Krostio is a **four-pillar platform** that transforms gig worker income data into portable financial identity. Each pillar is a distinct product with independent value; together they create compounding network effects.
+**The core problem:** A gig worker earning $60K–$110K across multiple platforms has no single tool to see their total earnings, track trends, or generate a professional income statement. Gig apps show daily earnings, not income clarity. Tax software shows aggressive deductions. Workers are flying blind on their actual income.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        KROSTIO PLATFORM ARCHITECTURE                         │
-│                                                                              │
-│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐  ┌────────────┐│
-│  │  PILLAR 1      │  │  PILLAR 2      │  │  PILLAR 3      │  │  PILLAR 4  ││
-│  │  krostioScore   │→→│  krostioLedger  │→→│  krostioVerifier│→→│  Passport  ││
-│  │                │  │                │  │                │  │            ││
-│  │  300-850 score │  │  Multi-platform│  │  PDF reports + │  │  On-chain  ││
-│  │  from gig      │  │  earnings      │  │  shareable     │  │  soul-bound││
-│  │  income signals│  │  aggregation   │  │  links         │  │  credential││
-│  └────────────────┘  └────────────────┘  └────────────────┘  └────────────┘│
-│         ↑                    ↑                    ↑                  ↑      │
-│         └────────────────────┴────────────────────┴──────────────────┘      │
-│                              Unified Data Layer                              │
-│         (Supabase PostgreSQL + RLS + Real-time + Storage + Auth)            │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+### 1.2 Competitive Landscape
 
-**Data Flow (Left to Right):**
-1. **Ledger** ingests earnings from gig platforms via Argyle API → stores in `ledger_entries`
-2. **Score** computes 9-factor creditworthiness from `ledger_entries` → stores in `credit_scores`
-3. **Verifier** generates PDF reports and shareable links from Score + Ledger → stores in `reports`
-4. **Passport** mints on-chain attestation of Score to Base L2 → stores reference in `passports`
+#### Existing Alternatives (Partial Competitors)
+| Company | What They Do | Gap vs. Krostio |
+|---------|-------------|----------------|
+| Giggle Finance | Revenue-based lending for gig workers | They are a lender, not a tracking tool; not income clarity focused |
+| Moves Financial | Gig worker banking + income data | Banking-first, not income clarity-first |
+| Quickbooks Self-Employed | Tax tracking for freelancers | Tax deductions, not gig earnings aggregation or clarity |
+| Personal Capital / Empower | Wealth aggregation | Not gig-specific; designed for traditional income |
+| Spreadsheets | Manual income tracking | Workers do this today — fragmented, error-prone, time-consuming |
 
-**Dependency Chain:**
-- Score depends on Ledger (cannot compute score without earnings data)
-- Verifier depends on Score + Ledger (report contains both)
-- Passport depends on Score (only workers with score ≥580 can mint)
-- Ledger is foundational; build it first
+#### Market Gap
+> No consumer app exists that says: *"All your gig income in one place. See what you're really earning. Download a professional statement whenever you need it."*
 
-### 1.2 Technology Stack (Confirmed from Repository)
-
-The following stack is **already committed** to the repository. Do not introduce alternatives without explicit architectural review.
-
-| Layer | Technology | Location | Status |
-|---|---|---|---|
-| **Framework** | Next.js 16 (App Router) | `src/app/` | ✅ Scaffolded |
-| **Language** | TypeScript 5.x | `tsconfig.json` | ✅ Configured |
-| **Styling** | Tailwind CSS v4 | `src/app/globals.css` | ✅ Configured |
-| **Database** | Supabase (PostgreSQL + Auth + Storage + Real-time) | `db/migration.sql` | ✅ Schema committed |
-| **Authentication** | Supabase Auth (email + OAuth) | `src/lib/supabase-*.ts` | ✅ 3 client patterns |
-| **Payments** | Stripe (4-tier billing) | `src/lib/stripe.ts` | ✅ Configured |
-| **Analytics** | PostHog | `src/lib/analytics-provider.tsx` | ✅ Wired |
-| **Blockchain** | Hardhat + Solidity 0.8.20 + Base L2 | `blockchain/` | ✅ Contract exists |
-| **Gig Data** | Argyle API (primary) | `.env.example` | ⚠️ Keys defined, not implemented |
-| **PDF Generation** | react-pdf (recommended) | Not yet installed | ❌ To implement |
-| **Email** | Resend or SendGrid | `/email-templates/` | ⚠️ Templates exist, not wired |
-
-**Critical Path Dependencies:**
-1. Argyle SDK → enables Ledger
-2. react-pdf → enables Verifier
-3. Hardhat + ethers.js → enables Passport
-4. Stripe → gates Pro/Annual tiers
-
-### 1.3 Application Structure (Next.js 16 App Router)
-
-```
-src/app/
-├── (auth)/
-│   ├── login/page.tsx          # Email/password + OAuth login
-│   ├── register/page.tsx       # New user signup
-│   └── onboarding/page.tsx     # Post-signup: connect first platform via Argyle
-│
-├── (dashboard)/
-│   ├── page.tsx                # Dashboard: Score + Ledger summary + CTA to connect platforms
-│   ├── ledger/page.tsx         # Full ledger timeline, monthly rollups, CSV export
-│   ├── score/page.tsx          # Score breakdown, factor analysis, improvement tips
-│   ├── reports/page.tsx        # Generate new report, view history, manage shareable links
-│   ├── passport/page.tsx       # Mint Passport, view attestation history, privacy controls
-│   ├── settings/page.tsx       # Account settings, connected platforms, notifications
-│   └── billing/page.tsx        # Stripe billing, plan management, upgrade flow
-│
-├── (marketing)/
-│   ├── page.tsx                # Public landing page
-│   ├── pricing/page.tsx        # 4-tier pricing table
-│   ├── about/page.tsx          # About Krostio, mission, team
-│   └── passport/[token]/page.tsx  # Public Passport viewer (SSR)
-│
-├── api/
-│   ├── auth/callback/route.ts       # Supabase OAuth callback
-│   ├── ingest/
-│   │   ├── argyle/webhook/route.ts  # Argyle pushes income updates
-│   │   ├── [platform]/sync/route.ts # Manual re-sync trigger
-│   │   └── csv-upload/route.ts      # CSV ledger entry upload
-│   ├── ledger/
-│   │   ├── summary/route.ts         # GET: monthly rollup for current user
-│   │   ├── entries/route.ts         # GET: paginated ledger entries
-│   │   └── export/route.ts          # GET: CSV download
-│   ├── score/
-│   │   ├── current/route.ts         # GET: latest krostioScore + factors
-│   │   └── history/route.ts         # GET: score over time
-│   ├── reports/
-│   │   ├── generate/route.ts        # POST: create PDF + link
-│   │   ├── [id]/route.ts            # GET: report metadata
-│   │   ├── [id]/pdf/route.ts        # GET: signed URL to PDF
-│   │   ├── [id]/revoke/route.ts     # POST: revoke access
-│   │   └── view/[token]/route.ts    # GET: public report viewer
-│   ├── passport/
-│   │   ├── mint/route.ts            # POST: initiate on-chain mint
-│   │   ├── update/route.ts          # POST: push score update to chain
-│   │   ├── [address]/route.ts       # GET: public Passport data
-│   │   └── history/route.ts         # GET: attestation history
-│   └── lender/                      # B2B API (Phase 2)
-│       ├── verify/[token]/route.ts  # GET: lender queries report
-│       └── api/score/route.ts       # GET: lender API key verification
-│
-└── lib/
-    ├── supabase-browser.ts          # Client-side Supabase (React components)
-    ├── supabase-server.ts           # Server-side Supabase (API routes, Server Components)
-    ├── middleware-core.ts           # Middleware Supabase client
-    ├── scoring-engine.ts            # Pure function: compute krostioScore
-    ├── report-generator.tsx         # react-pdf: generate PDF reports
-    ├── stripe.ts                    # Stripe client + webhook handlers
-    └── analytics-provider.tsx       # PostHog provider
-```
-
-**Route Group Responsibilities:**
-- `(auth)`: Unauthenticated pages; redirects logged-in users to `/dashboard`
-- `(dashboard)`: Requires authentication; middleware enforces; all pages assume `user` exists
-- `(marketing)`: Public pages; no auth required; SSR for SEO
-- `api/`: Backend routes; use Server Components conventions; return JSON or streams
-
-### 1.4 Database Architecture (Supabase PostgreSQL + RLS)
-
-**Schema Files:**
-- `db/migration.sql` — v1.0 schema (6 tables committed)
-- `db/migration-v2.sql` — v2.0 additions (7 new tables, will be created in Part II)
-
-**Row-Level Security (RLS) Principles:**
-- **Every table** has RLS enabled
-- **User-scoped tables** (`profiles`, `ledger_entries`, `credit_scores`, `reports`, `passports`) restrict rows to `user_id = auth.uid()`
-- **Public-readable tables** (`reports` via `share_token`, `passports` via `wallet_address`) allow anonymous SELECT with conditions
-- **Admin-only tables** (`lender_orgs`) require service role key
-
-**Real-time Subscriptions:**
-- `ledger_entries` publishes `INSERT` events → dashboard auto-updates when new income syncs
-- `credit_scores` publishes `UPDATE` events → score widget refreshes without reload
-- Enabled via Supabase Real-time; subscribe in React components using `supabase.channel()`
+This is the wedge for a solo founder.
 
 ---
 
-## PART II — COMPLETE DATA MODEL SPECIFICATION
+## 2. Problem Definition
 
-### 2.1 Core Tables (v1.0 Schema — Already Committed)
+### 2.1 Primary User Pain
+A gig worker earning across multiple platforms cannot answer simple questions:
 
-#### `profiles`
-```sql
-CREATE TABLE profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,
-  full_name TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+1. How much did I actually earn last month? (scattered across apps)
+2. Am I earning more or less than last year? (no aggregated view)
+3. How consistent is my income? (daily variance is high; monthly/quarterly view is missing)
+4. Can I take a loan or rent an apartment? (no professional statement to show)
+5. Which platform pays me best? (anecdotal; no data)
+6. Am I working more or less? (no hours tracking across platforms)
 
--- RLS: Users can read/update only their own profile
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+**The result:** Workers lack financial clarity and confidence. They can't plan reliably. They have nothing professional to show when they need to.
 
--- Trigger: Auto-create profile on user signup
-CREATE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, email, full_name)
-  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name');
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+### 2.2 Jobs-to-be-Done
+**Gig Worker:**
+- "I want to see all my gig income in one place"
+- "I want to understand if I'm earning more or less over time"
+- "I want a professional statement I can download and show to landlords, lenders, or credit apps"
+- "I want to track which platforms are most profitable for me"
+- "I want alerts if my income drops unexpectedly"
 
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+---
+
+## 3. Product Vision
+
+Krostio is the income clarity platform for gig workers — a single source of truth for what you earn, where it comes from, and how you're trending.
+
+**For MVP:** Focus on income aggregation, clarity metrics, downloadable statements, and personal dashboard. No lender complexity, no API integrations for others. Pure worker value.
+
+---
+
+## 4. User Personas
+
+### Persona A: Full-Time Gig Hustler — "Maria"
+- **Age:** 28–42 | **Income:** $50K–$90K | **Platforms:** 2–4 simultaneously
+- **Goal:** Understand income, get a professional statement, plan financially
+- **Pain Point:** No consolidated view; apps are fragmented
+- **Tech comfort:** High; uses gig apps daily
+- **Willingness to pay:** $10–$25/month for clarity and downloadable statements
+
+### Persona B: Part-Time Gig Supplement — "Dev"
+- **Age:** 22–35 | **Income:** $15K–$40K from gigs on top of other income
+- **Goal:** Track gig earnings, understand if it's worth the time
+- **Pain Point:** Gig income is invisible in financial planning
+- **Willingness to pay:** $5–$15/month; or one-time $7 for a statement
+
+### Persona C: Career-Transitioning Worker — "Sarah"
+- **Age:** 35–55 | **Income:** $60K–$100K from gig work (sole income)
+- **Goal:** Professional statements for loans, apartments, credit applications
+- **Pain Point:** Can't prove income; rejected by traditional lenders
+- **Willingness to pay:** $20–$30/month if it helps her get approved for credit
+
+---
+
+## 5. MVP Feature Scope
+
+### 5.1 Core MVP (Weeks 1–12)
+
+#### F-01: Gig Platform Connection (Plaid Link + OAuth)
+- User authenticates with their financial accounts (bank, credit card, gig payout account) via Plaid Link
+- Plaid covers 12,000+ financial institutions; gig earnings appear as merchant-level transactions
+- Store only processed/derived data, not raw credentials
+- Connection health indicator (last synced, data freshness)
+- Clear privacy statement: *"We never store your passwords. Plaid uses OAuth — the same standard banks use."*
+
+#### F-02: Income Aggregation Engine
+- Pull last 24 months of earnings per platform
+- Normalize to weekly/monthly/annual views
+- Combine multi-platform income into unified ledger
+- Flag anomalies: sudden gaps, declining trends, unusual spikes
+- Automatically categorize by platform (Uber, DoorDash, Upwork, etc.)
+
+#### F-03: Income Clarity Metrics
+Displayed on dashboard:
+- **Total Annualized Income** — straightforward calculation (trailing 12-month average × 12)
+- **Monthly Average** — last 3, 6, 12 months
+- **Income Consistency Score (0–100)** — how stable is your income month-to-month?
+  - 80–100: Highly consistent (good for loan applications)
+  - 60–79: Moderate consistency (acceptable)
+  - Below 60: High volatility (may need explanation)
+- **Earning Trend** — Growing 🟢 / Stable 🟡 / Declining 🔴
+- **Platform Breakdown** — which platform pays you most? where's your income concentrated?
+- **Best Earning Month** — showing seasonality awareness
+
+#### F-04: Professional Income Statement (PDF)
+Core deliverable. A downloadable PDF containing:
+1. Cover Page — Worker name, report date, Krostio logo
+2. Income Summary — Total annualized, monthly average, date range
+3. Monthly Income Table — Last 24 months, by platform and total
+4. Platform Profile — Per-platform breakdown (total earned, date range, % of total)
+5. Visual Charts — Monthly trend line, platform pie chart
+6. Consistency Analysis — Plain-English summary of income stability
+7. Verification Note — *"Data sourced directly from connected accounts via Plaid. Self-owned, self-downloaded. Not lender-verified."*
+8. Appendix — Raw data table for transparency
+
+*Simple, clean, professional — looks like something you'd submit with a loan application.*
+
+#### F-05: Shareable Income Link
+- Generate a unique, expiring link to share income statement (or just send the PDF)
+- Recipient sees read-only summary view (not full detailed report)
+- Optional expiry: 7 days, 30 days, one-time view
+- Worker can revoke access anytime
+- No viewer tracking — privacy-first approach
+
+#### F-06: Worker Dashboard
+- Connected platforms overview with sync status
+- Income trend chart (12-month sparkline)
+- Current annualized income estimate (large, prominent number)
+- Recent earnings (last 7, 30, 90 days)
+- Platform breakdown (pie or bar chart — which platform paid most?)
+- Income statement history (download past reports)
+- "Generate New Statement" CTA
+
+#### F-07: Income Alerts (Optional for MVP, Include in Phase 1)
+- Weekly email with income summary: *"You earned $850 this week across 2 platforms"*
+- Alert if income drops >20% month-over-month (something changed?)
+- Best earning day/week tips (*"You typically earn most on Fridays"*)
+- Monthly digest with trends
+
+#### F-08: Auth & Onboarding ✅ FULLY CUSTOM (Zero Dependencies)
+**No Clerk. No Supabase Auth helpers. No third-party auth SDKs.**
+
+Pure Next.js App Router + Google OAuth 2.0 + JWT session management.
+
+**Tech Stack:**
+- Next.js 14 App Router API Routes
+- Native `fetch` for Google OAuth endpoints
+- `jose` library for JWT signing/verification (minimal, standards-based)
+- HTTP-only secure cookies for session storage
+- PostgreSQL `users` table for persistent user records
+
+**OAuth Flow:**
+```
+1. User clicks "Sign in with Google"
+2. Redirect to Google OAuth consent screen (custom params)
+3. Google redirects to /api/auth/google/callback with code
+4. Server exchanges code for tokens via direct POST to Google
+5. Server fetches user profile from Google UserInfo endpoint
+6. Server creates/updates user in database
+7. Server issues signed JWT session cookie (HTTP-only, Secure, SameSite=Strict)
+8. Redirect to dashboard
 ```
 
-**TypeScript Interface:**
+**Implementation: Google OAuth Handler**
 ```typescript
-interface Profile {
-  id: string;              // UUID from auth.users
-  email: string;
-  full_name: string | null;
-  created_at: string;      // ISO 8601
-  updated_at: string;
+// app/api/auth/google/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { SignJWT } from 'jose'
+import { db } from '@/lib/db'
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
+const REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/callback`
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!)
+
+export async function GET(request: NextRequest) {
+  // Step 1: Redirect user to Google consent screen
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'offline',
+    prompt: 'consent',
+  })
+  
+  return NextResponse.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`)
 }
 ```
 
-#### `platform_connections`
-```sql
-CREATE TABLE platform_connections (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  platform TEXT NOT NULL,           -- 'uber' | 'doordash' | 'upwork' | 'lyft' | 'instacart'
-  argyle_account_id TEXT,           -- Argyle's account identifier
-  connection_status TEXT DEFAULT 'pending',  -- 'pending' | 'active' | 'error' | 'disconnected'
-  last_sync_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, platform)
-);
-
-ALTER TABLE platform_connections ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users manage own connections" ON platform_connections FOR ALL USING (auth.uid() = user_id);
-```
-
-**TypeScript Interface:**
 ```typescript
-type Platform = 'uber' | 'doordash' | 'upwork' | 'lyft' | 'instacart' | 'fiverr' | 'grubhub' | 'amazon_flex';
-type ConnectionStatus = 'pending' | 'active' | 'error' | 'disconnected';
+// app/api/auth/google/callback/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { SignJWT } from 'jose'
+import { db } from '@/lib/db'
 
-interface PlatformConnection {
-  id: string;
-  user_id: string;
-  platform: Platform;
-  argyle_account_id: string | null;
-  connection_status: ConnectionStatus;
-  last_sync_at: string | null;
-  created_at: string;
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!)
+
+export async function GET(request: NextRequest) {
+  const code = request.nextUrl.searchParams.get('code')
+  if (!code) return NextResponse.redirect('/')
+
+  // Exchange code for tokens
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: process.env.GOOGLE_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      code,
+      grant_type: 'authorization_code',
+      redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/callback`,
+    }),
+  })
+  
+  const tokens = await tokenRes.json()
+  if (!tokens.access_token) return NextResponse.redirect('/auth/error')
+
+  // Fetch user profile
+  const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    headers: { Authorization: `Bearer ${tokens.access_token}` },
+  })
+  const googleUser = await userRes.json()
+
+  // Upsert user in database
+  const user = await db.users.upsert({
+    email: googleUser.email,
+    name: googleUser.name,
+    avatar: googleUser.picture,
+    googleId: googleUser.id,
+  })
+
+  // Issue JWT session cookie
+  const jwt = await new SignJWT({ userId: user.id, email: user.email })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(JWT_SECRET)
+
+  const response = NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard`)
+  response.cookies.set('session', jwt, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    path: '/',
+  })
+
+  return response
 }
 ```
 
-#### `income_records` (Deprecated in v2 — Use `ledger_entries`)
-```sql
--- DO NOT USE: This table exists in v1 schema but is replaced by ledger_entries in v2
--- Keep for backwards compatibility during migration; will be dropped in Phase 2
-CREATE TABLE income_records (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  platform TEXT NOT NULL,
-  amount DECIMAL(12,2) NOT NULL,
-  period_start DATE NOT NULL,
-  period_end DATE NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-**Migration Path:**
-1. Phase 0: Use `income_records` for MVP
-2. Phase 1: Migrate all data to `ledger_entries`
-3. Phase 2: Drop `income_records` table
-
-#### `credit_scores`
-```sql
-CREATE TABLE credit_scores (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  score INTEGER NOT NULL CHECK (score >= 300 AND score <= 850),
-  score_tier TEXT NOT NULL,         -- 'elite' | 'strong' | 'building' | 'emerging'
-  factors JSONB NOT NULL,            -- { income_score: 75, tenure_score: 60, ... }
-  income_snapshot JSONB NOT NULL,    -- { avgMonthlyIncome: 5200, ... }
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE credit_scores ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users view own scores" ON credit_scores FOR SELECT USING (auth.uid() = user_id);
-
--- Index for score history queries
-CREATE INDEX idx_credit_scores_user_created ON credit_scores(user_id, created_at DESC);
-```
-
-**TypeScript Interface:**
+**Session Middleware (Protect Routes)**
 ```typescript
-type ScoreTier = 'elite' | 'strong' | 'building' | 'emerging';
+// middleware.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { jwtVerify } from 'jose'
 
-interface ScoreFactors {
-  income_score: number;        // up to +80
-  tenure_score: number;        // up to +70
-  volatility_score: number;    // up to +60
-  diversity_score: number;     // up to +50
-  consistency_score: number;   // up to +50
-  trajectory_score: number;    // up to +40
-  tax_compliance: number;      // up to +25 (v2 addition)
-  cross_platform_growth: number; // up to +20 (v2 addition)
-  ledger_depth: number;        // up to +15 (v2 addition)
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!)
+
+export async function middleware(request: NextRequest) {
+  const session = request.cookies.get('session')?.value
+  if (!session) return NextResponse.redirect('/login')
+
+  try {
+    await jwtVerify(session, JWT_SECRET)
+    return NextResponse.next()
+  } catch {
+    return NextResponse.redirect('/login')
+  }
 }
 
-interface CreditScore {
-  id: string;
-  user_id: string;
-  score: number;               // 300-850
-  score_tier: ScoreTier;
-  factors: ScoreFactors;
-  income_snapshot: KrostScoreInputs; // from scoring-engine.ts
-  created_at: string;
+export const config = { matcher: ['/dashboard/:path*', '/api/protected/:path*'] }
+```
+
+**Sign Out Endpoint**
+```typescript
+// app/api/auth/signout/route.ts
+import { NextResponse } from 'next/server'
+
+export async function POST() {
+  const response = NextResponse.json({ success: true })
+  response.cookies.delete('session')
+  return response
 }
 ```
 
-#### `lender_requests`
-```sql
-CREATE TABLE lender_requests (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  lender_email TEXT,
-  request_type TEXT DEFAULT 'report',  -- 'report' | 'score_only'
-  status TEXT DEFAULT 'pending',        -- 'pending' | 'approved' | 'denied' | 'expired'
-  expires_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+**Environment Variables Required:**
+```bash
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
 
-ALTER TABLE lender_requests ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users manage own requests" ON lender_requests FOR ALL USING (auth.uid() = user_id);
+# JWT Session
+JWT_SECRET=your_32_char_minimum_random_secret
+
+# App
+NEXT_PUBLIC_APP_URL=https://krostio.com
+NODE_ENV=production
+
+# Paddle
+PADDLE_API_KEY=apikey_01ksn75asqmrnx16h7ea8g8aeh
+NEXT_PUBLIC_PADDLE_CLIENT_TOKEN=your_client_token
+PADDLE_NOTIFICATION_WEBHOOK_SECRET=your_webhook_secret
+NEXT_PUBLIC_PADDLE_ENV=sandbox
 ```
 
-**Note:** This table is superseded by `reports` table in v2 (shareable links replace lender requests). Keep for v1 compatibility.
+#### F-09: Billing (Paddle) ✅ UPDATED
+**Payment Processor:** Paddle Merchant of Record  
+**API Key:** `apikey_01ksn75asqmrnx16h7ea8g8aeh`  
+**Environment:** Sandbox for development → Production post-approval
 
-#### `waitlist`
+**Pricing Tiers:**
+| Tier | Price | Features |
+|------|-------|----------|
+| **Free** | $0 | Connect 1 platform, view dashboard summary, no PDF download |
+| **Pro Monthly** | $14.99/mo | Connect up to 5 platforms, unlimited PDF downloads, 24-month history, weekly email digest |
+| **Pro Annual** | $149/yr | All Pro features + 20% discount vs. monthly |
+| **One-Time Statement** | $6.99 | Single PDF download, 1 platform, no subscription |
+
+**Paddle Integration Implementation**
+```typescript
+// components/billing/PaddleCheckout.tsx
+'use client'
+import { useEffect } from 'react'
+import { initializePaddle } from '@paddle/paddle-js'
+
+export function PaddleCheckout({ priceId, userEmail, onSuccess }: { 
+  priceId: string
+  userEmail: string
+  onSuccess: () => void 
+}) {
+  useEffect(() => {
+    const initPaddle = async () => {
+      const paddle = await initializePaddle({
+        token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN!,
+        environment: process.env.NEXT_PUBLIC_PADDLE_ENV as 'production' | 'sandbox',
+      })
+      
+      if (paddle?.Checkout) {
+        paddle.Checkout.open({
+          items: [{ priceId, quantity: 1 }],
+          customer: { email: userEmail },
+          settings: {
+            displayMode: 'overlay',
+            theme: 'light',
+            locale: 'en',
+          },
+          successCallback: () => onSuccess(),
+        })
+      }
+    }
+    initPaddle()
+  }, [priceId, userEmail, onSuccess])
+  
+  return null
+}
+```
+
+```typescript
+// app/api/paddle/webhook/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { Paddle } from '@paddle/paddle-node-sdk'
+import { db } from '@/lib/db'
+
+const paddle = new Paddle(process.env.PADDLE_API_KEY!)
+
+export async function POST(request: NextRequest) {
+  const rawBody = await request.text()
+  const signature = request.headers.get('paddle-signature')
+  
+  // CRITICAL: Verify webhook signature using raw body
+  const isValid = paddle.webhooks.verify(
+    rawBody,
+    signature!,
+    process.env.PADDLE_NOTIFICATION_WEBHOOK_SECRET!
+  )
+  
+  if (!isValid) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+  }
+  
+  const event = JSON.parse(rawBody)
+  
+  // Handle subscription.created / subscription.updated
+  if (event.event_type === 'subscription.created' || event.event_type === 'subscription.updated') {
+    const { customer_email, status, items } = event.data
+    const priceId = items[0].price?.id
+    
+    // Map Paddle price ID to internal tier
+    const tier = priceId?.includes('annual') ? 'pro-annual' : 'pro-monthly'
+    
+    await db.subscriptions.upsert({
+      userEmail: customer_email,
+      tier,
+      status: status === 'active' ? 'active' : 'cancelled',
+      paddleSubscriptionId: event.data.id,
+      updatedAt: new Date(),
+    })
+  }
+  
+  // Handle one-time purchase (single statement)
+  if (event.event_type === 'transaction.completed') {
+    const { customer_email, items } = event.data
+    const isOneTime = items[0].price?.name?.includes('Single Statement')
+    
+    if (isOneTime) {
+      // Generate and store PDF immediately
+      const pdfUrl = await generateIncomeStatement(customer_email, 'one-time')
+      await db.reports.create({
+        userEmail: customer_email,
+        pdfUrl,
+        type: 'one-time',
+        createdAt: new Date(),
+      })
+    }
+  }
+  
+  return NextResponse.json({ received: true })
+}
+```
+
+---
+
+## 6. Feature Flow & User Journey
+
+### 6.1 First-Time User Flow
+```
+Landing Page ("See all your gig income in one place")
+  └─▶ CTA: "Check Your Income Free"
+        └─▶ Signup (email or custom Google OAuth)
+              └─▶ Onboarding Step 1: "How It Works" (30s video)
+                    └─▶ Step 2: Connect your first platform (Plaid Link)
+                          └─▶ Step 3: Loading → Data synced (10–30 sec)
+                                └─▶ Step 4: Income Summary Preview
+                                      ├─▶ [Free] Dashboard with metrics
+                                      └─▶ [Paywall] Download PDF statement → $6.99 one-time or $14.99/mo via Paddle
+                                            └─▶ Paddle checkout modal
+                                                  └─▶ Webhook confirms payment → PDF generated → Download + Share link
+```
+
+### 6.2 Returning User Flow
+```
+Dashboard Login (JWT session cookie validated)
+  └─▶ Dashboard: Income overview, connected platforms, recent earnings
+        ├─▶ "Download Income Statement" → Instant PDF with latest data
+        ├─▶ "Share Statement" → Generate expiring link or send as email
+        ├─▶ "Connect Another Platform" → Add new connection
+        ├─▶ "View Past Statements" → All downloaded reports
+        └─▶ Income alerts (if subscribed to Pro)
+```
+
+### 6.3 Credit Application / Loan Flow
+```
+Worker gets loan/apartment application
+  └─▶ Asked to prove income
+        └─▶ Goes to Krostio dashboard (authenticated via custom session)
+              └─▶ Downloads latest income statement (PDF)
+                    └─▶ Submits PDF to landlord/lender
+                          └─▶ "That looks legitimate" — approval likely
+```
+
+---
+
+## 7. Business Logic & Scoring Formulas
+
+### 7.1 Annualized Income Calculation
+```typescript
+annualized_income = mean(monthly_earnings[-12:]) × 12
+
+// If fewer than 6 months of data:
+annualized_income = mean(monthly_earnings[-available:]) × 12
+with flag: "Preliminary Estimate — Only X months of data"
+
+// Seasonal adjustment (optional):
+annualized_income_adjusted = mean(monthly_earnings[-12:]) × 12 × seasonality_multiplier
+```
+
+**Seasonality Multipliers:**
+- Food delivery: winter boost (Nov–Jan +15%), summer dip (July–Aug −10%)
+- Rideshare: summer boost (+12%), winter dip (−8%)
+- Freelance/Upwork: stable year-round
+
+### 7.2 Income Consistency Score (0–100)
+Measures month-to-month volatility:
+```typescript
+cv = std(monthly_earnings[-12:]) / mean(monthly_earnings[-12:])
+consistency_score = max(0, min(100, 100 - (cv × 100)))
+```
+
+**Interpretation:**
+| Score Range | Meaning | Loan Application Suitability |
+|-------------|---------|-----------------------------|
+| 80–100 | Highly consistent (σ < 20% of mean) | ✅ Excellent |
+| 60–79 | Moderate variance (σ 20–40% of mean) | ✅ Acceptable |
+| 40–59 | High volatility (σ 40–60% of mean) | ⚠️ May need explanation |
+| Below 40 | Highly unpredictable (σ > 60% of mean) | ❌ Plan for lean months |
+
+Display plainly: *"Your income varies by ±$500–$1200 month-to-month. This is typical for gig work."*
+
+### 7.3 Income Trajectory
+Linear regression on last 12 months:
+```typescript
+slope = regression_slope(monthly_earnings[-12:])
+if slope > 3% per month:
+  trajectory = "Growing 🟢" + percent_growth
+elif slope < -3% per month:
+  trajectory = "Declining 🔴" + percent_decline
+else:
+  trajectory = "Stable 🟡"
+```
+
+Include R² confidence: *"Trend is clear"* vs. *"Trend is unclear — more time needed"*
+
+### 7.4 Platform Concentration Risk
+Measure dependency:
+```typescript
+platform_concentration = (largest_platform_earnings / total_earnings) × 100
+```
+
+**Signal to worker:**
+| Concentration | Risk Level | Recommendation |
+|--------------|------------|---------------|
+| < 40% | Well-diversified | ✅ Stable income base |
+| 40–60% | Moderate concentration | ⚠️ Consider adding platform |
+| 60–80% | High concentration | 🔴 Risky if platform changes rates |
+| 80%+ | Over-dependent | 🔴 Actively diversify |
+
+Example: *"86% of your income comes from DoorDash. Consider adding Instacart or Lyft for stability."*
+
+### 7.5 Verification Statement (Legal/Compliance)
+The PDF includes:
+> *"This income statement reflects your earnings data, sourced directly from your connected financial accounts via Plaid. This is a self-generated, self-owned document. Krostio does not verify or endorse the accuracy of underlying platform data. Use this statement at your discretion (loan applications, apartment rentals, personal planning, etc.). Data reflects earnings as of [date]. Verify currency with relevant platforms."*
+
+**Key compliance notes:**
+- This is **NOT** a lender report — it's a worker-generated statement
+- Krostio makes **NO** representations about creditworthiness
+- Worker owns and controls the document — they decide how to use it
+- Keep language simple and clear — avoid financial/legal jargon that implies validation
+- Consult a fintech attorney; Clerky or Stripe Atlas legal packages provide templates
+
+---
+
+## 8. Implementation Gap Analysis
+
+### 8.1 What Exists
+- Landing page with value prop
+- "How It Works" marketing copy
+- Pricing tiers page (now worker-only)
+- Register/Login routes (empty shells)
+- Check Score page with platform buttons (non-functional)
+
+### 8.2 Critical Gaps to Close
+| Gap | Severity | Status |
+|-----|----------|--------|
+| No Plaid API integration | 🔴 CRITICAL | Non-functional |
+| No income data ingestion | 🔴 CRITICAL | Zero backend |
+| No scoring engine | 🔴 CRITICAL | No computation |
+| No PDF generation | 🔴 CRITICAL | Core feature missing |
+| Auth pages are empty shells | 🔴 CRITICAL | No form/backend |
+| No Paddle integration | 🔴 CRITICAL | Billing non-existent |
+| No database / backend | 🔴 CRITICAL | Static Vercel only |
+| Fabricated "2,000+ workers verified" counter | 🟡 HIGH | Misleading — remove immediately |
+| No mobile optimization | 🟡 MEDIUM | Landing page OK; sub-pages untested |
+| No privacy policy / ToS | 🟡 MEDIUM | Required before launch |
+| Blockchain/on-chain language | 🟢 LOW | Remove for B2C simplicity |
+
+### 8.3 Why Drop Blockchain Language
+For B2C focused on workers:
+1. Users don't need it: Gig workers don't care about on-chain attestation; they want a PDF they can download
+2. Lenders won't use it: Traditional lenders want PDFs, not blockchain; still the case in 2026
+3. Adds complexity: Smart contract development delays core product by months
+4. Creates wallet friction: Workers don't have wallets; forcing wallet creation kills onboarding
+
+**Decision:** Drop blockchain entirely. If cryptographic proof is needed later, use standard PDF signatures (PKI) — lenders understand these.
+
+### 8.4 Build Priority (Solo Founder)
+| Priority | Gap | Effort | Week Target |
+|----------|-----|--------|-------------|
+| P0 | Custom Auth (Google OAuth + JWT) | 2–3 days | Week 1 |
+| P0 | Plaid Link integration | 3–5 days | Week 1–2 |
+| P0 | Income data ingestion | 3–5 days | Week 2–3 |
+| P0 | Clarity metrics (scoring) | 2–3 days | Week 3 |
+| P0 | PDF generation | 3–5 days | Week 3–4 |
+| P0 | Paddle billing integration | 2–3 days | Week 4–5 |
+| P1 | Dashboard + charts | 3–5 days | Week 6–7 |
+| P1 | Shareable links | 2–3 days | Week 5–6 |
+| P1 | Privacy Policy + ToS | 1 day + legal review | Week 4 |
+| P2 | Email alerts | 2–3 days | Week 8 |
+| P2 | Multi-platform UX | 2–3 days | Week 8–9 |
+| P3 | Phase 2 features | — | Month 4+ |
+
+---
+
+## 9. Tech Stack Recommendations (Solo Founder)
+
+| Layer | Choice | Rationale |
+|-------|--------|-----------|
+| Frontend | Next.js 14 (App Router) | Vercel-native; SSR for reports; zero-config deployment |
+| Auth | **Fully Custom** (Google OAuth 2.0 + JWT + HTTP-only cookies) | Zero dependencies; full control; no vendor lock-in |
+| Database | PostgreSQL (self-hosted or Supabase) | Relational data; Row Level Security optional; free tiers available |
+| ORM | Drizzle ORM or raw SQL | Lightweight; type-safe; no heavy abstraction |
+| Data API | Plaid API (Transactions + Income) | 12,000+ institutions; OAuth; webhook sync; sandbox testing |
+| PDF Generation | `@react-pdf/renderer` + Puppeteer (optional) | Template-based; pixel-perfect rendering; server-side generation |
+| Payments | **Paddle** (Merchant of Record) | Handles global payments, taxes, fraud, subscriptions; high approval rates |
+| File Storage | Supabase Storage or AWS S3 | Store PDFs; signed URLs for sharing |
+| Email | Resend + React Email | Transactional emails (statement ready, digest); developer-friendly |
+| Analytics | PostHog (self-hosted option) | Funnel analysis; free tier; privacy-focused |
+| Error Monitoring | Sentry | Critical for financial data flows; free tier sufficient |
+| Hosting | Vercel | Zero-config Next.js deployment; edge functions for webhooks |
+
+### 9.1 Environment Variables Reference
+```bash
+# === AUTH (Custom Google OAuth) ===
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+JWT_SECRET=your_32_char_minimum_random_secret
+NEXT_PUBLIC_APP_URL=https://krostio.com
+
+# === DATABASE ===
+DATABASE_URL=postgresql://user:pass@host:5432/krostio
+
+# === PLAID ===
+PLAID_CLIENT_ID=your_plaid_client_id
+PLAID_SECRET=your_plaid_secret
+PLAID_ENV=sandbox  # or 'production'
+
+# === PADDLE ===
+PADDLE_API_KEY=apikey_01ksn75asqmrnx16h7ea8g8aeh
+NEXT_PUBLIC_PADDLE_CLIENT_TOKEN=your_client_token
+PADDLE_NOTIFICATION_WEBHOOK_SECRET=your_webhook_secret
+NEXT_PUBLIC_PADDLE_ENV=sandbox
+
+# === STORAGE ===
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_key  # server-side only
+
+# === EMAIL ===
+RESEND_API_KEY=your_resend_key
+FROM_EMAIL=noreply@krostio.com
+
+# === SECURITY ===
+NODE_ENV=production
+CORS_ORIGIN=https://krostio.com
+```
+
+### 9.2 Database Schema (Core Tables)
 ```sql
-CREATE TABLE waitlist (
+-- users (custom auth)
+CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT UNIQUE NOT NULL,
-  source TEXT,                    -- 'landing' | 'referral' | 'partnership'
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- No RLS: Public insert for landing page
-ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Anyone can join waitlist" ON waitlist FOR INSERT WITH CHECK (true);
-```
-
-### 2.2 New Tables (v2.0 Schema — To Be Created)
-
-#### `ledger_entries` (Replaces `income_records`)
-```sql
-CREATE TABLE ledger_entries (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  platform Platform NOT NULL,
-  gross_amount DECIMAL(12,2) NOT NULL,
-  net_amount DECIMAL(12,2),           -- after platform fees
-  currency TEXT DEFAULT 'USD',
-  period_start DATE NOT NULL,
-  period_end DATE NOT NULL,
-  payment_date DATE,
-  category TEXT,                      -- 'rides' | 'delivery' | 'freelance' | 'flex'
-  platform_ref_id TEXT,               -- platform's payment ID for deduplication
-  verified_at TIMESTAMPTZ DEFAULT NOW(),
-  source TEXT DEFAULT 'api',          -- 'api' | 'manual' | 'csv_upload'
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, platform, platform_ref_id)
-);
-
-ALTER TABLE ledger_entries ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users view own ledger" ON ledger_entries FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "API can insert ledger entries" ON ledger_entries FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Indexes for query performance
-CREATE INDEX idx_ledger_user_period ON ledger_entries(user_id, period_start DESC);
-CREATE INDEX idx_ledger_platform ON ledger_entries(user_id, platform);
-
--- Materialized view for dashboard performance
-CREATE MATERIALIZED VIEW ledger_monthly AS
-SELECT
-  user_id,
-  platform,
-  DATE_TRUNC('month', period_start) AS month,
-  SUM(gross_amount) AS gross_total,
-  SUM(net_amount) AS net_total,
-  COUNT(*) AS payment_count
-FROM ledger_entries
-GROUP BY user_id, platform, DATE_TRUNC('month', period_start);
-
--- Refresh strategy: cron job every 6 hours or on-demand after large ingestion
-CREATE INDEX idx_ledger_monthly_user ON ledger_monthly(user_id, month DESC);
-```
-
-**TypeScript Interface:**
-```typescript
-type LedgerSource = 'api' | 'manual' | 'csv_upload';
-type EarningsCategory = 'rides' | 'delivery' | 'freelance' | 'flex' | 'other';
-
-interface LedgerEntry {
-  id: string;
-  user_id: string;
-  platform: Platform;
-  gross_amount: number;
-  net_amount: number | null;
-  currency: string;
-  period_start: string;        // YYYY-MM-DD
-  period_end: string;
-  payment_date: string | null;
-  category: EarningsCategory | null;
-  platform_ref_id: string | null;
-  verified_at: string;
-  source: LedgerSource;
-  created_at: string;
-}
-
-interface LedgerMonthly {
-  user_id: string;
-  platform: Platform;
-  month: string;               // YYYY-MM-01
-  gross_total: number;
-  net_total: number;
-  payment_count: number;
-}
-```
-
-#### `reports`
-```sql
-CREATE TABLE reports (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  report_type TEXT NOT NULL,          -- 'standard_pdf' | 'quick_link' | 'api_response'
-  score_snapshot JSONB NOT NULL,      -- CreditScore object at generation time
-  ledger_snapshot JSONB NOT NULL,     -- LedgerSummary used in report
-  pdf_path TEXT,                      -- Supabase Storage path
-  share_token TEXT UNIQUE,            -- random 32-char token for public URL
-  expires_at TIMESTAMPTZ,
-  access_count INTEGER DEFAULT 0,
-  is_revoked BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users manage own reports" ON reports FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "Anyone can view via token" ON reports FOR SELECT USING (
-  share_token IS NOT NULL AND NOT is_revoked AND (expires_at IS NULL OR expires_at > NOW())
-);
-
--- Generate share_token automatically
-CREATE OR REPLACE FUNCTION generate_share_token()
-RETURNS TEXT AS $$
-BEGIN
-  RETURN encode(gen_random_bytes(24), 'base64');
-END;
-$$ LANGUAGE plpgsql;
-
-ALTER TABLE reports ALTER COLUMN share_token SET DEFAULT generate_share_token();
-```
-
-**TypeScript Interface:**
-```typescript
-type ReportType = 'standard_pdf' | 'quick_link' | 'api_response';
-
-interface Report {
-  id: string;
-  user_id: string;
-  report_type: ReportType;
-  score_snapshot: CreditScore;
-  ledger_snapshot: LedgerSummary;    // defined below
-  pdf_path: string | null;
-  share_token: string | null;
-  expires_at: string | null;
-  access_count: number;
-  is_revoked: boolean;
-  created_at: string;
-}
-
-interface LedgerSummary {
-  total_platforms: number;
-  avg_monthly_income: number;
-  total_career_earnings: number;
-  earliest_income_date: string;
-  latest_income_date: string;
-  monthly_breakdown: LedgerMonthly[];
-}
-```
-
-#### `report_views`
-```sql
-CREATE TABLE report_views (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  report_id UUID REFERENCES reports(id) ON DELETE CASCADE,
-  viewer_email TEXT,
-  viewer_ip TEXT,
-  user_agent TEXT,
-  viewed_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE report_views ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Report owners view access logs" ON report_views FOR SELECT USING (
-  EXISTS (SELECT 1 FROM reports WHERE reports.id = report_views.report_id AND reports.user_id = auth.uid())
-);
-
--- Trigger: Increment access_count on insert
-CREATE OR REPLACE FUNCTION increment_report_access_count()
-RETURNS TRIGGER AS $$
-BEGIN
-  UPDATE reports SET access_count = access_count + 1 WHERE id = NEW.report_id;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER on_report_view
-  AFTER INSERT ON report_views
-  FOR EACH ROW EXECUTE FUNCTION increment_report_access_count();
-```
-
-#### `lender_orgs` (Phase 2 — B2B)
-```sql
-CREATE TABLE lender_orgs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  domain TEXT,                        -- email domain for auto-verification
-  verified BOOLEAN DEFAULT FALSE,
-  plan TEXT DEFAULT 'starter',        -- 'starter' | 'growth' | 'enterprise'
-  monthly_quota INTEGER DEFAULT 50,
-  verifications_used INTEGER DEFAULT 0,
-  stripe_customer_id TEXT,
-  api_key TEXT UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
+  name TEXT,
+  avatar TEXT,
+  google_id TEXT UNIQUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- No RLS: Admin-only access via service role
-ALTER TABLE lender_orgs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Service role only" ON lender_orgs FOR ALL USING (auth.jwt()->>'role' = 'service_role');
-```
-
-**TypeScript Interface:**
-```typescript
-type LenderPlan = 'starter' | 'growth' | 'enterprise';
-
-interface LenderOrg {
-  id: string;
-  name: string;
-  domain: string | null;
-  verified: boolean;
-  plan: LenderPlan;
-  monthly_quota: number;
-  verifications_used: number;
-  stripe_customer_id: string | null;
-  api_key: string;
-  created_at: string;
-  updated_at: string;
-}
-```
-
-#### `passports`
-```sql
-CREATE TABLE passports (
+-- platform_connections (Plaid)
+CREATE TABLE platform_connections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE UNIQUE,
-  wallet_address TEXT UNIQUE,
-  token_id TEXT,                      -- on-chain token ID (keccak256 hash)
-  chain TEXT DEFAULT 'base',
-  contract_address TEXT DEFAULT '0x...', -- deployed contract address
-  minted_at TIMESTAMPTZ,
-  last_attested_at TIMESTAMPTZ,
-  attestation_count INTEGER DEFAULT 0,
-  current_score INTEGER,
-  score_tier ScoreTier,
-  is_public BOOLEAN DEFAULT TRUE,     -- worker controls visibility
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL DEFAULT 'plaid',
+  institution_name TEXT,
+  access_token_encrypted TEXT NOT NULL,
+  last_synced TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE passports ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users manage own passport" ON passports FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "Anyone can view public passports" ON passports FOR SELECT USING (is_public = TRUE);
-
--- Index for public lookup by wallet
-CREATE INDEX idx_passports_wallet ON passports(wallet_address) WHERE is_public = TRUE;
-```
-
-**TypeScript Interface:**
-```typescript
-interface Passport {
-  id: string;
-  user_id: string;
-  wallet_address: string | null;
-  token_id: string | null;
-  chain: 'base' | 'base-sepolia';
-  contract_address: string;
-  minted_at: string | null;
-  last_attested_at: string | null;
-  attestation_count: number;
-  current_score: number | null;
-  score_tier: ScoreTier | null;
-  is_public: boolean;
-  created_at: string;
-}
-```
-
-#### `attestation_history`
-```sql
-CREATE TABLE attestation_history (
+-- ledger_entries (normalized earnings)
+CREATE TABLE ledger_entries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  passport_id UUID REFERENCES passports(id) ON DELETE CASCADE,
-  score INTEGER NOT NULL,
-  income_tier TEXT,                   -- 'high' | 'mid' | 'emerging'
-  data_hash TEXT NOT NULL,            -- keccak256 of report snapshot
-  tx_hash TEXT,                       -- Base L2 transaction hash
-  block_number BIGINT,
-  attested_at TIMESTAMPTZ DEFAULT NOW()
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL,
+  gross_amount DECIMAL(10,2) NOT NULL,
+  net_amount DECIMAL(10,2),
+  transaction_date DATE NOT NULL,
+  description TEXT,
+  source TEXT DEFAULT 'plaid_api',
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE attestation_history ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Passport owners view attestations" ON attestation_history FOR SELECT USING (
-  EXISTS (SELECT 1 FROM passports WHERE passports.id = attestation_history.passport_id AND passports.user_id = auth.uid())
+-- income_summaries (computed metrics)
+CREATE TABLE income_summaries (
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  annualized_income DECIMAL(10,2),
+  monthly_average DECIMAL(10,2),
+  consistency_score INTEGER CHECK (consistency_score BETWEEN 0 AND 100),
+  trajectory TEXT CHECK (trajectory IN ('growing', 'stable', 'declining')),
+  platform_concentration DECIMAL(5,2),
+  calculated_at TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE POLICY "Anyone can view public attestations" ON attestation_history FOR SELECT USING (
-  EXISTS (SELECT 1 FROM passports WHERE passports.id = attestation_history.passport_id AND passports.is_public = TRUE)
+
+-- reports (generated PDFs)
+CREATE TABLE reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  file_path TEXT NOT NULL,
+  share_token TEXT UNIQUE,
+  expires_at TIMESTAMPTZ,
+  type TEXT CHECK (type IN ('pro', 'one-time')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Index for on-chain lookup
-CREATE INDEX idx_attestations_tx ON attestation_history(tx_hash);
+-- subscriptions (Paddle)
+CREATE TABLE subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  tier TEXT CHECK (tier IN ('free', 'pro-monthly', 'pro-annual')),
+  status TEXT CHECK (status IN ('active', 'cancelled', 'paused')),
+  paddle_subscription_id TEXT,
+  renewal_date TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_ledger_user_date ON ledger_entries(user_id, transaction_date);
+CREATE INDEX idx_reports_token ON reports(share_token);
+CREATE INDEX idx_subscriptions_user ON subscriptions(user_id);
 ```
 
-### 2.3 Supabase Storage Buckets
-
+### 9.3 PDF Report Template (react-pdf)
 ```typescript
-// Created via Supabase dashboard or CLI
-const STORAGE_BUCKETS = {
-  reports: {
-    name: 'reports',
-    public: false,           // Access via signed URLs only
-    fileSizeLimit: 10 * 1024 * 1024,  // 10MB
-    allowedMimeTypes: ['application/pdf']
-  },
-  avatars: {
-    name: 'avatars',
-    public: true,
-    fileSizeLimit: 2 * 1024 * 1024,   // 2MB
-    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp']
-  }
-};
-
-// RLS Policies for reports bucket:
-// - Users can upload to own folder: `{user_id}/reports/*.pdf`
-// - Users can download own reports
-// - Public can download via signed URL (time-limited, generated by API route)
-```
-
----
-
-## PART III — BUILD SEQUENCE & PHASE GATES
-
-### 3.1 Phase 0 — Foundation Completion (Weeks 1–4)
-
-**Objective:** Close all gaps in existing infrastructure. Exit criteria: 10 real users can sign up, connect platform, see income, generate report, and pay.
-
-#### Week 1: Argyle Integration + Database Migration
-
-**Tasks:**
-1. Install Argyle SDK: `npm install @argyle/argyle-link-ts`
-2. Run `db/migration-v2.sql` to create new tables
-3. Implement Argyle Link in onboarding flow:
-
-```typescript
-// src/app/(auth)/onboarding/page.tsx
-'use client';
-
-import { ArgyleLink } from '@argyle/argyle-link-react';
-import { useRouter } from 'next/navigation';
-
-export default function OnboardingPage() {
-  const router = useRouter();
-
-  const handleSuccess = async (accountId: string, userId: string) => {
-    // Store connection
-    await fetch('/api/platform/connect', {
-      method: 'POST',
-      body: JSON.stringify({ 
-        platform: 'uber', // detected from Argyle
-        argyle_account_id: accountId 
-      })
-    });
-    
-    router.push('/dashboard');
-  };
-
-  return (
-    <ArgyleLink
-      userToken={/* fetch from Argyle */}
-      onAccountConnected={handleSuccess}
-      onClose={() => router.push('/dashboard')}
-    />
-  );
-}
-```
-
-4. Create `/api/ingest/argyle/webhook/route.ts`:
-
-```typescript
-// Argyle webhook handler
-export async function POST(req: Request) {
-  const event = await req.json();
-  
-  if (event.name === 'accounts.added') {
-    // Fetch income data from Argyle
-    const income = await argyle.getIncome(event.data.account_id);
-    
-    // Upsert to ledger_entries
-    await supabase.from('ledger_entries').upsert({
-      user_id: event.user_id,
-      platform: income.platform,
-      gross_amount: income.amount,
-      period_start: income.period_start,
-      period_end: income.period_end,
-      platform_ref_id: income.id,
-      source: 'api'
-    });
-    
-    // Trigger score recalculation
-    await recalculateScore(event.user_id);
-  }
-  
-  return new Response('OK');
-}
-```
-
-**Exit Criteria:**
-- [ ] User can click "Connect Uber" → Argyle modal opens → OAuth succeeds → webhook fires → `ledger_entries` populated
-- [ ] Verified with 3 real Uber/DoorDash/Upwork accounts
-
-#### Week 2: Scoring Engine Integration
-
-**Tasks:**
-1. Connect `scoring-engine.ts` to real `ledger_entries` data:
-
-```typescript
-// src/lib/scoring-engine.ts
-import { createServerClient } from './supabase-server';
-
-export async function calculateKrostScore(userId: string): Promise<CreditScore> {
-  const supabase = createServerClient();
-  
-  // Fetch ledger data
-  const { data: entries } = await supabase
-    .from('ledger_entries')
-    .select('*')
-    .eq('user_id', userId)
-    .order('period_start', { ascending: false });
-  
-  // Calculate inputs
-  const inputs: KrostScoreInputs = {
-    avgMonthlyIncome: calculateAvgIncome(entries),
-    platformTenureMonths: calculateTenure(entries),
-    incomeVolatility: calculateVolatility(entries),
-    platformDiversity: countPlatforms(entries),
-    earningConsistency: calculateConsistency(entries),
-    incomeTrajectory: calculateTrajectory(entries),
-    taxCompliance: checkTaxCompliance(userId), // checks if 1099-K filed
-    crossPlatformGrowth: calculateGrowth(entries),
-    ledgerDepth: Math.min(entries.length, 36)
-  };
-  
-  // Compute score (existing algorithm)
-  const score = computeScore(inputs);
-  
-  // Store in credit_scores table
-  const { data: creditScore } = await supabase
-    .from('credit_scores')
-    .insert({
-      user_id: userId,
-      score: score.total,
-      score_tier: score.tier,
-      factors: score.factors,
-      income_snapshot: inputs
-    })
-    .select()
-    .single();
-  
-  return creditScore;
-}
-```
-
-2. Create API route `/api/score/current/route.ts`
-3. Build dashboard widget showing score + tier
-
-**Exit Criteria:**
-- [ ] Score calculates correctly for 10 test users with varied income patterns
-- [ ] Dashboard displays live score, updates when new income syncs
-- [ ] Score history chart shows progression over time
-
-#### Week 3: PDF Report Generation
-
-**Tasks:**
-1. Install react-pdf: `npm install @react-pdf/renderer`
-2. Create `src/lib/report-generator.tsx`:
-
-```typescript
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+// components/reports/IncomeStatementPDF.tsx
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica' },
-  header: { fontSize: 24, marginBottom: 20 },
-  section: { margin: 10 }
-});
+  page: { padding: 30, fontFamily: 'Helvetica' },
+  header: { marginBottom: 20, borderBottom: '1pt solid #ccc', paddingBottom: 10 },
+  title: { fontSize: 24, fontWeight: 'bold' },
+  subtitle: { fontSize: 14, color: '#666' },
+  summaryBox: { marginBottom: 20, padding: 15, backgroundColor: '#f8f9fa' },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 4 },
+  label: { fontSize: 11, color: '#555' },
+  value: { fontSize: 11, fontWeight: 'bold' },
+  section: { marginBottom: 15 },
+  sectionTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 8 },
+  verification: { marginTop: 30, padding: 12, backgroundColor: '#fff8e6', borderLeft: '3pt solid #ffc107' },
+  verificationText: { fontSize: 9, color: '#664d03' },
+})
 
-export function KrostReport({ worker, score, ledger }: ReportProps) {
+export function IncomeStatementPDF({ worker, metrics, earnings }: {
+  worker: { name: string; email: string }
+  metrics: { annualizedIncome: number; monthlyAverage: number; consistencyScore: number; trajectory: string }
+  earnings: { monthly: Array<{ month: string; total: number }>; platforms: Array<{ name: string; total: number; percent: number }> }
+}) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Cover */}
-        <View style={styles.section}>
-          <Text style={styles.header}>krostioIncome Verification Report</Text>
-          <Text>Worker: {worker.full_name}</Text>
-          <Text>Date: {new Date().toLocaleDateString()}</Text>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Income Statement</Text>
+          <Text style={styles.subtitle}>Generated by Krostio</Text>
+          <Text style={styles.subtitle}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</Text>
         </View>
-        
-        {/* Executive Summary */}
-        <View style={styles.section}>
-          <Text>krostioScore: {score.score}</Text>
-          <Text>Tier: {score.score_tier}</Text>
-          <Text>Annualized Income: ${ledger.avg_monthly_income * 12}</Text>
+
+        {/* Summary Block */}
+        <View style={styles.summaryBox}>
+          <View style={styles.summaryRow}>
+            <Text style={styles.label}>Total Annual Income (Estimated)</Text>
+            <Text style={styles.value}>${metrics.annualizedIncome.toLocaleString()}</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.label}>Monthly Average</Text>
+            <Text style={styles.value}>${metrics.monthlyAverage.toLocaleString()}</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.label}>Income Consistency</Text>
+            <Text style={styles.value}>{metrics.consistencyScore}/100</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.label}>Trend</Text>
+            <Text style={styles.value}>{metrics.trajectory}</Text>
+          </View>
         </View>
-        
-        {/* Income History Table */}
-        {/* ... 10 sections total per PRD Part III spec ... */}
+
+        {/* Monthly Table */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Monthly Earnings (Last 24 Months)</Text>
+          {earnings.monthly.map((m, i) => (
+            <View key={i} style={styles.summaryRow}>
+              <Text style={styles.label}>{m.month}</Text>
+              <Text style={styles.value}>${m.total.toLocaleString()}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Platform Breakdown */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>By Platform</Text>
+          {earnings.platforms.map((p, i) => (
+            <View key={i} style={styles.summaryRow}>
+              <Text style={styles.label}>{p.name}</Text>
+              <Text style={styles.value}>${p.total.toLocaleString()} ({p.percent}%)</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Verification Disclaimer */}
+        <View style={styles.verification}>
+          <Text style={styles.verificationText}>
+            This income statement reflects earnings data sourced from your connected financial accounts via Plaid. 
+            This is a self-generated, self-owned document. Krostio does not verify or endorse the accuracy of 
+            underlying platform data. Use this statement at your discretion for personal financial planning, 
+            landlord applications, or credit inquiries. Data reflects earnings as of {new Date().toLocaleDateString()}.
+          </Text>
+        </View>
       </Page>
     </Document>
-  );
-}
-```
-
-3. Create `/api/reports/generate/route.ts`:
-
-```typescript
-export async function POST(req: Request) {
-  const { reportType, expiryDays } = await req.json();
-  
-  // Fetch current score + ledger
-  const score = await getCurrentScore(userId);
-  const ledger = await getLedgerSummary(userId);
-  
-  // Generate PDF
-  const pdfBuffer = await renderToBuffer(
-    <KrostReport worker={user} score={score} ledger={ledger} />
-  );
-  
-  // Upload to Supabase Storage
-  const fileName = `${userId}/reports/${reportId}.pdf`;
-  await supabase.storage
-    .from('reports')
-    .upload(fileName, pdfBuffer, { contentType: 'application/pdf' });
-  
-  // Create report record with shareable token
-  const { data: report } = await supabase
-    .from('reports')
-    .insert({
-      user_id: userId,
-      report_type: reportType,
-      pdf_path: fileName,
-      expires_at: expiryDays ? addDays(new Date(), expiryDays) : null
-    })
-    .select()
-    .single();
-  
-  return Response.json({ 
-    reportId: report.id,
-    shareUrl: `/reports/view/${report.share_token}` 
-  });
-}
-```
-
-**Exit Criteria:**
-- [ ] User clicks "Generate Report" → PDF generates in <5 seconds → download link appears
-- [ ] PDF contains all 10 sections from PRD v2 spec
-- [ ] Shareable link works in incognito browser
-- [ ] Email-gate captures viewer email before showing report
-
-#### Week 4: Stripe Billing + Dashboard Polish
-
-**Tasks:**
-1. Wire Stripe checkout to plan gates:
-
-```typescript
-// src/app/(dashboard)/billing/page.tsx
-import { stripe } from '@/lib/stripe';
-
-export default async function BillingPage() {
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    line_items: [{ price: PRICE_IDS.pro_monthly, quantity: 1 }],
-    success_url: `${process.env.NEXT_PUBLIC_URL}/dashboard?upgraded=true`,
-    cancel_url: `${process.env.NEXT_PUBLIC_URL}/billing`
-  });
-  
-  return <CheckoutButton sessionUrl={session.url} />;
-}
-```
-
-2. Implement plan gates:
-   - Free: 1 platform, summary only, no PDF
-   - Pro: 5 platforms, unlimited reports, Passport minting
-
-3. Build functional dashboard:
-   - Score widget (live-updating via Real-time)
-   - Ledger summary (monthly rollup)
-   - Platform connection cards
-   - CTA to upgrade if on Free
-
-**Exit Criteria:**
-- [ ] Free user cannot connect 2nd platform until upgrading
-- [ ] Pro user can generate unlimited reports
-- [ ] Stripe webhook updates `profiles` table with subscription status
-- [ ] Dashboard shows accurate data for 10 real users
-
-**Phase 0 Exit Gate:** Ship to 10 beta users (friends, gig worker communities). Collect feedback. Fix critical bugs. **Do not proceed to Phase 1 until this works end-to-end.**
-
----
-
-### 3.2 Phase 1 — Four-Pillar MVP (Weeks 5–16)
-
-**Objective:** Build each pillar to its first complete, usable state. Each pillar is a mini-project with its own acceptance criteria.
-
-#### Pillar 1: krostioScore (Weeks 5–6)
-
-**Features to Build:**
-1. Add 3 new scoring factors:
-   - `tax_compliance`: Check if 1099-K filed (binary +25 pts or 0)
-   - `cross_platform_growth`: Count platforms added over time (+20 pts max)
-   - `ledger_depth`: Months of verified history (+15 pts for 36+ months)
-
-2. Score history chart (all-time progression)
-3. Factor breakdown UI showing contribution of each factor
-4. Score improvement tips:
-   ```typescript
-   function generateTips(score: CreditScore): string[] {
-     const tips = [];
-     if (score.factors.diversity_score < 30) {
-       tips.push("Connect a second platform to increase your score by ~35 points");
-     }
-     if (score.factors.consistency_score < 40) {
-       tips.push("Work consistently each month to improve your consistency score");
-     }
-     return tips;
-   }
-   ```
-
-**Acceptance Criteria:**
-- [ ] Score updates automatically when new income syncs
-- [ ] Factor breakdown visualized as bar chart or radial graph
-- [ ] Tips personalized based on score factors
-- [ ] Score history persisted (new row in `credit_scores` per recalculation)
-
-#### Pillar 2: krostioLedger (Weeks 5–8)
-
-**Features to Build:**
-1. Multi-platform connection (Pro: up to 5)
-2. Unified timeline view (all platforms, chronological)
-3. Monthly rollup table (by platform + combined)
-4. CSV export:
-   ```typescript
-   export async function GET(req: Request) {
-     const entries = await getAllLedgerEntries(userId);
-     const csv = Papa.unparse(entries);
-     return new Response(csv, {
-       headers: { 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename=ledger.csv' }
-     });
-   }
-   ```
-
-5. Tax estimation sidebar:
-   ```typescript
-   // Self-employment tax ~15.3% of net income
-   const estimatedQuarterlyTax = (ytdNetIncome * 0.153) / 4;
-   ```
-
-6. Anomaly alerts:
-   ```typescript
-   // If income drops >40% month-over-month, flag
-   if (thisMonth.total < lastMonth.total * 0.6) {
-     await createAlert({ type: 'income_drop', severity: 'warning' });
-   }
-   ```
-
-**Acceptance Criteria:**
-- [ ] Worker can connect 5 platforms simultaneously
-- [ ] Timeline shows all income across platforms in single feed
-- [ ] CSV export contains all fields from `ledger_entries`
-- [ ] Tax estimate updates in real-time as new income syncs
-- [ ] Anomaly alert appears on dashboard when triggered
-
-#### Pillar 3: krostioVerifier (Weeks 7–10)
-
-**Features to Build:**
-1. Standard PDF Report (10 sections from PRD v2 Part III)
-2. Quick Verification Link:
-   - Expiry options: 7 days / 30 days / one-time access
-   - Email-gate: viewer enters email before accessing
-   - Access log: who viewed, when
-   - Revocation: worker can kill link anytime
-
-3. Report history dashboard
-4. Lender portal MVP (Phase 2 feature, build in Week 10):
-   - Lender creates account with email
-   - Receives shared reports from workers
-   - Cannot search/browse; only sees what's explicitly shared
-
-**Implementation:**
-```typescript
-// src/app/reports/view/[token]/page.tsx
-export default async function PublicReportView({ params }: { params: { token: string } }) {
-  const report = await getReportByToken(params.token);
-  
-  if (!report || report.is_revoked) {
-    return <ErrorPage message="Report not found or has been revoked" />;
-  }
-  
-  if (report.expires_at && new Date(report.expires_at) < new Date()) {
-    return <ErrorPage message="This report has expired" />;
-  }
-  
-  // Email-gate
-  const viewerEmail = await getViewerEmail(); // from cookie or form
-  if (!viewerEmail) {
-    return <EmailGateForm reportToken={params.token} />;
-  }
-  
-  // Log access
-  await logReportView(report.id, viewerEmail);
-  
-  // Show report
-  return <ReportViewer report={report} />;
-}
-```
-
-**Acceptance Criteria:**
-- [ ] PDF contains all 10 sections with real data
-- [ ] Shareable link works in incognito, expires correctly
-- [ ] Email-gate captures viewer email before access
-- [ ] Access log shows IP, timestamp, user agent
-- [ ] Revoke button immediately invalidates link
-- [ ] Lender can sign up, receive shared reports
-
-#### Pillar 4: krostioPassport (Weeks 12–16)
-
-**Features to Build:**
-1. Smart contract deployment to Base mainnet
-2. Wallet connection (MetaMask) OR Account Abstraction (ERC-4337)
-3. Gasless mint (Krostio pays gas)
-4. Public Passport page: `krostio.app/passport/[token]`
-5. Attestation history viewer
-6. Score update → on-chain sync (monthly for Pro subscribers)
-7. Privacy controls (worker chooses visibility)
-
-**Smart Contract (Updated from PRD v2 Appendix):**
-```solidity
-// blockchain/contracts/KrostPassport.sol
-pragma solidity ^0.8.20;
-
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-
-contract KrostPassport is ERC721, Ownable {
-    struct PassportData {
-        uint256 krostScore;
-        uint256 annualizedIncome;
-        uint256 platformCount;
-        uint256 tenureMonths;
-        string scoreTier;
-        uint256 lastUpdated;
-        uint256 verificationCount;
-        bytes32 dataHash;
-    }
-    
-    mapping(uint256 => PassportData) public passports;
-    mapping(address => uint256) public workerToPassport;
-    
-    constructor() ERC721("krostioPassport", "KROST") Ownable(msg.sender) {}
-    
-    function transferFrom(address, address, uint256) public pure override {
-        revert("krostioPassport is soul-bound and non-transferable");
-    }
-    
-    function mintPassport(address worker, PassportData calldata data) 
-        external onlyOwner returns (uint256) {
-        require(workerToPassport[worker] == 0, "Passport already exists");
-        uint256 tokenId = uint256(keccak256(abi.encodePacked(worker, block.timestamp)));
-        _safeMint(worker, tokenId);
-        passports[tokenId] = data;
-        workerToPassport[worker] = tokenId;
-        emit PassportMinted(worker, tokenId, data.krostScore);
-        return tokenId;
-    }
-    
-    function updatePassport(uint256 tokenId, PassportData calldata newData) external onlyOwner {
-        require(_ownerOf(tokenId) != address(0), "Passport does not exist");
-        passports[tokenId] = newData;
-        emit PassportUpdated(tokenId, newData.krostScore, block.timestamp);
-    }
-    
-    event PassportMinted(address indexed worker, uint256 indexed tokenId, uint256 krostScore);
-    event PassportUpdated(uint256 indexed tokenId, uint256 newScore, uint256 timestamp);
-}
-```
-
-**Minting Flow:**
-```typescript
-// src/app/api/passport/mint/route.ts
-export async function POST(req: Request) {
-  const { walletAddress } = await req.json();
-  
-  // Check eligibility (score ≥580)
-  const score = await getCurrentScore(userId);
-  if (score.score < 580) {
-    return Response.json({ error: 'Score must be ≥580 to mint Passport' }, { status: 400 });
-  }
-  
-  // Check if already minted
-  const existing = await supabase.from('passports').select('*').eq('user_id', userId).single();
-  if (existing.data) {
-    return Response.json({ error: 'Passport already minted' }, { status: 400 });
-  }
-  
-  // Prepare passport data
-  const ledger = await getLedgerSummary(userId);
-  const passportData = {
-    krostScore: score.score,
-    annualizedIncome: ledger.avg_monthly_income * 12,
-    platformCount: ledger.total_platforms,
-    tenureMonths: calculateTenure(ledger),
-    scoreTier: score.score_tier,
-    lastUpdated: Math.floor(Date.now() / 1000),
-    verificationCount: 1,
-    dataHash: ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(score)))
-  };
-  
-  // Mint on-chain (gasless)
-  const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, adminWallet);
-  const tx = await contract.mintPassport(walletAddress, passportData);
-  await tx.wait();
-  
-  // Store in DB
-  await supabase.from('passports').insert({
-    user_id: userId,
-    wallet_address: walletAddress,
-    token_id: tx.events[0].args.tokenId.toString(),
-    contract_address: CONTRACT_ADDRESS,
-    minted_at: new Date(),
-    current_score: score.score,
-    score_tier: score.score_tier
-  });
-  
-  return Response.json({ txHash: tx.hash });
-}
-```
-
-**Acceptance Criteria:**
-- [ ] Worker with score ≥580 can mint Passport (gasless)
-- [ ] Public Passport page shows score tier, income tier, career tenure (no exact amounts unless worker enables)
-- [ ] Attestation history displays all on-chain updates
-- [ ] Privacy toggle works: turning off public visibility hides Passport page
-- [ ] Score update button triggers on-chain transaction, logs in `attestation_history`
-
-**Phase 1 Exit Gate:** All four pillars functional. 100+ workers using the platform. At least 10 Passports minted. Collect feedback. Refine UX. **Do not proceed to Phase 2 until retention is >60% after 30 days.**
-
----
-
-### 3.3 Phase 2 — B2B Monetization (Months 5–9)
-
-**Objective:** Launch lender API, build directory, unlock B2B revenue.
-
-#### Lender Portal (Full) — Months 5–6
-
-**Features:**
-1. Lender org accounts with domain verification
-2. Bulk verification: lender uploads CSV of worker emails → Krostio sends consent requests → aggregated results
-3. API key + OpenAPI documentation
-4. Webhook: `krost.report.updated` fires when score changes >5 points
-5. Custom scoring parameters (lender adjusts factor weights)
-
-**API Design:**
-```typescript
-// Lender API endpoint
-// GET /api/lender/api/score?worker_email=user@example.com
-// Headers: Authorization: Bearer {lender_api_key}
-
-export async function GET(req: Request) {
-  const apiKey = req.headers.get('authorization')?.replace('Bearer ', '');
-  const lender = await validateApiKey(apiKey);
-  
-  if (!lender) {
-    return Response.json({ error: 'Invalid API key' }, { status: 401 });
-  }
-  
-  // Check quota
-  if (lender.verifications_used >= lender.monthly_quota) {
-    return Response.json({ error: 'Quota exceeded' }, { status: 429 });
-  }
-  
-  const workerEmail = req.nextUrl.searchParams.get('worker_email');
-  const worker = await getUserByEmail(workerEmail);
-  
-  // Check consent (worker must have shared report with this lender)
-  const consent = await checkConsent(worker.id, lender.id);
-  if (!consent) {
-    return Response.json({ error: 'No consent from worker' }, { status: 403 });
-  }
-  
-  // Increment usage
-  await incrementVerificationCount(lender.id);
-  
-  // Return score
-  const score = await getCurrentScore(worker.id);
-  return Response.json({
-    krost_score: score.score,
-    score_tier: score.score_tier,
-    annualized_income: score.income_snapshot.avgMonthlyIncome * 12,
-    data_freshness: score.created_at,
-    verification_id: generateVerificationId()
-  });
-}
-```
-
-**Pricing:**
-- Starter: $99/mo (50 verifications)
-- Growth: $199/mo (150 verifications)
-- Enterprise: Custom (unlimited + SLA)
-
-#### Lender Directory for Workers — Month 7
-
-**Features:**
-1. Directory of lenders accepting krostioreports
-2. Filterable by loan type (auto, personal, mortgage, business, rent)
-3. Worker clicks "Find a Lender" → pre-filtered by krostioScore tier
-4. Referral tracking: when worker applies and loan funds, Krostio earns $50–$200
-
-**Implementation:**
-```typescript
-// src/app/(dashboard)/lenders/page.tsx
-export default async function LendersDirectory() {
-  const score = await getCurrentScore(userId);
-  
-  // Filter lenders by score tier
-  const lenders = await supabase
-    .from('lender_directory')
-    .select('*')
-    .lte('min_score_required', score.score)
-    .order('loan_type');
-  
-  return (
-    <div>
-      <h1>Lenders That Accept Your krostioScore</h1>
-      <p>Your score: {score.score} ({score.score_tier})</p>
-      
-      {lenders.map(lender => (
-        <LenderCard
-          key={lender.id}
-          lender={lender}
-          onApply={() => trackReferral(lender.id, userId)}
-        />
-      ))}
-    </div>
-  );
-}
-```
-
-#### Gig Platform B2B2C — Months 8–9
-
-**Features:**
-1. White-label Passport API for gig platforms
-2. Platform pays per-worker activation; worker gets free Passport
-3. Example: "Earn your krostioPassport as an Uber Pro Driver"
-
-**Partnership Contract:**
-- Platform pays $5 per activated worker
-- Krostio provides embeddable widget for platform app
-- Worker gets free Pro subscription for duration of platform partnership
-
-**Phase 2 Exit Gate:** 30 lender org accounts. $10K+ MRR from B2B. 10 referral-driven loans funded. Refine lender onboarding. **Validate unit economics before scaling.**
-
----
-
-### 3.4 Phase 3 — Protocol Layer & Global Expansion (Months 9–18)
-
-**Objective:** Open-source attestation standard, EU launch, DeFi integration.
-
-#### Krostio Open Protocol — Months 9–12
-
-**Features:**
-1. Open-source the `KrostPassport.sol` contract as ERC-7507 (Soul-Bound Token standard)
-2. Publish attestation schema on Ethereum Attestation Service (EAS)
-3. Build MISMO-compatible data format for mortgage industry
-4. Allow third-party lenders to query Passports on-chain without Krostio app
-
-**Technical Spec:**
-```solidity
-// Open protocol: Any lender can query on-chain
-interface IKrostPassport {
-    function getPassportScore(address worker) external view returns (uint256 score, string memory tier);
-    function verifyAttestation(uint256 tokenId, bytes32 dataHash) external view returns (bool);
-}
-```
-
-#### EU Expansion — Months 12–15
-
-**Regulatory Context:**
-- EU Platform Work Directive implemented Dec 2026
-- 43M gig workers gain employee-like rights
-- Open Banking (PSD2) mandates data portability
-
-**Localization:**
-1. UK: TrueLayer replaces Argyle for Open Banking data
-2. EU: GDPR-compliant DPA templates
-3. Multi-language: English, German, French, Spanish
-4. Currency: EUR support in `ledger_entries`
-
-**Technical Changes:**
-```typescript
-// Add EU data providers
-const DATA_PROVIDERS = {
-  US: 'argyle',
-  UK: 'truelayer',
-  EU: 'tink' // or similar PSD2 aggregator
-};
-
-// GDPR compliance
-export async function deleteUserData(userId: string) {
-  // Right to erasure: delete all user data
-  await supabase.from('ledger_entries').delete().eq('user_id', userId);
-  await supabase.from('credit_scores').delete().eq('user_id', userId);
-  await supabase.from('reports').delete().eq('user_id', userId);
-  // ... etc
-}
-```
-
-#### DeFi Integration — Months 15–18
-
-**Features:**
-1. krostioPassport as collateral for undercollateralized loans
-2. Integration with Goldfinch, Maple Finance, or similar credit protocols
-3. On-chain score verification without centralized API
-
-**Example Integration:**
-```solidity
-// DeFi protocol checks krostioScore on-chain
-contract GigWorkerLending {
-    IKrostPassport public krostPassport;
-    
-    function applyForLoan(uint256 amount) external {
-        (uint256 score, ) = krostPassport.getPassportScore(msg.sender);
-        require(score >= 720, "Insufficient krostioScore");
-        
-        // Issue undercollateralized loan
-        _issueLoan(msg.sender, amount);
-    }
-}
-```
-
-**Phase 3 Exit Gate:** Open protocol adopted by 3+ external lenders. EU launch with 1,000+ users. DeFi integration live on 1 protocol. **Evaluate product-market fit in EU before further geographic expansion.**
-
----
-
-## PART IV — TECHNICAL CONSTRAINTS & CONVENTIONS
-
-### 4.1 Next.js 16 Specific Patterns
-
-**Critical:** This is Next.js 16 App Router. APIs differ from Next.js 14 and older documentation. Always check `/node_modules/next/dist/docs/` before implementing.
-
-**Server Components vs Client Components:**
-```typescript
-// DEFAULT: Server Component (can fetch data, no useState/useEffect)
-export default async function DashboardPage() {
-  const data = await fetchData(); // This runs on server
-  return <View data={data} />;
-}
-
-// CLIENT: Mark with 'use client' (can use hooks, browser APIs)
-'use client';
-export default function InteractiveWidget() {
-  const [state, setState] = useState(0);
-  return <button onClick={() => setState(s => s + 1)}>{state}</button>;
-}
-```
-
-**Route Handlers (API Routes):**
-```typescript
-// src/app/api/example/route.ts
-export async function GET(request: Request) {
-  // Access URL params
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get('id');
-  
-  // Return JSON
-  return Response.json({ data: 'example' });
-}
-
-export async function POST(request: Request) {
-  const body = await request.json();
-  return new Response('Created', { status: 201 });
-}
-```
-
-**Dynamic Routes:**
-```typescript
-// src/app/reports/[id]/page.tsx
-export default async function ReportPage({ params }: { params: { id: string } }) {
-  const report = await getReport(params.id);
-  return <ReportView report={report} />;
-}
-```
-
-### 4.2 Supabase Client Patterns (Three Patterns, DO NOT MIX)
-
-```typescript
-// Pattern 1: Browser (Client Components)
-// src/lib/supabase-browser.ts
-import { createBrowserClient } from '@supabase/ssr';
-
-export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-}
-
-// Usage in Client Component
-'use client';
-import { createClient } from '@/lib/supabase-browser';
-
-export function ClientComponent() {
-  const supabase = createClient();
-  const [data, setData] = useState(null);
-  
-  useEffect(() => {
-    supabase.from('table').select('*').then(setData);
-  }, []);
-}
-```
-
-```typescript
-// Pattern 2: Server (Server Components, Route Handlers)
-// src/lib/supabase-server.ts
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-
-export async function createClient() {
-  const cookieStore = await cookies();
-  
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (name) => cookieStore.get(name)?.value,
-        set: (name, value, options) => cookieStore.set({ name, value, ...options }),
-        remove: (name, options) => cookieStore.set({ name, value: '', ...options })
-      }
-    }
-  );
-}
-
-// Usage in Server Component
-import { createClient } from '@/lib/supabase-server';
-
-export default async function ServerComponent() {
-  const supabase = await createClient();
-  const { data } = await supabase.from('table').select('*');
-  return <div>{data}</div>;
-}
-```
-
-```typescript
-// Pattern 3: Middleware
-// src/middleware.ts
-import { createServerClient } from '@supabase/ssr';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
-  
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (name) => request.cookies.get(name)?.value,
-        set: (name, value, options) => {
-          response.cookies.set({ name, value, ...options });
-        },
-        remove: (name, options) => {
-          response.cookies.set({ name, value: '', ...options });
-        }
-      }
-    }
-  );
-  
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  // Redirect logic
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-  
-  return response;
-}
-
-export const config = {
-  matcher: ['/dashboard/:path*', '/settings/:path*', '/billing/:path*']
-};
-```
-
-**CRITICAL:** Never mix patterns. Client Components use Pattern 1. Server Components/Routes use Pattern 2. Middleware uses Pattern 3.
-
-### 4.3 Tailwind v4 Configuration
-
-**No `tailwind.config.js` exists.** All configuration is in `src/app/globals.css` via `@theme` directive.
-
-```css
-/* src/app/globals.css */
-@import "tailwindcss";
-
-@theme {
-  /* Colors (Mastercard-inspired from DESIGN.md) */
-  --color-canvas: #F3F0EE;
-  --color-ink: #141413;
-  --color-signal: #CF4500;
-  --color-link-blue: #3860BE;
-  --color-clay-brown: #9A3A0A;
-  --color-light-signal: #F37338;
-  
-  /* Typography */
-  --font-sans: 'Sofia Sans', system-ui, sans-serif;
-  --font-weight-body: 450;
-  --font-weight-headline: 500;
-  --font-weight-eyebrow: 700;
-  
-  /* Radii */
-  --radius-pill: 999px;
-  --radius-stadium: 40px;
-  
-  /* Spacing (8px grid) */
-  --spacing-xs: 8px;
-  --spacing-sm: 16px;
-  --spacing-md: 24px;
-  --spacing-lg: 32px;
-  --spacing-xl: 48px;
-}
-
-/* Custom utilities */
-@layer utilities {
-  .btn-ink {
-    @apply bg-ink text-canvas rounded-[20px] px-6 py-3 font-medium;
-  }
-  
-  .btn-outline {
-    @apply border-2 border-ink text-ink rounded-[20px] px-6 py-3 font-medium;
-  }
-  
-  .btn-signal {
-    @apply bg-signal text-canvas rounded-[20px] px-6 py-3 font-medium;
-  }
-  
-  .card-stadium {
-    @apply bg-white rounded-[40px] shadow-sm p-6;
-  }
-}
-```
-
-**Usage:**
-```tsx
-<button className="btn-ink">Primary Action</button>
-<div className="card-stadium">Content</div>
-<h1 className="text-[32px] font-[500] tracking-[-0.02em]">Headline</h1>
-```
-
-### 4.4 Design System Enforcement (DESIGN.md)
-
-**Every new UI component MUST follow DESIGN.md conventions:**
-
-1. **Color Palette:**
-   - Canvas (backgrounds): `#F3F0EE` (never pure white)
-   - Text primary: `#141413` (ink black)
-   - CTA primary: ink background + canvas text
-   - Signal/consent: `#CF4500` (only for consent forms, legal actions)
-
-2. **Pillar-Specific Accents:**
-   - Score: `#141413` (ink)
-   - Ledger: `#3860BE` (link blue)
-   - Verifier: `#9A3A0A` (clay brown)
-   - Passport: `#F37338` (light signal orange)
-
-3. **Typography:**
-   - Font: Sofia Sans (Google Fonts fallback)
-   - Headlines: weight 500, -2% letter-spacing
-   - Body: weight 450
-   - Eyebrows: 14px, weight 700, +4% tracking, uppercase, preceded by `•`
-
-4. **Component Radii:**
-   - Cards: 40px (stadium) or 999px (full pill)
-   - Buttons: 20px (pill)
-   - Never use 8px or 16px generic radii
-
-5. **Images:**
-   - Circular portrait masks (50% radius)
-   - White satellite CTAs docked at bottom-right
-
-**Enforcement:** Any UI not following DESIGN.md will be flagged in code review. Design consistency is non-negotiable.
-
-### 4.5 Testing Philosophy
-
-**Current State:** No test framework configured (per AGENTS.md).
-
-**Phase 1 Addition:**
-```bash
-npm install -D vitest @testing-library/react @testing-library/jest-dom
-```
-
-**Test Coverage Requirements:**
-1. **Unit tests (Vitest):** `scoring-engine.ts` (all 9 factors)
-2. **E2E tests (Playwright):** Critical paths:
-   - Signup → connect → score → report → share
-   - Billing upgrade flow
-   - Passport minting (on testnet)
-
-**Test File Locations:**
-```
-src/
-├── lib/
-│   ├── scoring-engine.ts
-│   └── scoring-engine.test.ts  # Unit tests
-└── __tests__/
-    ├── e2e/
-    │   ├── onboarding.spec.ts
-    │   ├── reporting.spec.ts
-    │   └── passport.spec.ts
-```
-
-**Run Tests:**
-```bash
-npm run test        # Vitest unit tests
-npm run test:e2e    # Playwright E2E
-```
-
----
-
-## PART V — INTEGRATION SPECIFICATIONS
-
-### 5.1 Argyle Integration (Detailed)
-
-**Argyle Documentation:** `https://docs.argyle.com`
-
-**SDK Installation:**
-```bash
-npm install @argyle/argyle-link-ts
-```
-
-**User Flow:**
-1. User clicks "Connect Platform" in onboarding
-2. Argyle Link modal opens (OAuth flow)
-3. User authenticates with platform (Uber, DoorDash, etc.)
-4. Argyle webhook fires → `/api/ingest/argyle/webhook`
-5. Backend fetches income data from Argyle API
-6. Data normalized to `ledger_entries` schema
-
-**Argyle Link Component:**
-```typescript
-// src/components/ArgyleConnect.tsx
-'use client';
-
-import { ArgyleLink } from '@argyle/argyle-link-react';
-import { useState } from 'react';
-
-export function ArgyleConnect() {
-  const [userToken, setUserToken] = useState<string | null>(null);
-  
-  // Fetch user token from backend
-  useEffect(() => {
-    fetch('/api/argyle/token').then(r => r.json()).then(data => setUserToken(data.token));
-  }, []);
-  
-  const handleSuccess = (accountId: string, userId: string, linkItemId: string) => {
-    // Store connection in database
-    fetch('/api/platform/connect', {
-      method: 'POST',
-      body: JSON.stringify({ 
-        platform: linkItemId, // 'uber', 'doordash', etc.
-        argyle_account_id: accountId 
-      })
-    });
-  };
-  
-  if (!userToken) return <LoadingSpinner />;
-  
-  return (
-    <ArgyleLink
-      userToken={userToken}
-      onAccountConnected={handleSuccess}
-      onClose={() => router.push('/dashboard')}
-    />
-  );
-}
-```
-
-**Backend Token Generation:**
-```typescript
-// src/app/api/argyle/token/route.ts
-export async function GET(req: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  // Create Argyle user token
-  const response = await fetch('https://api.argyle.com/v1/user-tokens', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${Buffer.from(`${ARGYLE_CLIENT_ID}:${ARGYLE_CLIENT_SECRET}`).toString('base64')}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ user_id: user.id })
-  });
-  
-  const { token } = await response.json();
-  return Response.json({ token });
-}
-```
-
-**Webhook Handler:**
-```typescript
-// src/app/api/ingest/argyle/webhook/route.ts
-export async function POST(req: Request) {
-  const event = await req.json();
-  
-  // Verify webhook signature (CRITICAL for security)
-  const signature = req.headers.get('x-argyle-signature');
-  if (!verifyArgyleSignature(event, signature)) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-  
-  switch (event.name) {
-    case 'accounts.added':
-      await handleAccountAdded(event.data);
-      break;
-    case 'accounts.updated':
-      await handleAccountUpdated(event.data);
-      break;
-    case 'accounts.removed':
-      await handleAccountRemoved(event.data);
-      break;
-  }
-  
-  return new Response('OK');
-}
-
-async function handleAccountAdded(data: ArgyleAccountEvent) {
-  // Fetch full account data
-  const account = await argyle.getAccount(data.account_id);
-  
-  // Fetch payouts (income records)
-  const payouts = await argyle.getPayouts(data.account_id);
-  
-  // Normalize to ledger_entries
-  const entries = payouts.map(payout => ({
-    user_id: data.user_id,
-    platform: account.link_item as Platform,
-    gross_amount: payout.gross_pay,
-    net_amount: payout.net_pay,
-    period_start: payout.pay_period_start,
-    period_end: payout.pay_period_end,
-    payment_date: payout.pay_date,
-    platform_ref_id: payout.id,
-    source: 'api' as const
-  }));
-  
-  // Upsert (handles duplicates via UNIQUE constraint)
-  await supabase.from('ledger_entries').upsert(entries);
-  
-  // Trigger score recalculation
-  await recalculateScore(data.user_id);
-}
-```
-
-**Cost Management:**
-- Argyle charges per connection (exact pricing TBD — see market research recommendation)
-- **Mitigation:** Free tier = CSV upload only; paid tiers unlock API
-- Monitor `platform_connections` table; alert if approaching quota limits
-
-### 5.2 Stripe Integration (Billing)
-
-**Stripe Documentation:** `https://stripe.com/docs`
-
-**Webhook Handler:**
-```typescript
-// src/app/api/stripe/webhook/route.ts
-import Stripe from 'stripe';
-import { headers } from 'next/headers';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-export async function POST(req: Request) {
-  const body = await req.text();
-  const headersList = await headers();
-  const signature = headersList.get('stripe-signature')!;
-  
-  let event: Stripe.Event;
-  
-  try {
-    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!);
-  } catch (err) {
-    return new Response('Webhook Error', { status: 400 });
-  }
-  
-  switch (event.type) {
-    case 'checkout.session.completed':
-      await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
-      break;
-    case 'customer.subscription.updated':
-      await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
-      break;
-    case 'customer.subscription.deleted':
-      await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
-      break;
-  }
-  
-  return new Response('OK');
-}
-
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const userId = session.metadata?.user_id;
-  const plan = session.metadata?.plan; // 'pro_monthly' | 'pro_annual'
-  
-  // Update user profile
-  await supabase.from('profiles').update({
-    subscription_status: 'active',
-    subscription_plan: plan,
-    stripe_customer_id: session.customer
-  }).eq('id', userId);
-}
-```
-
-**Pricing Configuration:**
-```typescript
-// src/lib/stripe-config.ts
-export const PRICING = {
-  free: {
-    id: 'free',
-    name: 'Free',
-    price: 0,
-    features: ['1 platform', 'Income summary', 'No PDF reports']
-  },
-  starter: {
-    id: 'starter',
-    name: 'Starter',
-    price: 9,
-    stripe_price_id: 'price_...',  // One-time payment
-    features: ['1 platform', '1 PDF report', '12-month history', '7-day shareable link']
-  },
-  pro_monthly: {
-    id: 'pro_monthly',
-    name: 'Pro',
-    price: 19,
-    stripe_price_id: 'price_...',  // Recurring monthly
-    features: ['5 platforms', 'Unlimited reports', '24-month history', '30-day links', 'Passport']
-  },
-  pro_annual: {
-    id: 'pro_annual',
-    name: 'Pro Annual',
-    price: 190,
-    stripe_price_id: 'price_...',  // Recurring annual
-    features: ['All Pro features', '2 months free', 'Priority support']
-  }
-};
-```
-
-### 5.3 Base L2 Blockchain Integration
-
-**Hardhat Configuration:**
-```typescript
-// hardhat.config.ts
-import { HardhatUserConfig } from 'hardhat/config';
-import '@nomicfoundation/hardhat-toolbox';
-
-const config: HardhatUserConfig = {
-  solidity: {
-    version: '0.8.20',
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200
-      }
-    }
-  },
-  networks: {
-    baseSepolia: {
-      url: process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org',
-      accounts: [process.env.DEPLOYER_PRIVATE_KEY!],
-      chainId: 84532
-    },
-    base: {
-      url: process.env.BASE_MAINNET_RPC_URL || 'https://mainnet.base.org',
-      accounts: [process.env.DEPLOYER_PRIVATE_KEY!],
-      chainId: 8453
-    }
-  }
-};
-
-export default config;
-```
-
-**Deployment Script:**
-```typescript
-// blockchain/scripts/deploy.ts
-import { ethers } from 'hardhat';
-
-async function main() {
-  const KrostPassport = await ethers.getContractFactory('KrostPassport');
-  const passport = await KrostPassport.deploy();
-  await passport.waitForDeployment();
-  
-  console.log(`KrostPassport deployed to: ${await passport.getAddress()}`);
-  
-  // Store address in .env
-  // CONTRACT_ADDRESS=0x...
-}
-
-main().catch(console.error);
-```
-
-**Backend Integration:**
-```typescript
-// src/lib/blockchain.ts
-import { ethers } from 'ethers';
-import KrostPassportABI from '../../blockchain/artifacts/contracts/KrostPassport.sol/KrostPassport.json';
-
-const provider = new ethers.JsonRpcProvider(process.env.BASE_RPC_URL);
-const adminWallet = new ethers.Wallet(process.env.ADMIN_PRIVATE_KEY!, provider);
-
-export const passport = new ethers.Contract(
-  process.env.CONTRACT_ADDRESS!,
-  KrostPassportABI.abi,
-  adminWallet
-);
-
-export async function mintPassport(walletAddress: string, data: PassportData) {
-  const tx = await passport.mintPassport(walletAddress, data);
-  const receipt = await tx.wait();
-  return receipt.hash;
-}
-
-export async function updatePassport(tokenId: string, data: PassportData) {
-  const tx = await passport.updatePassport(tokenId, data);
-  const receipt = await tx.wait();
-  return receipt.hash;
-}
-```
-
-**Gas Cost Monitoring:**
-```typescript
-// Monitor gas costs and alert if exceeds budget
-export async function estimateMintCost(): Promise<number> {
-  const gasEstimate = await passport.mintPassport.estimateGas(mockAddress, mockData);
-  const gasPrice = await provider.getFeeData();
-  const costInWei = gasEstimate * gasPrice.gasPrice!;
-  const costInUSD = Number(ethers.formatEther(costInWei)) * ETH_PRICE_USD;
-  
-  if (costInUSD > 0.01) {
-    // Alert: gas cost exceeds $0.01 threshold
-    await sendAlert('High gas cost detected', { costInUSD });
-  }
-  
-  return costInUSD;
-}
-```
-
-### 5.4 Email Integration (Resend)
-
-**Resend Documentation:** `https://resend.com/docs`
-
-**Email Templates:**
-```typescript
-// src/lib/email-templates.tsx
-import * as React from 'react';
-
-export function WelcomeEmail({ userName }: { userName: string }) {
-  return (
-    <html>
-      <body style={{ fontFamily: 'Sofia Sans, sans-serif' }}>
-        <h1>Welcome to Krostio, {userName}!</h1>
-        <p>Your financial identity platform is ready.</p>
-        <a href="https://krostio.app/onboarding">Connect Your First Platform</a>
-      </body>
-    </html>
-  );
-}
-
-export function ReportSharedEmail({ 
-  recipientEmail, 
-  shareUrl 
-}: { 
-  recipientEmail: string; 
-  shareUrl: string; 
-}) {
-  return (
-    <html>
-      <body>
-        <h1>Income Verification Report Shared With You</h1>
-        <p>A gig worker has shared their krostioIncome Verification Report with you.</p>
-        <a href={shareUrl}>View Report</a>
-        <p>This link expires in 7 days.</p>
-      </body>
-    </html>
-  );
-}
-```
-
-**Sending Emails:**
-```typescript
-// src/lib/email.ts
-import { Resend } from 'resend';
-import { WelcomeEmail } from './email-templates';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-export async function sendWelcomeEmail(userEmail: string, userName: string) {
-  await resend.emails.send({
-    from: 'Krostio <hello@krostio.app>',
-    to: userEmail,
-    subject: 'Welcome to Krostio',
-    react: <WelcomeEmail userName={userName} />
-  });
+  )
 }
 ```
 
 ---
 
-## PART VI — APPENDICES
+## 10. ⚖️ Legal Considerations: Privacy Policy & Terms of Service
 
-### A. Environment Variables (Complete `.env.example`)
+### Critical Language to Include for Payment Processor Approval (Paddle)
 
-```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
+Paddle, as a Merchant of Record, requires clear legal documentation to approve financial-adjacent products. Include these explicit clauses:
 
-# Argyle (Gig Data API)
-ARGYLE_CLIENT_ID=xxx
-ARGYLE_CLIENT_SECRET=xxx
-ARGYLE_WEBHOOK_SECRET=xxx
-ARGYLE_SANDBOX_MODE=true  # false in production
+#### ✅ Privacy Policy Must-Haves
 
-# Stripe (Billing)
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PRICE_ID_PRO_MONTHLY=price_...
-STRIPE_PRICE_ID_PRO_ANNUAL=price_...
+```markdown
+## Data Collection & Usage
 
-# Base L2 (Blockchain)
-BASE_RPC_URL=https://mainnet.base.org
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
-CONTRACT_ADDRESS=0x...
-ADMIN_PRIVATE_KEY=0x...  # Hot wallet for minting (low balance, rotate frequently)
+### What We Collect
+- **Account Data**: Email address, name, profile picture (via Google OAuth)
+- **Financial Data**: Aggregated transaction data from connected accounts via Plaid
+- **Usage Data**: Feature interactions, report generation events (anonymized)
 
-# PostHog (Analytics)
-NEXT_PUBLIC_POSTHOG_KEY=phc_...
-NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+### What We Do NOT Collect
+- ❌ Raw banking credentials or passwords
+- ❌ Full transaction descriptions beyond merchant name and amount
+- ❌ Social Security numbers, tax IDs, or sensitive personal identifiers
+- ❌ Location data beyond country-level for tax compliance
 
-# Resend (Email)
-RESEND_API_KEY=re_...
+### How We Use Your Data
+1. **Core Service**: Aggregate earnings, calculate metrics, generate income statements
+2. **Account Management**: Authenticate users, manage subscriptions via Paddle
+3. **Service Improvement**: Anonymized analytics to improve product experience
+4. **Legal Compliance**: Respond to valid legal requests; prevent fraud
 
-# App Config
-NEXT_PUBLIC_URL=https://krostio.app
-NODE_ENV=development
+### Data Sharing
+- **Plaid**: We receive processed transaction data via Plaid's secure API. Plaid does not receive your Krostio data.
+- **Paddle**: Email and purchase data shared solely for payment processing and subscription management.
+- **Third Parties**: We do not sell, rent, or trade your personal data. Anonymized, aggregated insights may be used for industry benchmarking (opt-out available).
+
+### Data Retention & Deletion
+- You may request full data deletion at any time via dashboard or email to privacy@krostio.com
+- Deleted accounts are permanently removed within 30 days
+- Aggregated, anonymized metrics may be retained for product improvement
+
+### Security Measures
+- All data encrypted in transit (TLS 1.3) and at rest (AES-256)
+- JWT sessions use HTTP-only, Secure, SameSite=Strict cookies
+- Regular security audits and dependency scanning
+- No plaintext storage of access tokens; all sensitive data encrypted server-side
 ```
 
-### B. Git Workflow
+#### ✅ Terms of Service Must-Haves
 
-```bash
-# Branch naming
-main              # Production (auto-deploys to Vercel)
-develop           # Staging
-feature/pillar-1  # Feature branches
-fix/scoring-bug   # Bug fixes
+```markdown
+## Acceptable Use & Limitations
 
-# Commit messages
-git commit -m "feat(score): add cross-platform growth factor"
-git commit -m "fix(ledger): deduplicate Argyle webhook events"
-git commit -m "docs(prd): update Phase 1 exit criteria"
+### What Krostio Is
+✅ A personal financial clarity tool for gig workers  
+✅ A self-service platform to aggregate, visualize, and export your own earnings data  
+✅ A document generator for your personal use in financial applications  
+
+### What Krostio Is NOT
+❌ A lender, credit bureau, or financial institution  
+❌ A verifier of income accuracy or creditworthiness  
+❌ A substitute for professional tax, legal, or financial advice  
+❌ A platform that guarantees loan/approval outcomes  
+
+### User Responsibilities
+- You are solely responsible for the accuracy of data you connect via Plaid
+- You agree not to use generated statements to misrepresent income or commit fraud
+- You understand that income metrics are estimates based on available data and may not reflect tax-reportable income
+- You agree to comply with Plaid's and Paddle's respective terms of service
+
+### Limitation of Liability
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, KROSTIO DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. KROSTIO SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING FROM USE OF THE SERVICE, INCLUDING BUT NOT LIMITED TO DENIED LOAN APPLICATIONS, LOST PROFITS, OR DATA LOSS.
+
+### Intellectual Property
+- All generated reports are owned by you, the user
+- Krostio retains rights to the software, algorithms, and branding
+- You may not resell, redistribute, or commercially exploit Krostio-generated documents without written permission
+
+### Governing Law & Disputes
+- These terms are governed by the laws of [Your Jurisdiction, e.g., Delaware, USA]
+- Disputes shall be resolved through binding arbitration in [Venue], waiving class action rights
+- Paddle's Merchant of Record terms supersede payment-related disputes
 ```
 
-### C. Deployment (Vercel)
+#### ✅ Additional Compliance Pages
 
-**Automatic Deployments:**
-- `main` → Production (`krostio.app`)
-- `develop` → Preview (`develop.krostio.app`)
-- Feature branches → Ephemeral preview URLs
+**Cookie Policy** (Required for GDPR/CCPA):
+```markdown
+## Cookies We Use
 
-**Environment Variables:**
-Set in Vercel dashboard → Settings → Environment Variables. Match `.env.example` structure.
+| Cookie | Purpose | Duration | Type |
+|--------|---------|----------|------|
+| `session` | Authenticated user session | 7 days | Strictly Necessary |
+| `paddle_*` | Paddle checkout functionality | Session | Functional |
+| `posthog_distinct_id` | Anonymous product analytics | 1 year | Analytics (opt-out) |
 
-**Build Command:**
-```bash
-npm run build
+You may manage cookie preferences via browser settings. Disabling strictly necessary cookies may impair core functionality.
 ```
 
-**Output Directory:**
-`.next`
-
-### D. Error Handling Patterns
-
-**API Routes:**
-```typescript
-export async function GET(req: Request) {
-  try {
-    const data = await fetchData();
-    return Response.json({ data });
-  } catch (error) {
-    console.error('Error:', error);
-    
-    // Return user-friendly error
-    return Response.json(
-      { error: 'Failed to fetch data. Please try again.' },
-      { status: 500 }
-    );
-  }
-}
-```
-
-**Client Components:**
-```typescript
-'use client';
-
-export function DataComponent() {
-  const [error, setError] = useState<string | null>(null);
-  
-  useEffect(() => {
-    fetch('/api/data')
-      .then(r => r.json())
-      .catch(err => setError('Failed to load data'));
-  }, []);
-  
-  if (error) return <ErrorState message={error} />;
-  
-  return <DataView />;
-}
-```
+**Data Processing Addendum (DPA)** (For B2B/Enterprise readiness):
+- Available upon request for users requiring GDPR Article 28 compliance
+- Specifies Krostio as Data Processor, user as Data Controller
+- Outlines sub-processors: Plaid, Paddle, Vercel, Resend
 
 ---
 
-## DOCUMENT END
+## 11. Go-to-Market Strategy (Solo Founder)
 
-**This is the complete technical specification for Krostio Platform v3.0.** All prior PRDs (v1.0, v2.0) are superseded. This document is the single source of truth for all development work.
+### 11.1 Pre-Launch (Month 0)
+- **Waitlist landing page**: Simple email capture. Story: *"I earned $80K on DoorDash last year but couldn't get a car loan because I couldn't prove my income. I built Krostio to fix that."*
+- **Channels**:
+  - Reddit: r/doordash_drivers, r/uberdrivers, r/personalfinance, r/freelance
+  - Facebook Groups: DoorDash drivers, Uber drivers, gig economy workers
+  - TikTok/Instagram: Short videos showing the income aggregation feature (very visual, shareable)
+- **Goal**: 1,000 waitlist signups before launch
 
-**Next Steps for Implementation:**
-1. Read Part I (Architecture) to understand the complete system
-2. Read Part II (Data Models) to understand database schema
-3. Begin Phase 0 Week 1 tasks from Part III
-4. Reference Part IV for technical constraints during implementation
-5. Reference Part V for integration-specific code patterns
+### 11.2 Launch (Month 1–2)
+- **Product Hunt**: Coordinate PH launch with pre-warmed Reddit/Discord communities
+- **Press angles**: *"76 million gig workers can't see their real income — this app changes that"*
+- **Affiliate outreach**: DoorDash/Uber YouTubers (100K–1M subs covering gig economy tips) — offer free Pro accounts for reviews
+- **Community engagement**: Active in subreddits; responsive to questions; give away free month for feedback
 
-**Questions or Clarifications:**
-Update `CLAUDE.md` to point to this PRD. All AI coding agents should reference this document when building Krostio features.
+### 11.3 Growth (Month 3–6)
+- **SEO content**:
+  - *"How much do DoorDash drivers really earn?"*
+  - *"Track multiple gig income streams"*
+  - *"Income verification for gig workers"*
+  - Extremely low competition; high commercial intent
+- **Platform partnerships**: Reach out to gig driver community managers (DoorDash, Uber, Lyft) about offering Krostio as a driver tool
+- **Email nurture**: Share income optimization tips, monthly earning trends, etc.
+- **Referral program**: $5 credit for each friend who signs up
 
-**Document Maintenance:**
-As features are built and architecture evolves, update this PRD. Keep it synchronized with `AGENTS.md` and codebase reality. Never let documentation drift.
+### 11.4 Revenue Model
+**Worker tiers:**
+- Free: 1 platform, dashboard summary, no PDF
+- Pro ($14.99/mo): 5 platforms, unlimited PDFs, 24-month history, weekly digest
+- One-Time ($6.99): Single PDF, 1 platform, no subscription
+
+**Conservative projection (12 months):**
+| Month | Pro Subscribers | One-Time Purchases | MRR |
+|-------|----------------|-------------------|-----|
+| M1 | 50 | 30 | ~$800 |
+| M3 | 200 | 150 | ~$3,300 |
+| M6 | 600 | 500 | ~$9,400 |
+| M9 | 1,200 | 1,000 | ~$18,500 |
+| M12 | 2,000 | 1,800 | ~$31,500 |
+
+**Path to $50K MRR**: 3,300 Pro subscribers at $14.99 = ~$49.5K. Achievable with strong community SEO and viral word-of-mouth among gig workers.
 
 ---
 
-*Technical PRD v3.0 — May 2026 — Krostio Platform*
+## 12. Risk Register
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| Plaid pricing as user base grows | HIGH | MEDIUM | Monitor; negotiate volume discounts; model unit economics early |
+| Gig platforms block OAuth or change APIs | MEDIUM | HIGH | Maintain up-to-date platform documentation; monitor official APIs |
+| Low free-to-paid conversion | MEDIUM | MEDIUM | Gate PDF behind paywall; strong onboarding copy; lead with value |
+| Users expect expense/tax integration | MEDIUM | MEDIUM | Roadmap clearly; Phase 2 feature; don't oversell at launch |
+| Data privacy concerns | MEDIUM | HIGH | Clear privacy policy; never store credentials; SOC2 roadmap (Year 2) |
+| Churn from infrequent users | MEDIUM | LOW | Email digest keeps Pro subscribers engaged; free tier drives DAU |
+| **Paddle account rejection** | **MEDIUM** | **HIGH** | ✅ Pre-submit Privacy Policy + ToS with required language; emphasize "personal finance tool, not lending"; have PayPal Business as fallback |
+| Competitor launches (larger fintech) | LOW | MEDIUM | Build community moat early; word-of-mouth; gig worker loyalty |
+
+---
+
+## 13. Success Metrics
+
+### 13.1 North Star Metric
+**Income Statements Generated** — every statement is a worker who now has financial clarity and a tool for life decisions (loans, apartments, planning).
+
+### 13.2 Leading Indicators
+| Metric | Week 4 | Month 3 | Month 6 |
+|--------|--------|---------|---------|
+| Platform connections | 100 | 500 | 2,000 |
+| Statements generated | 80 | 400 | 1,800 |
+| Free → Paid conversion | 12% | 18% | 22% |
+| Shared statements | 30 | 200 | 900 |
+| Monthly churn (Pro) | <12% | <8% | <6% |
+| DAU / MAU ratio | 25% | 30% | 35% |
+
+### 13.3 Qualitative Signals
+- Workers sharing statements with landlords/lenders; getting approvals
+- Community testimonials: *"Finally see what I'm actually earning"*
+- Referral rate > 10% (word-of-mouth growth)
+- Gig driver subreddits recommending Krostio organically
+
+---
+
+## 14. Definition of Done — MVP
+
+MVP is complete when:
+
+- [x] User can sign up with email or **fully custom Google OAuth** (zero dependencies)
+- [x] User can connect at least 1 financial account via Plaid Link
+- [x] Income data is ingested and stored (12 months minimum)
+- [x] Clarity metrics computed: annualized income, consistency score, trajectory
+- [x] Professional PDF statement generated on demand
+- [x] PDF is downloadable and sharable via expiring link
+- [x] **Paddle subscription ($14.99/mo) and one-time ($6.99) payments work with webhook sync**
+- [x] Free tier properly gated (dashboard visible, PDF blocked)
+- [x] **Privacy Policy and Terms of Service live with payment processor-safe language**
+- [x] Data deletion request flow is functional
+- [x] No fabricated metrics or social proof
+- [x] Mobile-responsive auth and critical flows
+- [x] Basic onboarding video / guide text
+- [x] Plaid sandbox seeding works for testing
+- [x] **JWT session management with HTTP-only cookies implemented**
+
+---
+
+## 15. Open Questions for Founder Decision
+
+1. **Paddle Onboarding**: Submit application with Privacy Policy + ToS pre-drafted using Section 10 language. Emphasize "personal finance clarity tool" not "income verification service."
+2. **Business Registration**: LLC vs. sole proprietorship? (LLC preferred for payment processor credibility; can form via Stripe Atlas or Clerky.)
+3. **Clear Positioning**: Always describe as *"income aggregation and financial clarity tool for gig workers"* — never "income verification for lenders" in public-facing copy or processor applications.
+4. **Pricing sweet spot**: $14.99/mo or $19.99/mo for Pro? A/B test with early users via Paddle price experiments.
+5. **PDF automation**: Auto-generate monthly PDF for Pro subscribers or only on-demand? (On-demand reduces server load; auto-builds habit.)
+6. **Email alerts**: Include in MVP or defer to Phase 1? (Adds complexity but drives engagement and reduces churn.)
+7. **Tax integration**: Upwork/Fiverr workers need tax prep. Phase 2 or Phase 1 must-have? (Phase 2; keep MVP focused.)
+8. **Community**: Build a private Discord/Slack community for early users for feedback and word-of-mouth? (Yes — low effort, high retention.)
+
+---
+
+> **Document Control**  
+> PRD v3.2 B2C Edition | May 2026 | For internal founder use | Confidential  
+> **Next Step**: Launch Phase 0 build (Custom Auth, Plaid, Paddle, scoring engine) and onboard first 100 test users via waitlist.
+
+```

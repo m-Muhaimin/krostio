@@ -61,27 +61,27 @@ export function ReportViewsSection({
 
   return (
     <div>
-      <div className="overflow-x-auto rounded-md border border-hairline">
+      <div className="overflow-x-auto rounded-[20px] border border-hairline">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="bg-soft-stone text-mono-label text-slate">
-              <th className="px-5 py-3 font-medium">Viewer email</th>
-              <th className="px-5 py-3 font-medium">Report</th>
-              <th className="px-5 py-3 font-medium text-right">Viewed</th>
+            <tr className="bg-soft-stone/50">
+              <th className="px-5 py-3 font-medium text-mono-label text-muted-slate text-[10px] tracking-widest">Viewer email</th>
+              <th className="px-5 py-3 font-medium text-mono-label text-muted-slate text-[10px] tracking-widest">Report</th>
+              <th className="px-5 py-3 font-medium text-mono-label text-muted-slate text-[10px] tracking-widest text-right">Viewed</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-hairline">
             {displayed.map((v) => (
-              <tr key={v.id} className="hover:bg-soft-stone transition-colors">
-                <td className="px-5 py-4 text-ink-black">
+              <tr key={v.id} className="hover:bg-soft-stone/30 transition-colors">
+                <td className="px-5 py-4 text-sm text-ink-black">
                   {v.viewer_email || (
-                    <span className="text-slate italic">No email captured</span>
+                    <span className="text-muted-slate italic">No email captured</span>
                   )}
                 </td>
-                <td className="px-5 py-4 text-slate">
+                <td className="px-5 py-4 text-sm text-slate">
                   Report · {reportDateMap.get(v.report_id) || '—'}
                 </td>
-                <td className="px-5 py-4 text-right text-slate whitespace-nowrap">
+                <td className="px-5 py-4 text-right text-sm text-slate whitespace-nowrap">
                   {formatDateTime(v.viewed_at)}
                 </td>
               </tr>
@@ -93,14 +93,14 @@ export function ReportViewsSection({
       {views.length > 10 && !showAll && (
         <button
           onClick={() => setShowAll(true)}
-          className="mt-3 text-sm text-link-blue hover:underline underline-offset-2"
+          className="mt-4 text-sm text-action-blue underline underline-offset-2 hover:decoration-2"
         >
           Show all {views.length} views →
         </button>
       )}
 
       {views.length === 0 && (
-        <p className="text-sm text-slate py-6 text-center">
+        <p className="text-sm text-slate py-8 text-center">
           No one has viewed your reports yet. Share a report link with a lender to see views here.
         </p>
       )}

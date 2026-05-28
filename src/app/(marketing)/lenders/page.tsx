@@ -6,7 +6,7 @@ import LenderFilters from './LenderFilters'
 export const metadata: Metadata = {
   title: 'Lender directory — find loans accepting gig income',
   description:
-    'Browse lenders who accept Krost income verification. Personal loans, auto financing, mortgages, and business credit for gig workers, freelancers, and 1099 earners.',
+    'Browse lenders who accept Krostio income verification. Personal loans, auto financing, mortgages, and business credit for gig workers, freelancers, and 1099 earners.',
 }
 
 export const dynamic = 'force-dynamic'
@@ -107,11 +107,11 @@ export default async function LendersDirectoryPage({
       <div className="max-w-3xl">
         <p className="text-mono-label text-slate eyebrow-dot">Lender directory</p>
         <h1 className="mt-4 font-display text-[56px] leading-[1.05] tracking-tight text-ink-black">
-          Lenders who accept Krost income verification.
+          Lenders who accept Krostio income verification.
         </h1>
         <p className="mt-5 text-body text-slate">
           Get matched in minutes — no waiting on pay stubs. Browse lenders by loan type, state,
-          and credit requirements. Apply with a single Krost-verified income report.
+          and credit requirements. Apply with a single Krostio-verified income report.
         </p>
       </div>
 
@@ -192,7 +192,7 @@ export default async function LendersDirectoryPage({
                       )}
                       {l.min_consistency_score != null && (
                         <div className="flex justify-between">
-                          <dt>Min Krost score</dt>
+                          <dt>Min Krostio score</dt>
                           <dd className="text-ink-black">{l.min_consistency_score}+</dd>
                         </div>
                       )}
@@ -218,7 +218,7 @@ export default async function LendersDirectoryPage({
           )}
 
           <p className="mt-12 max-w-2xl text-xs text-slate">
-            Lender listings are paid placements. Krost may earn a referral fee when you connect
+            Lender listings are paid placements. Krostio may earn a referral fee when you connect
             with a lender through this directory. We do not share your personal information
             without your explicit consent at the time of application.
           </p>

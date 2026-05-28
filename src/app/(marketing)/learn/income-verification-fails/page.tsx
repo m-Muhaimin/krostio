@@ -206,7 +206,7 @@ export default function Page() {
         </UL>
         <P>
           <strong>Ready to serve the 64 million?</strong>{' '}
-          <a href="/lenders" className="link-editorial">Learn about Krost for lenders &rarr;</a>
+          <a href="/lenders" className="link-editorial">Learn about Krostio for lenders &rarr;</a>
         </P>
       </section>
     </ArticleShell>

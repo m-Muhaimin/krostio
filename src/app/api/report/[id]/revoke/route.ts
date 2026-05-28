@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getCurrentUser } from '@/lib/auth-utils'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 /**
@@ -11,11 +12,10 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const supabase = await createServerSupabaseClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const currentUser = await getCurrentUser()
+    if (!currentUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const user = currentUser.user
+    const supabase = createServerSupabaseClient()
 
     // Verify the report belongs to this user
     const { data: report } = await supabase

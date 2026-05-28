@@ -1,4 +1,5 @@
 import { requireRole } from '@/lib/auth-guard'
+import { getCurrentUser } from '@/lib/auth-utils'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import Link from 'next/link'
 import { LedgerTimeline } from './ledger-timeline'
@@ -39,7 +40,6 @@ type LedgerData = {
 
 /** SE tax estimate on YTD net earnings */
 function calcSETax(ytdNet: number): { annualSE: number; quarterlySE: number } {
-  // 15.3% applied to 92.35% of net self-employment earnings
   const SE_TAX_RATE = 0.153
   const SE_DEDUCTION = 0.9235
   const annualSE = ytdNet * SE_DEDUCTION * SE_TAX_RATE
@@ -69,7 +69,7 @@ function detectAnomalies(
 }
 
 async function loadLedgerData(userId: string): Promise<LedgerData | null> {
-  const supabase = await createServerSupabaseClient()
+  const supabase = createServerSupabaseClient()
 
   const { data: entries } = await supabase
     .from('ledger_entries')
@@ -123,33 +123,35 @@ async function loadLedgerData(userId: string): Promise<LedgerData | null> {
 
 export default async function LedgerPage() {
   await requireRole(['gig_worker'])
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const currentUser = await getCurrentUser()
+  const user = currentUser!.user
+  const supabase = createServerSupabaseClient()
 
   if (!user) {
-    return <div className="py-20 text-center text-slate">Authentication error.</div>
+    return <div className="card text-center p-12 fade-in d0">Authentication error.</div>
   }
 
   const ledgerData = await loadLedgerData(user.id)
 
   if (!ledgerData) {
     return (
-      <div className="space-y-14">
-        <div>
-          <p className="text-mono-label text-slate">Worker</p>
-          <h1 className="mt-3 font-display text-[44px] leading-none tracking-tight text-ink-black">Earnings ledger.</h1>
-          <p className="mt-3 text-body text-slate">Your complete, unified record of all gig earnings across every connected platform.</p>
+      <div>
+        <div className="page-header fade-up d0">
+          <h1 className="page-title">Incomes</h1>
+          <p className="page-sub">Your complete, unified record of all gig earnings across every connected platform.</p>
         </div>
-        <section className="card-bordered px-8 py-16 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-ink-black">
-            <span className="text-2xl text-white">K</span>
+        <div className="card text-center fade-up d1" style={{ padding: 48 }}>
+          <div className="hero-icon-wrap" style={{ margin: '0 auto 18px' }}>
+            <div className="hero-icon hi-coral" style={{ width: 64, height: 64, borderRadius: 16 }}>
+              <span className="text-2xl text-white">K</span>
+            </div>
           </div>
-          <h2 className="font-display text-2xl tracking-tight text-ink-black">No earnings data yet.</h2>
-          <p className="mt-3 max-w-md mx-auto text-sm text-slate">
-            Connect a gig platform via Plaid to start building your earnings ledger. Every deposit from Uber, Lyft, DoorDash, and more is tracked automatically.
+          <h2 className="page-header-title" style={{ fontSize: 28 }}>No earnings data yet.</h2>
+          <p className="page-header-desc" style={{ margin: '12px auto 0', maxWidth: 420 }}>
+            Connect a gig platform via Plaid to start building your earnings ledger.
           </p>
-          <Link href="/dashboard/worker/connections" className="btn-ink mt-8 inline-flex">Connect a platform →</Link>
-        </section>
+          <Link href="/dashboard/worker/connections" className="btn-ink" style={{ marginTop: 24 }}>Connect a platform →</Link>
+        </div>
       </div>
     )
   }
@@ -184,166 +186,187 @@ export default async function LedgerPage() {
   const anomalies = detectAnomalies(sortedChron)
   const anomalyMonths = new Set(anomalies.map((a) => a.month))
 
+  // Month-over-month delta for monthly avg metric
+  const lastIdx = sortedChron.length - 1
+  const currMoGross = lastIdx >= 0 ? sortedChron[lastIdx].gross : 0
+  const prevMoGross = lastIdx > 0 ? sortedChron[lastIdx - 1].gross : 0
+  const moDeltaPct = prevMoGross > 0 ? ((currMoGross - prevMoGross) / prevMoGross) * 100 : 0
+  const moDeltaClass = moDeltaPct > 5 ? 'up' : moDeltaPct < -5 ? 'down' : 'flat'
+  const moDeltaText = prevMoGross > 0
+    ? (moDeltaPct > 0 ? `+${moDeltaPct.toFixed(0)}%` : `${moDeltaPct.toFixed(0)}%`)
+    : '—'
+
   return (
-    <div className="space-y-14">
-      <div>
-        <p className="text-mono-label text-slate">Worker</p>
-        <h1 className="mt-3 font-display text-[44px] leading-none tracking-tight text-ink-black">Earnings ledger.</h1>
-        <p className="mt-3 text-body text-slate">Your complete, unified record of all gig earnings across every connected platform.</p>
+    <div>
+      {/* Page Header */}
+      <div className="page-header fade-up d0">
+        <h1 className="page-title">Incomes</h1>
+        <p className="page-sub">Your complete, unified record of all gig earnings across every connected platform.</p>
       </div>
 
-      {/* Stats row */}
-      <section className="grid gap-px overflow-hidden rounded-md md:grid-cols-4"
-        style={{ backgroundColor: 'var(--color-hairline)' }}
-      >
-        {[
-          { label: 'Total gross earnings', value: formatCurrency(totals.gross_total) },
-          { label: 'Monthly average', value: formatCurrency(avgMonthly) },
-          { label: 'Active months', value: `${totalActiveMonths}m` },
-          { label: 'Total entries', value: entryCount.toLocaleString() },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-white px-6 py-8">
-            <p className="text-mono-label text-slate">{stat.label}</p>
-            <p className="mt-3 font-display text-3xl tracking-tight text-ink-black">{stat.value}</p>
-          </div>
-        ))}
-      </section>
-
-      {/* Pillar 2 — Tax estimation */}
-      {totals.net_total > 0 && (
-        <section className="card-bordered px-6 py-5">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-mono-label text-slate">Self-employment tax estimate</p>
-              <p className="mt-1 text-sm text-slate max-w-lg">
-                Based on your YTD net earnings of <strong>{formatCurrency(totals.net_total)}</strong>.
-                SE tax (15.3% on 92.35% of net earnings).
-              </p>
-            </div>
-            <div className="flex items-center gap-8">
-              <div className="text-right">
-                <p className="text-mono-label text-xs text-slate">Estimated annual</p>
-                <p className="font-display text-2xl tracking-tight text-ink-black">{formatCurrency(annualSE)}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-mono-label text-xs text-slate">Quarterly estimated</p>
-                <p className="font-display text-2xl tracking-tight text-signal-orange">{formatCurrency(quarterlySE)}</p>
-                <p className="text-[10px] text-slate">≈ ${Math.round(quarterlySE / 3).toLocaleString()}/mo set aside</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Monthly chart */}
-      <section>
-        <div className="mb-6 flex items-baseline justify-between">
-          <h2 className="text-heading-feature text-ink-black">Monthly earnings</h2>
-          <span className="text-mono-label text-slate">{combinedMonthly.length} months</span>
+      {/* Metrics Row */}
+      <div className="metrics-row">
+        <div className="metric-card fade-up d1">
+          <p className="mc-eyebrow">Total Gross</p>
+          <p className="mc-value">{formatCurrency(totals.gross_total)}</p>
         </div>
-        <div className="card-bordered px-6 py-8">
-          <div className="flex items-end gap-1.5" style={{ height: 120 }}>
-            {reversedMonthly.slice(0, 12).reverse().map((m) => {
-              const maxGross = Math.max(...reversedMonthly.map((cm) => cm.gross), 1)
-              const heightPct = Math.max(4, (m.gross / maxGross) * 100)
-              return (
-                <div key={m.month} className="group relative flex flex-1 flex-col items-center justify-end" style={{ height: '100%' }}>
-                  <div
-                    className="w-full rounded-t-sm transition-all hover:opacity-80"
-                    style={{ height: `${heightPct}%`, backgroundColor: 'var(--color-coral)', minHeight: 4 }}
-                  />
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-ink-black px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-                    {formatMonth(m.month)}: {formatCurrency(m.gross)}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          <div className="mt-4 flex gap-1.5">
-            {reversedMonthly.slice(0, 12).reverse().map((m) => (
-              <span key={m.month} className="flex-1 text-center text-[10px] text-slate">{formatMonth(m.month).slice(0, 3)}</span>
-            ))}
-          </div>
+        <div className="metric-card fade-up d2">
+          <p className="mc-eyebrow">Monthly Avg</p>
+          <p className="mc-value">{formatCurrency(avgMonthly)}</p>
+          <span className={`mc-delta ${moDeltaClass}`}>{moDeltaText}</span>
         </div>
-      </section>
+        <div className="metric-card fade-up d3">
+          <p className="mc-eyebrow">Active Months</p>
+          <p className="mc-value">{totalActiveMonths}<sup>m</sup></p>
+        </div>
+        <div className="metric-card fade-up d4">
+          <p className="mc-eyebrow">Entries</p>
+          <p className="mc-value">{entryCount.toLocaleString()}</p>
+        </div>
+      </div>
 
-      {/* Platform breakdown */}
-      <section>
-        <h2 className="mb-6 text-heading-feature text-ink-black">Platform breakdown</h2>
-        {platforms.length === 0 ? (
-          <div className="card-bordered px-8 py-12 text-center">
-            <p className="text-sm text-slate">No platform data aggregated yet.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {platforms.sort((a, b) => b.gross_total - a.gross_total).map((p) => {
-              const pct = totals.gross_total > 0 ? ((p.gross_total / totals.gross_total) * 100).toFixed(1) : '0'
-              return (
-                <div key={p.name} className="card-bordered flex items-center justify-between px-6 py-5">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-ink-black text-sm font-medium text-white">
-                      {p.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium capitalize text-ink-black">{p.name}</p>
-                      <p className="text-xs text-slate">{p.months_active} month{p.months_active === 1 ? '' : 's'} · {pct}% of total</p>
-                    </div>
-                  </div>
-                  <p className="font-display text-xl tracking-tight text-ink-black">{formatCurrency(p.gross_total)}</p>
+      {/* Two-column: Tax estimation + Monthly chart */}
+      <div className="grid-dashboard" style={{ marginBottom: 24 }}>
+        {/* Tax estimation card */}
+        {totals.net_total > 0 && (
+          <div className="card fade-up d5">
+            <div className="card-head">
+              <p className="card-title">Self-employment tax</p>
+              <p className="card-sub">Based on {formatCurrency(totals.net_total)} YTD net</p>
+            </div>
+            <div className="card-body">
+              <div className="p-5 flex items-center gap-8">
+                <div>
+                  <p className="card-label">Annual estimate</p>
+                  <p className="mt-2 font-display text-3xl tracking-tight text-ink-black">{formatCurrency(annualSE)}</p>
                 </div>
-              )
-            })}
+                <div className="h-10 w-px bg-hairline" />
+                <div>
+                  <p className="card-label">Quarterly due</p>
+                  <p className="mt-2 font-display text-3xl tracking-tight" style={{ color: 'var(--color-coral)' }}>{formatCurrency(quarterlySE)}</p>
+                  <p className="mt-1 text-[10px] text-slate">≈ ${Math.round(quarterlySE / 3).toLocaleString()}/mo</p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
-      </section>
 
-      {/* Monthly history table */}
-      <section>
-        <div className="mb-6 flex items-baseline justify-between">
-          <h2 className="text-heading-feature text-ink-black">Monthly history</h2>
-          <a href="/api/ledger/export" className="link-editorial text-sm">Download CSV →</a>
+        {/* Monthly mini chart card */}
+        <div className="card fade-up d6">
+          <div className="card-head">
+            <p className="card-title">Monthly earnings</p>
+            <p className="card-sub">{combinedMonthly.length} months</p>
+          </div>
+          <div className="card-body">
+            <div className="p-5">
+              <div className="flex items-end gap-1.5" style={{ height: 100 }}>
+                {reversedMonthly.slice(0, 12).reverse().map((m) => {
+                  const maxGross = Math.max(...reversedMonthly.map((cm) => cm.gross), 1)
+                  const heightPct = Math.max(4, (m.gross / maxGross) * 100)
+                  return (
+                    <div key={m.month} className="group relative flex flex-1 flex-col items-center justify-end" style={{ height: '100%' }}>
+                      <div
+                        className="w-full rounded-t-sm transition-all hover:opacity-80"
+                        style={{ height: `${heightPct}%`, backgroundColor: 'var(--color-coral)', minHeight: 4 }}
+                      />
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-ink-black px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 pointer-events-none">
+                        {formatMonth(m.month)}: {formatCurrency(m.gross)}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="mt-3 flex gap-1.5">
+                {reversedMonthly.slice(0, 12).reverse().map((m) => (
+                  <span key={m.month} className="flex-1 text-center text-[9px] text-muted-slate">{formatMonth(m.month).slice(0, 3)}</span>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="overflow-x-auto rounded-md border border-hairline">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="bg-soft-stone text-mono-label text-slate">
-                <th className="px-5 py-3 font-medium">Month</th>
-                <th className="px-5 py-3 font-medium text-right">Gross</th>
-                <th className="px-5 py-3 font-medium text-right">Net</th>
-                <th className="px-5 py-3 font-medium text-center">Platforms</th>
-                <th className="px-5 py-3 font-medium text-right">Payments</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-hairline">
-              {reversedMonthly.slice(0, 24).map((m) => {
-                const anomaly = anomalies.find((a) => a.month === m.month)
-                return (
-                  <tr key={m.month} className={`hover:bg-soft-stone transition-colors ${anomaly ? 'bg-red-50/30' : ''}`}>
-                    <td className="px-5 py-4 font-medium text-ink-black">
-                      <div className="flex items-center gap-2">
+      </div>
+
+      {/* Two-column: Platform breakdown + Monthly history */}
+      <div className="grid-dashboard" style={{ marginBottom: 24 }}>
+        {/* Platform breakdown card */}
+        <div className="card fade-up d7">
+          <div className="card-head">
+            <p className="card-title">Platforms</p>
+            <p className="card-sub">Income sources breakdown</p>
+          </div>
+          <div className="card-body">
+            {platforms.length === 0 ? (
+              <div className="p-6 text-center">
+                <p className="text-sm text-slate">No platform data aggregated yet.</p>
+              </div>
+            ) : (
+              <div>
+                {platforms.sort((a, b) => b.gross_total - a.gross_total).map((p) => {
+                  const pct = totals.gross_total > 0 ? ((p.gross_total / totals.gross_total) * 100).toFixed(1) : '0'
+                  return (
+                    <div key={p.name} className="platform-row">
+                      <div className="platform-logo">
+                        {p.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="platform-info">
+                        <p className="platform-name">{p.name}</p>
+                        <p className="platform-meta">{p.months_active}mo · {pct}%</p>
+                      </div>
+                      <div className="platform-right">
+                        <p className="platform-amount">{formatCurrency(p.gross_total)}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Monthly history table card */}
+        <div className="card fade-up d7">
+          <div className="card-head">
+            <p className="card-title">Monthly history</p>
+            <a href="/api/ledger/export" className="link-editorial text-xs">CSV →</a>
+          </div>
+          <div className="card-body">
+            <table className="ledger-table">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Gross</th>
+                  <th>Net</th>
+                  <th>P</th>
+                  <th>#</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reversedMonthly.slice(0, 24).map((m) => {
+                  const anomaly = anomalies.find((a) => a.month === m.month)
+                  return (
+                    <tr key={m.month} className={anomaly ? 'anomaly' : ''}>
+                      <td className="cell-month">
                         {anomaly && (
-                          <span title={`${anomaly.pctDrop}% drop from trailing average`} className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold text-white"
-                            style={{ backgroundColor: 'var(--color-error-red)', minWidth: 20 }}
-                          >
-                            ⚠
-                          </span>
+                          <span className="anomaly-badge" title={`${anomaly.pctDrop}% drop`}>!</span>
                         )}
                         {formatMonth(m.month)}
-                      </div>
-                    </td>
-                  <td className="px-5 py-4 text-right text-ink-black">{formatCurrency(m.gross)}</td>
-                  <td className="px-5 py-4 text-right text-slate">{formatCurrency(m.net)}</td>
-                  <td className="px-5 py-4 text-center text-slate">{m.platformCount}</td>
-                  <td className="px-5 py-4 text-right text-slate">{m.payments}</td>
-                </tr>
-              );
-            })}
-            </tbody>
-          </table>
+                      </td>
+                      <td className="cell-amount">{formatCurrency(m.gross)}</td>
+                      <td className="cell-amount">{formatCurrency(m.net)}</td>
+                      <td className="cell-center">{m.platformCount}</td>
+                      <td className="cell-amount">{m.payments}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <LedgerTimeline />
+      <div className="mb-6 fade-up d7">
+        <LedgerTimeline />
+      </div>
     </div>
   )
 }

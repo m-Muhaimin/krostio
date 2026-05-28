@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Krostio — Income Clarity for Gig Workers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+
+:root {
+  /* Core palette */
+  --black:       #0f0f14;
+  --near-black:  #17171e;
+  --ink:         #1e1e26;
+  --muted:       #8a8a9a;
+  --hairline:    #e4e2dd;
+  --stone:       #f2f0ea;
+  --cream:       #faf9f6;
+  --white:       #ffffff;
+
+  /* Brand */
+  --coral:       #f46240;
+  --coral-light: #fde8e2;
+  --coral-mid:   #f88a6e;
+  --green-deep:  #052e25;
+  --green-dark:  #073d31;
+  --green-mid:   #0d5c48;
+
+  /* Accents */
+  --blue:        #2060d8;
+  --blue-light:  #e8effe;
+  --amber:       #e5a020;
+
+  /* Layout */
+  --max-w:       1160px;
+  --nav-h:       64px;
+  --radius-sm:   8px;
+  --radius-md:   14px;
+  --radius-lg:   20px;
+  --radius-xl:   28px;
+  --radius-pill: 9999px;
+
+  /* Spacing */
+  --sp-xs: 8px;
+  --sp-sm: 16px;
+  --sp-md: 24px;
+  --sp-lg: 40px;
+  --sp-xl: 64px;
+  --sp-2xl: 100px;
+
+  /* Transitions */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--white);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+img { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+ul, ol { list-style: none; }
+
+/* ===== TYPOGRAPHY ===== */
+.t-display {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  line-height: 1.0;
+  letter-spacing: -0.03em;
+}
+.t-heading {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+.t-mono {
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.06em;
+}
+
+/* ===== UTILITY ===== */
+.container {
+  width: 100%;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 var(--sp-lg);
+}
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 12px 24px;
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease), background 0.2s;
+  white-space: nowrap;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+.btn-primary { background: var(--black); color: var(--white); }
+.btn-primary:hover { opacity: 0.85; }
+
+.btn-coral { background: var(--coral); color: var(--white); }
+.btn-coral:hover { opacity: 0.9; }
+
+.btn-outline {
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid var(--hairline);
+}
+.btn-outline:hover { border-color: var(--ink); background: var(--stone); }
+
+.btn-outline-white {
+  background: transparent;
+  color: var(--white);
+  border: 1.5px solid rgba(255,255,255,0.25);
+}
+.btn-outline-white:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.5); }
+
+.btn-lg { font-size: 15px; padding: 14px 30px; }
+.btn-sm { font-size: 13px; padding: 9px 18px; }
+
+/* ===== ANNOUNCEMENT BAR ===== */
+.ann-bar {
+  background: var(--black);
+  color: rgba(255,255,255,0.75);
+  text-align: center;
+  padding: 10px var(--sp-lg);
+  font-size: 13px;
+  font-weight: 400;
+}
+.ann-bar a {
+  color: var(--coral-mid);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  margin-left: 6px;
+  font-weight: 500;
+}
+
+/* ===== NAV ===== */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  height: var(--nav-h);
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--hairline);
+}
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 var(--sp-lg);
+}
+.nav-logo {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.045em;
+  color: var(--black);
+  flex-shrink: 0;
+}
+.nav-logo span { color: var(--coral); }
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-lg);
+}
+.nav-links a {
+  font-size: 14px;
+  color: var(--muted);
+  transition: color 0.2s;
+  font-weight: 400;
+}
+.nav-links a:hover { color: var(--ink); }
+
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+}
+.nav-toggle span {
+  display: block;
+  width: 22px;
+  height: 1.5px;
+  background: var(--ink);
+  transition: transform 0.3s, opacity 0.3s;
+  border-radius: 2px;
+}
+
+.mobile-menu {
+  display: none;
+  position: fixed;
+  inset: var(--nav-h) 0 0 0;
+  background: var(--white);
+  z-index: 190;
+  padding: var(--sp-lg);
+  flex-direction: column;
+  gap: var(--sp-md);
+  border-top: 1px solid var(--hairline);
+  overflow-y: auto;
+}
+.mobile-menu.open { display: flex; }
+.mobile-menu a {
+  font-size: 20px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.mobile-menu .btn { width: 100%; justify-content: center; margin-top: 8px; font-size: 15px; padding: 14px; }
+
+/* ===== HERO ===== */
+.hero {
+  padding: var(--sp-2xl) 0 var(--sp-xl);
+  overflow: hidden;
+}
+.hero-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-xl);
+  align-items: center;
+}
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--coral-light);
+  color: var(--coral);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  margin-bottom: var(--sp-md);
+}
+.hero-eyebrow .dot {
+  width: 6px; height: 6px;
+  background: var(--coral);
+  border-radius: 50%;
+  animation: blink 2.4s ease-in-out infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+}
+.hero-headline {
+  font-size: clamp(46px, 5.5vw, 56px);
+  color: var(--black);
+  margin-bottom: var(--sp-md);
+}
+.hero-headline .accent { color: var(--coral); }
+.hero-sub {
+  font-size: 18px;
+  color: var(--muted);
+  line-height: 1.65;
+  margin-bottom: var(--sp-lg);
+  max-width: 480px;
+}
+.hero-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: var(--sp-md);
+}
+.hero-trust {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.hero-trust-dot {
+  color: var(--hairline);
+}
+
+/* ===== DASHBOARD CARD ===== */
+.hero-visual-wrap {
+  position: relative;
+  padding: 48px 28px 48px 12px;
+}
+.dash-card {
+  background: var(--near-black);
+  border-radius: var(--radius-xl);
+  padding: 26px;
+  color: var(--white);
+  animation: floatY 7s ease-in-out infinite;
+  position: relative;
+  z-index: 2;
+}
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.dash-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-md);
+}
+.dash-logo-sm {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: -0.04em;
+}
+.dash-logo-sm span { color: var(--coral); }
+.sync-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+}
+.income-section { margin-bottom: var(--sp-md); }
+.income-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 4px;
+}
+.income-amount {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 52px;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.0;
+}
+.income-amount sup { font-size: 26px; vertical-align: 0.3em; }
+.income-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #4ade80;
+  margin-top: 4px;
+}
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.metric-cell {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.mc-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 5px;
+}
+.mc-val {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.mc-val.g { color: #4ade80; }
+.mc-val.a { color: #fbbf24; }
+.mc-val.b { color: #60a5fa; }
+
+.spark-wrap {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.spark-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 8px;
+}
+.spark-svg { width: 100%; height: 44px; display: block; }
+
+.platforms-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.p-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.65);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: var(--radius-pill);
+  padding: 5px 11px;
+}
+.p-chip .pip {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+
+.dash-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.dash-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 10px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  letter-spacing: 0.01em;
+}
+.dash-btn:hover { opacity: 0.85; }
+.dash-btn.p { background: var(--coral); color: var(--white); }
+.dash-btn.s { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.12); }
+
+/* Floating stat bubbles */
+.float-stat {
+  position: absolute;
+  background: var(--white);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+  z-index: 3;
+}
+.float-stat.tl {
+  top: 16px;
+  left: -8px;
+  animation: floatA 8s ease-in-out infinite;
+}
+.float-stat.br {
+  bottom: 16px;
+  right: -8px;
+  animation: floatB 7s ease-in-out infinite;
+}
+@keyframes floatA { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+@keyframes floatB { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+.fs-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.fs-val {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--black);
+}
+.fs-sub {
+  font-size: 11px;
+  color: #16a34a;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* ===== LOGOS STRIP ===== */
+.logos-strip {
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  padding: var(--sp-lg) 0;
+}
+.logos-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 24px;
+}
+.logos-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 40px;
+}
+.logo-item {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #c8c6c1;
+  transition: color 0.2s;
+}
+.logo-item:hover { color: var(--muted); }
+
+/* ===== SECTIONS SHARED ===== */
+.section-pad { padding: var(--sp-2xl) 0; }
+
+.eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.eyebrow.light { color: rgba(255,255,255,0.4); }
+.eyebrow.coral { color: var(--coral-mid); }
+
+.section-headline {
+  font-size: clamp(36px, 4vw, 58px);
+  color: var(--black);
+  margin-bottom: 16px;
+}
+.section-headline.light { color: var(--white); }
+
+.section-sub {
+  font-size: 17px;
+  color: var(--muted);
+  line-height: 1.65;
+  max-width: 520px;
+}
+.section-sub.light { color: rgba(255,255,255,0.5); }
+
+/* ===== HOW IT WORKS ===== */
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--hairline);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-top: var(--sp-xl);
+  border: 1px solid var(--hairline);
+}
+.step-card {
+  background: var(--white);
+  padding: 32px 24px;
+  transition: background 0.3s;
+}
+.step-card:hover { background: var(--cream); }
+.step-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+.step-icon {
+  width: 42px; height: 42px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin-bottom: 18px;
+}
+.si-coral { background: var(--coral-light); }
+.si-stone { background: var(--stone); }
+.si-green { background: #e3f3ed; }
+.si-blue { background: var(--blue-light); }
+.step-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--black);
+  margin-bottom: 10px;
+}
+.step-body { font-size: 14px; line-height: 1.65; color: var(--muted); }
+
+/* ===== STAT BAND ===== */
+.stat-band { background: var(--stone); }
+.stat-band-inner {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--hairline);
+  border-left: 1px solid var(--hairline);
+  border-right: 1px solid var(--hairline);
+}
+.stat-item {
+  background: var(--stone);
+  padding: var(--sp-xl) var(--sp-lg);
+  text-align: center;
+}
+.stat-num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(40px, 4vw, 60px);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  color: var(--black);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.stat-num .accent { color: var(--coral); }
+.stat-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+/* ===== FEATURES DARK ===== */
+.features-dark { background: var(--green-deep); }
+.feat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: rgba(255,255,255,0.06);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-top: var(--sp-xl);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.feat-card {
+  background: var(--green-deep);
+  padding: 32px 26px;
+  transition: background 0.3s;
+}
+.feat-card:hover { background: rgba(255,255,255,0.03); }
+.feat-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.07);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  margin-bottom: 18px;
+}
+.feat-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 10px;
+  letter-spacing: -0.02em;
+}
+.feat-body { font-size: 14px; line-height: 1.65; color: rgba(255,255,255,0.45); }
+
+/* ===== SCORE EXPLAINER ===== */
+.score-section { background: var(--white); }
+.score-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-xl);
+  align-items: center;
+}
+.score-card {
+  background: var(--near-black);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  color: var(--white);
+}
+.score-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--sp-md);
+}
+.score-num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 80px;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--white);
+}
+.score-badge {
+  background: rgba(74, 222, 128, 0.15);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  color: #4ade80;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+}
+.score-bar-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 8px;
+}
+.score-bar-track {
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: var(--radius-pill);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.score-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, #4ade80, #22c55e);
+  width: 84%;
+}
+.platform-breakdown { }
+.pb-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.pb-name { font-size: 13px; color: rgba(255,255,255,0.65); width: 80px; flex-shrink: 0; }
+.pb-bar-bg {
+  flex: 1;
+  height: 5px;
+  background: rgba(255,255,255,0.08);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.pb-bar { height: 100%; border-radius: var(--radius-pill); }
+.pb-pct { font-family: 'DM Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.45); width: 36px; text-align: right; flex-shrink: 0; }
+
+.score-text-col { }
+.score-text-col h2 { margin-bottom: 16px; }
+.score-text-col p { margin-bottom: var(--sp-md); }
+.score-bullets { }
+.sb-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.sb-item:last-child { border-bottom: none; }
+.sb-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+.sb-content { }
+.sb-title { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 600; color: var(--black); margin-bottom: 2px; }
+.sb-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+/* ===== TESTIMONIALS ===== */
+.testi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: var(--sp-xl);
+}
+.testi-card {
+  background: var(--cream);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: 26px;
+  transition: border-color 0.3s, transform 0.3s;
+}
+.testi-card:hover { border-color: var(--hairline); transform: translateY(-3px); }
+.testi-chip {
+  display: inline-block;
+  background: var(--coral-light);
+  color: var(--coral);
+  border: 1px solid rgba(244, 98, 64, 0.2);
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  margin-bottom: 14px;
+}
+.testi-quote {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink);
+  margin-bottom: 20px;
+}
+.testi-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.testi-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.testi-name { font-size: 13px; font-weight: 600; color: var(--black); }
+.testi-role { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+/* ===== PRICING ===== */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: var(--sp-xl);
+  align-items: start;
+}
+.pricing-card {
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: 28px 26px;
+  background: var(--white);
+  position: relative;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s;
+}
+.pricing-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.07); }
+.pricing-card.featured {
+  border-color: var(--black);
+  border-width: 2px;
+}
+.pricing-card.featured:hover { box-shadow: 0 16px 40px rgba(0,0,0,0.12); }
+.feat-tag {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--coral);
+  color: var(--white);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+.plan-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.plan-price {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  color: var(--black);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.plan-price sup { font-size: 22px; vertical-align: 0.3em; }
+.plan-period { font-size: 13px; color: var(--muted); margin-bottom: 22px; }
+.plan-btn {
+  width: 100%;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius-pill);
+  padding: 12px;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  border: 1.5px solid var(--hairline);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.plan-btn:hover { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.plan-btn.filled { background: var(--black); color: var(--white); border-color: var(--black); }
+.plan-btn.filled:hover { opacity: 0.85; }
+.plan-divider { border: none; border-top: 1px solid var(--hairline); margin: 20px 0; }
+.plan-features { }
+.plan-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink);
+  padding: 7px 0;
+  line-height: 1.4;
+}
+.feat-check { color: #16a34a; flex-shrink: 0; font-size: 13px; }
+.feat-cross { color: #c9c8d0; flex-shrink: 0; font-size: 13px; }
+
+/* ===== FAQ SECTION ===== */
+.faq-section { background: var(--white); }
+.faq-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--hairline);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline);
+  overflow: hidden;
+  margin-top: var(--sp-xl);
+}
+.faq-item {
+  background: var(--white);
+  padding: 28px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.faq-item:hover { background: var(--cream); }
+.faq-q {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--black);
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+}
+.faq-q::after {
+  content: '+';
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 20px;
+  color: var(--muted);
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+.faq-a { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+/* ===== CTA BAND ===== */
+.cta-band {
+  background: var(--black);
+  padding: var(--sp-2xl) 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.cta-glow {
+  position: absolute;
+  width: 700px; height: 700px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 98, 64, 0.12) 0%, transparent 70%);
+  top: -300px; left: 50%; transform: translateX(-50%);
+  pointer-events: none;
+}
+.cta-band h2 {
+  font-size: clamp(40px, 5vw, 70px);
+  color: var(--white);
+  margin-bottom: 18px;
+  position: relative;
+}
+.cta-band h2 .accent { color: var(--coral); }
+.cta-band p {
+  font-size: 17px;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: var(--sp-lg);
+  position: relative;
+}
+.cta-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  position: relative;
+  margin-bottom: var(--sp-md);
+}
+.cta-note {
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+  position: relative;
+}
+
+/* ===== FOOTER ===== */
+footer {
+  background: var(--near-black);
+  padding: var(--sp-xl) 0 var(--sp-lg);
+  color: var(--white);
+}
+.footer-top {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  gap: var(--sp-xl);
+  margin-bottom: var(--sp-xl);
+}
+.footer-brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: -0.045em;
+  margin-bottom: 12px;
+}
+.footer-brand span { color: var(--coral); }
+.footer-tagline {
+  font-size: 13px;
+  color: rgba(255,255,255,0.35);
+  line-height: 1.65;
+  margin-bottom: 20px;
+}
+.footer-plaid {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.2);
+}
+.footer-col-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 16px;
+}
+.footer-links li { margin-bottom: 10px; }
+.footer-links a {
+  font-size: 14px;
+  color: rgba(255,255,255,0.55);
+  transition: color 0.2s;
+}
+.footer-links a:hover { color: var(--white); }
+.footer-bottom {
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding-top: var(--sp-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.25);
+}
+.footer-bottom-right {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ===== SCROLL REVEAL ===== */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.75s var(--ease), transform 0.75s var(--ease);
+}
+.reveal.in { opacity: 1; transform: none; }
+.reveal.delay-1 { transition-delay: 0.1s; }
+.reveal.delay-2 { transition-delay: 0.2s; }
+.reveal.delay-3 { transition-delay: 0.3s; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  :root { --sp-2xl: 80px; }
+  .hero-inner { gap: var(--sp-xl); }
+  .steps-grid { grid-template-columns: repeat(2, 1fr); }
+  .feat-grid { grid-template-columns: repeat(2, 1fr); }
+  .footer-top { grid-template-columns: 1fr 1fr; gap: var(--sp-lg); }
+  .score-grid { gap: var(--sp-lg); }
+  .stat-band-inner { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 860px) {
+  .container { padding: 0 var(--sp-md); }
+  .hero { padding: 64px 0 48px; }
+  .hero-inner {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+  .hero-sub { max-width: 100%; }
+  .hero-visual-wrap { padding: 36px 16px 36px 16px; }
+  .float-stat.tl { top: 4px; left: 4px; }
+  .float-stat.br { bottom: 4px; right: 4px; }
+  .nav-links { display: none; }
+  .nav-actions .btn-outline { display: none; }
+  .nav-toggle { display: flex; }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin-left: auto; margin-right: auto; }
+  .testi-grid { grid-template-columns: 1fr; }
+  .score-grid { grid-template-columns: 1fr; }
+  .faq-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  :root {
+    --sp-lg: 20px;
+    --sp-xl: 40px;
+    --sp-2xl: 64px;
+  }
+  .hero-headline { font-size: clamp(38px, 9vw, 56px); }
+  .section-headline { font-size: clamp(30px, 7vw, 44px); }
+  .steps-grid { grid-template-columns: 1fr; border-radius: var(--radius-md); }
+  .feat-grid { grid-template-columns: 1fr; }
+  .logos-row { gap: 24px; }
+  .stat-band-inner { grid-template-columns: 1fr 1fr; }
+  .metrics-row { grid-template-columns: repeat(3, 1fr); }
+  .hero-actions .btn { width: 100%; justify-content: center; }
+  .income-amount { font-size: 40px; }
+  .score-num { font-size: 64px; }
+  .dash-btns { grid-template-columns: 1fr; }
+  .cta-actions .btn { width: 100%; justify-content: center; }
+  .footer-top { grid-template-columns: 1fr; }
+  .footer-bottom { flex-direction: column; text-align: center; }
+}
+
+@media (max-width: 400px) {
+  .stat-band-inner { grid-template-columns: 1fr; }
+  .metrics-row { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .mc-val { font-size: 15px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ANNOUNCEMENT BAR -->
+<div class="ann-bar" role="banner" aria-label="Announcement">
+  🎉 Krostio beta is live — connect your first platform free.
+  <a href="#pricing">Get early access →</a>
+</div>
+
+<!-- NAV -->
+<nav class="nav" role="navigation" aria-label="Main navigation">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo" aria-label="Krostio home">Krost<span>io</span></a>
+    <ul class="nav-links" role="list">
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="btn btn-outline btn-sm">Sign in</button>
+      <button class="btn btn-coral btn-sm">Get started free</button>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle mobile menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true" aria-label="Mobile navigation">
+  <a href="#how-it-works" class="mobile-link">How it works</a>
+  <a href="#features" class="mobile-link">Features</a>
+  <a href="#pricing" class="mobile-link">Pricing</a>
+  <a href="#faq" class="mobile-link">FAQ</a>
+  <button class="btn btn-outline" style="width:100%; justify-content:center; padding:14px;">Sign in</button>
+  <button class="btn btn-coral" style="width:100%; justify-content:center; padding:14px;">Get started free</button>
+</div>
+
+<!-- HERO -->
+<main>
+<section class="hero" aria-labelledby="hero-headline">
+  <div class="container">
+    <div class="hero-inner">
+
+      <!-- LEFT: Copy -->
+      <div class="reveal">
+        <div class="hero-eyebrow">
+          <div class="dot" aria-hidden="true"></div>
+          Income clarity for gig workers
+        </div>
+        <h1 id="hero-headline" class="t-display hero-headline">
+          See what you<br><span class="accent">actually earn.</span><br>Own the proof.
+        </h1>
+        <p class="hero-sub">
+          Krostio aggregates your income from Uber, DoorDash, Upwork, and more — then generates a professional statement you can show to landlords, lenders, or keep for your records.
+        </p>
+        <div class="hero-actions">
+          <button class="btn btn-coral btn-lg">Check your income free</button>
+          <button class="btn btn-outline btn-lg">See how it works</button>
+        </div>
+        <p class="hero-trust">
+          <span>No credit card required</span>
+          <span class="hero-trust-dot" aria-hidden="true">·</span>
+          <span>Secured by Plaid</span>
+          <span class="hero-trust-dot" aria-hidden="true">·</span>
+          <span>Cancel anytime</span>
+        </p>
+      </div>
+
+      <!-- RIGHT: Dashboard preview -->
+      <div class="hero-visual-wrap reveal delay-2" aria-hidden="true">
+
+        <div class="float-stat tl">
+          <div class="fs-label">Consistency Score</div>
+          <div class="fs-val">84<span style="font-size:16px; color:var(--muted); font-weight:400;">/100</span></div>
+          <div class="fs-sub">↑ Highly consistent</div>
+        </div>
+
+        <div class="dash-card" role="img" aria-label="Krostio dashboard preview showing $78,240 annualized income">
+          <div class="dash-top">
+            <div class="dash-logo-sm">Krost<span>io</span></div>
+            <div class="sync-badge">Synced 2 min ago</div>
+          </div>
+
+          <div class="income-section">
+            <div class="income-label">Annualized Income</div>
+            <div class="income-amount"><sup>$</sup>78,240</div>
+            <div class="income-trend">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2 9l4-6 4 6" stroke="#4ade80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Growing 14% year-over-year
+            </div>
+          </div>
+
+          <div class="metrics-row">
+            <div class="metric-cell">
+              <div class="mc-label">Monthly Avg</div>
+              <div class="mc-val b">$6,520</div>
+            </div>
+            <div class="metric-cell">
+              <div class="mc-label">Platforms</div>
+              <div class="mc-val a">4</div>
+            </div>
+            <div class="metric-cell">
+              <div class="mc-label">Trend</div>
+              <div class="mc-val g">Growing</div>
+            </div>
+          </div>
+
+          <div class="spark-wrap">
+            <div class="spark-label">12-month earnings</div>
+            <svg class="spark-svg" viewBox="0 0 260 44" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#f46240" stop-opacity="0.25"/>
+                  <stop offset="100%" stop-color="#f46240" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,36 L22,32 L44,28 L66,26 L88,30 L110,22 L132,18 L154,16 L176,12 L198,14 L220,8 L242,6 L260,2" fill="none" stroke="#f46240" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M0,36 L22,32 L44,28 L66,26 L88,30 L110,22 L132,18 L154,16 L176,12 L198,14 L220,8 L242,6 L260,2 L260,44 L0,44 Z" fill="url(#sg)"/>
+            </svg>
+          </div>
+
+          <div class="platforms-row">
+            <div class="p-chip"><div class="pip" style="background:#00b4d8;"></div>Uber Eats</div>
+            <div class="p-chip"><div class="pip" style="background:#ff3008;"></div>DoorDash</div>
+            <div class="p-chip"><div class="pip" style="background:#14a800;"></div>Upwork</div>
+            <div class="p-chip"><div class="pip" style="background:#1dbf73;"></div>Fiverr</div>
+          </div>
+
+          <div class="dash-btns">
+            <button class="dash-btn p">↓ Download Statement</button>
+            <button class="dash-btn s">Share Link →</button>
+          </div>
+        </div>
+
+        <div class="float-stat br">
+          <div class="fs-label">Best Platform</div>
+          <div class="fs-val">Upwork</div>
+          <div class="fs-sub">+34% vs DoorDash/hr</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOGOS STRIP -->
+<div class="logos-strip" aria-label="Supported platforms">
+  <div class="container">
+    <p class="logos-label">Works with platforms you already use</p>
+    <div class="logos-row" role="list">
+      <span class="logo-item" role="listitem">Uber</span>
+      <span class="logo-item" role="listitem">DoorDash</span>
+      <span class="logo-item" role="listitem">Lyft</span>
+      <span class="logo-item" role="listitem">Instacart</span>
+      <span class="logo-item" role="listitem">Upwork</span>
+      <span class="logo-item" role="listitem">Fiverr</span>
+      <span class="logo-item" role="listitem">TaskRabbit</span>
+      <span class="logo-item" role="listitem">Shipt</span>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works" class="section-pad" aria-labelledby="hiw-headline">
+  <div class="container">
+    <div class="reveal">
+      <p class="eyebrow">How it works</p>
+      <h2 id="hiw-headline" class="t-display section-headline">Four steps to income clarity</h2>
+      <p class="section-sub">From scattered gig earnings across six apps to a professional income statement — in under five minutes.</p>
+    </div>
+    <div class="steps-grid reveal delay-1" role="list">
+      <article class="step-card" role="listitem">
+        <div class="step-num">01 —</div>
+        <div class="step-icon si-coral" aria-hidden="true">🔗</div>
+        <h3 class="step-title">Connect your accounts</h3>
+        <p class="step-body">Use Plaid to securely link your bank or financial accounts. We never see your credentials — only OAuth tokens.</p>
+      </article>
+      <article class="step-card" role="listitem">
+        <div class="step-num">02 —</div>
+        <div class="step-icon si-stone" aria-hidden="true">⚡</div>
+        <h3 class="step-title">Income is aggregated</h3>
+        <p class="step-body">We pull up to 24 months of earnings and normalize by platform, week, and month — automatically.</p>
+      </article>
+      <article class="step-card" role="listitem">
+        <div class="step-num">03 —</div>
+        <div class="step-icon si-green" aria-hidden="true">📊</div>
+        <h3 class="step-title">See your real picture</h3>
+        <p class="step-body">Your annualized income, consistency score, trend, and platform breakdown appear on your personal dashboard.</p>
+      </article>
+      <article class="step-card" role="listitem">
+        <div class="step-num">04 —</div>
+        <div class="step-icon si-blue" aria-hidden="true">📄</div>
+        <h3 class="step-title">Download your statement</h3>
+        <p class="step-body">Generate a professional PDF income statement. Share it with landlords, lenders, or keep it for yourself.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- STAT BAND -->
+<div class="stat-band" role="region" aria-label="Market statistics">
+  <div class="container">
+    <div class="stat-band-inner">
+      <div class="stat-item reveal">
+        <div class="stat-num">76<span class="accent">M</span></div>
+        <div class="stat-desc">US gig workers with no unified income view</div>
+      </div>
+      <div class="stat-item reveal delay-1">
+        <div class="stat-num">2–6</div>
+        <div class="stat-desc">Platforms the average gig worker uses at once</div>
+      </div>
+      <div class="stat-item reveal delay-2">
+        <div class="stat-num">$108<span class="accent">K</span></div>
+        <div class="stat-desc">Average US freelancer income in 2025</div>
+      </div>
+      <div class="stat-item reveal delay-3">
+        <div class="stat-num" style="font-size:clamp(24px,3vw,42px);">5 min</div>
+        <div class="stat-desc">From account link to professional PDF statement</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES DARK -->
+<section id="features" class="features-dark section-pad" aria-labelledby="feat-headline">
+  <div class="container">
+    <div class="reveal">
+      <p class="eyebrow light">Platform features</p>
+      <h2 id="feat-headline" class="t-display section-headline light">Everything you need.<br>Nothing you don't.</h2>
+      <p class="section-sub light" style="margin-bottom:0;">Built for gig workers who want real clarity — not enterprise complexity.</p>
+    </div>
+    <div class="feat-grid reveal delay-1" role="list">
+      <article class="feat-card" role="listitem">
+        <div class="feat-icon" aria-hidden="true">💳</div>
+        <h3 class="feat-title">Multi-platform aggregation</h3>
+        <p class="feat-body">Connect all your gig platforms via Plaid. See unified income across Uber, DoorDash, Upwork, and 12,000+ institutions in one clean dashboard.</p>
+      </article>
+      <article class="feat-card" role="listitem">
+        <div class="feat-icon" aria-hidden="true">📈</div>
+        <h3 class="feat-title">Consistency Score</h3>
+        <p class="feat-body">A 0–100 score measuring your income stability month-to-month. Lenders understand it. You'll understand it. Plain English, always.</p>
+      </article>
+      <article class="feat-card" role="listitem">
+        <div class="feat-icon" aria-hidden="true">📄</div>
+        <h3 class="feat-title">Professional PDF statement</h3>
+        <p class="feat-body">A clean, downloadable income statement with monthly tables, platform breakdowns, trend charts, and a verification note — ready for any application.</p>
+      </article>
+      <article class="feat-card" role="listitem">
+        <div class="feat-icon" aria-hidden="true">🔗</div>
+        <h3 class="feat-title">Shareable income links</h3>
+        <p class="feat-body">Generate a secure, expiring link to your income summary. Set it to 7-day, 30-day, or one-time view. Revoke access anytime. You own your data.</p>
+      </article>
+      <article class="feat-card" role="listitem">
+        <div class="feat-icon" aria-hidden="true">🔔</div>
+        <h3 class="feat-title">Income alerts</h3>
+        <p class="feat-body">Weekly digest emails and real-time alerts when income drops more than 20% month-over-month — so you're never caught off guard.</p>
+      </article>
+      <article class="feat-card" role="listitem">
+        <div class="feat-icon" aria-hidden="true">🔒</div>
+        <h3 class="feat-title">Privacy-first architecture</h3>
+        <p class="feat-body">We never store your passwords. Plaid OAuth is the same standard banks use. Your data belongs to you — delete it anytime, no questions asked.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- CONSISTENCY SCORE EXPLAINER -->
+<section class="score-section section-pad" aria-labelledby="score-headline">
+  <div class="container">
+    <div class="score-grid">
+      <!-- Dashboard card -->
+      <div class="dash-card reveal" style="background: var(--near-black);" aria-hidden="true">
+        <div class="score-header">
+          <div>
+            <div class="income-label" style="margin-bottom:6px;">Consistency Score</div>
+            <div class="score-num">84</div>
+          </div>
+          <div class="score-badge">Highly consistent</div>
+        </div>
+        <div class="score-bar-label">Income stability — last 12 months</div>
+        <div class="score-bar-track"><div class="score-bar-fill"></div></div>
+
+        <div class="income-label" style="margin-bottom:12px;">Platform breakdown</div>
+        <div class="platform-breakdown">
+          <div class="pb-row">
+            <span class="pb-name">DoorDash</span>
+            <div class="pb-bar-bg"><div class="pb-bar" style="width:42%; background:#ff3008;"></div></div>
+            <span class="pb-pct">42%</span>
+          </div>
+          <div class="pb-row">
+            <span class="pb-name">Upwork</span>
+            <div class="pb-bar-bg"><div class="pb-bar" style="width:31%; background:#14a800;"></div></div>
+            <span class="pb-pct">31%</span>
+          </div>
+          <div class="pb-row">
+            <span class="pb-name">Uber Eats</span>
+            <div class="pb-bar-bg"><div class="pb-bar" style="width:18%; background:#00b4d8;"></div></div>
+            <span class="pb-pct">18%</span>
+          </div>
+          <div class="pb-row">
+            <span class="pb-name">Fiverr</span>
+            <div class="pb-bar-bg"><div class="pb-bar" style="width:9%; background:#1dbf73;"></div></div>
+            <span class="pb-pct">9%</span>
+          </div>
+        </div>
+
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08);">
+          <div class="income-label" style="margin-bottom:8px;">Trajectory</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:10px; height:10px; border-radius:50%; background:#4ade80; flex-shrink:0;"></div>
+            <span style="font-size:14px; color:rgba(255,255,255,0.75); font-weight:500;">Growing — up 14% year-over-year</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Text col -->
+      <div class="score-text-col reveal delay-2">
+        <p class="eyebrow">Income intelligence</p>
+        <h2 id="score-headline" class="t-display section-headline">Your income,<br>finally decoded</h2>
+        <p class="section-sub" style="margin-bottom:var(--sp-lg);">Krostio's clarity metrics give you a language to talk about your income — something gig workers have never had before.</p>
+        <div class="score-bullets">
+          <div class="sb-item">
+            <div class="sb-dot" style="background:#4ade80;"></div>
+            <div class="sb-content">
+              <div class="sb-title">Consistency Score (0–100)</div>
+              <div class="sb-desc">Measures how stable your income is month-to-month. 80+ is highly consistent — ideal for loan applications.</div>
+            </div>
+          </div>
+          <div class="sb-item">
+            <div class="sb-dot" style="background:#60a5fa;"></div>
+            <div class="sb-content">
+              <div class="sb-title">Annualized Income</div>
+              <div class="sb-desc">Your trailing 12-month average × 12. A simple, honest number you can stand behind in any application.</div>
+            </div>
+          </div>
+          <div class="sb-item">
+            <div class="sb-dot" style="background:#fbbf24;"></div>
+            <div class="sb-content">
+              <div class="sb-title">Platform Concentration Alert</div>
+              <div class="sb-desc">If one platform makes up over 60% of your income, we flag it — and suggest how to diversify for stability.</div>
+            </div>
+          </div>
+          <div class="sb-item">
+            <div class="sb-dot" style="background:var(--coral);"></div>
+            <div class="sb-content">
+              <div class="sb-title">Income Trajectory</div>
+              <div class="sb-desc">Growing 🟢 Stable 🟡 Declining 🔴 — with confidence level based on your data history.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section-pad" style="background:var(--white);" aria-labelledby="testi-headline">
+  <div class="container">
+    <div class="reveal">
+      <p class="eyebrow">What gig workers say</p>
+      <h2 id="testi-headline" class="t-display section-headline">Finally built for us</h2>
+    </div>
+    <div class="testi-grid" role="list">
+      <article class="testi-card reveal delay-1" role="listitem">
+        <div class="testi-chip">DoorDash Driver</div>
+        <blockquote class="testi-quote">"I earn $72K a year across three apps and my landlord kept rejecting me. Krostio's statement got me approved in 48 hours. Literally changed my situation."</blockquote>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:var(--coral-light); color:var(--coral);">MR</div>
+          <div>
+            <div class="testi-name">Maria R.</div>
+            <div class="testi-role">Full-time gig worker · Chicago, IL</div>
+          </div>
+        </div>
+      </article>
+      <article class="testi-card reveal delay-2" role="listitem">
+        <div class="testi-chip">Upwork Freelancer</div>
+        <blockquote class="testi-quote">"I had no idea Fiverr was paying me 18% less per hour than Upwork. The platform breakdown alone is worth the subscription. I shifted my focus and my income jumped."</blockquote>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:#e3f3ed; color:#0d5c48;">DK</div>
+          <div>
+            <div class="testi-name">Dev K.</div>
+            <div class="testi-role">Freelance developer · Austin, TX</div>
+          </div>
+        </div>
+      </article>
+      <article class="testi-card reveal delay-3" role="listitem">
+        <div class="testi-chip">Uber Driver</div>
+        <blockquote class="testi-quote">"I'd been doing my own spreadsheets for three years. Krostio did everything in 4 minutes and the PDF looked more professional than anything I could make myself."</blockquote>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:var(--blue-light); color:var(--blue);">SL</div>
+          <div>
+            <div class="testi-name">Sarah L.</div>
+            <div class="testi-role">Rideshare driver · Seattle, WA</div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" class="section-pad" style="background:var(--cream);" aria-labelledby="pricing-headline">
+  <div class="container">
+    <div class="reveal" style="text-align:center;">
+      <p class="eyebrow">Pricing</p>
+      <h2 id="pricing-headline" class="t-display section-headline">Simple, fair pricing</h2>
+      <p class="section-sub" style="margin:0 auto;">Start free. Upgrade when you need a professional statement or want to connect more platforms.</p>
+    </div>
+    <div class="pricing-grid reveal delay-1">
+      <!-- Free -->
+      <div class="pricing-card">
+        <div class="plan-name">Free</div>
+        <div class="plan-price"><sup>$</sup>0</div>
+        <div class="plan-period">forever free</div>
+        <button class="plan-btn">Get started free</button>
+        <hr class="plan-divider">
+        <ul class="plan-features" role="list">
+          <li class="plan-feature" role="listitem"><span class="feat-check" aria-hidden="true">✓</span>Connect 1 platform</li>
+          <li class="plan-feature" role="listitem"><span class="feat-check" aria-hidden="true">✓</span>Income dashboard</li>
+          <li class="plan-feature" role="listitem"><span class="feat-check" aria-hidden="true">✓</span>Clarity metrics</li>
+          <li class="plan-feature" role="listitem"><span class="feat-cross" aria-hidden="true">—</span><span style="color:var(--muted);">PDF statement download</span></li>
+          <li class="plan-feature" role="listitem"><span class="feat-cross" aria-hidden="true">—</span><span style="color:var(--muted);">Shareable links</span></li>
+          <li class="plan-feature" role="listitem"><span class="feat-cross" aria-hidden="true">—</span><span style="color:var(--muted);">Multiple platforms</span></li>
+        </ul>
+      </div>
+
+      <!-- Pro -->
+      <div class="pricing-card featured">
+        <div class="feat-tag">Most popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price"><sup>$</sup>14<span style="font-size:22px;">.99</span></div>
+        <div class="plan-period">per month · $149/year (save 17%)</div>
+        <button class="plan-btn filled">Start 7-day free trial</button>
+        <hr class="plan-divider">
+        <ul class="plan-features" role="list">
+          <li class="plan-feature" role="listitem"><span class="feat-check" aria-hidden="true">✓</span>Connect up to 5 platforms</li>
+          <li class="plan-feature" role="listitem"><span class="feat-check" aria-hidden="true">✓</span>Unlimited PDF downloads</li>
+          <li class="plan-feature" role="listitem"><span class="feat-check" aria-hidden="true">✓</span>24-month earnings history</li>
+          <li class="plan-feature" role="listitem"><span class="feat-check" aria-hidden="true">✓</span>Shareable income links</li>
+          <li class="plan-feature" role="listitem"><span class="feat-check" aria-hidden="true">✓</span>Weekly income digest emails</li>
+          <li class="plan-feature" role="listitem"><span class="feat-check" aria-hidden="true">✓</span>Platform concentration alerts</li>
+        </ul>
+      </div>
+
+      <!-- One-time -->
+      <div class="pricing-card">
+        <div class="plan-name">One-time statement</div>
+        <div class="plan-price"><sup>$</sup>6<span style="font-size:22px;">.99</span></div>
+        <div class="plan-period">single purchase, no subscription</div>
+        <button class="plan-btn">Buy single statement</button>
+        <hr class="plan-divider">
+        <ul class="plan-features" role="list">
+          <li class="plan-feature" role="listitem"><span class="feat-check" aria-hidden="true">✓</span>1 platform connection</li>
+          <li class="plan-feature" role="listitem"><span class="feat-check" aria-hidden="true">✓</span>Full PDF statement</li>
+          <li class="plan-feature" role="listitem"><span class="feat-check" aria-hidden="true">✓</span>Professional formatting</li>
+          <li class="plan-feature" role="listitem"><span class="feat-cross" aria-hidden="true">—</span><span style="color:var(--muted);">Ongoing dashboard</span></li>
+          <li class="plan-feature" role="listitem"><span class="feat-cross" aria-hidden="true">—</span><span style="color:var(--muted);">Share links</span></li>
+          <li class="plan-feature" role="listitem"><span class="feat-cross" aria-hidden="true">—</span><span style="color:var(--muted);">Income alerts</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="faq-section section-pad" aria-labelledby="faq-headline">
+  <div class="container">
+    <div class="reveal">
+      <p class="eyebrow">Frequently asked</p>
+      <h2 id="faq-headline" class="t-display section-headline">Common questions</h2>
+    </div>
+    <div class="faq-grid reveal delay-1">
+      <div class="faq-item">
+        <div class="faq-q">Is my financial data secure?</div>
+        <p class="faq-a">Yes. We connect via Plaid — the same OAuth standard used by Chase, Venmo, and Robinhood. We never see or store your login credentials. You can disconnect anytime.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can lenders or landlords trust this document?</div>
+        <p class="faq-a">The PDF is a self-generated statement sourced directly from your connected financial accounts. It includes a verification note explaining the data source. Many users have successfully used it for apartment and loan applications.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Which gig platforms does Krostio support?</div>
+        <p class="faq-a">Any platform that pays into a bank account Krostio can connect to via Plaid — including Uber, DoorDash, Lyft, Instacart, Upwork, Fiverr, TaskRabbit, Shipt, and hundreds more.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How far back does the income data go?</div>
+        <p class="faq-a">Krostio pulls up to 24 months of transaction history from your connected accounts. Free plan shows your current dashboard; Pro gives you full access to the complete history and PDF export.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I cancel my Pro subscription anytime?</div>
+        <p class="faq-a">Yes — cancel anytime, no questions asked. You'll retain Pro access until the end of your billing period. We don't lock you in or penalize you for leaving.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What if I have fewer than 12 months of data?</div>
+        <p class="faq-a">Krostio will clearly flag the estimate as preliminary and note how many months of data it's based on. The annualized projection still works — it just shows "Preliminary estimate" on your statement.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BAND -->
+<section class="cta-band" aria-labelledby="cta-headline">
+  <div class="cta-glow" aria-hidden="true"></div>
+  <div class="container">
+    <div class="reveal">
+      <h2 id="cta-headline" class="t-display">You earned it.<br><span class="accent">Now prove it.</span></h2>
+      <p>Join thousands of gig workers who finally have income clarity.</p>
+      <div class="cta-actions">
+        <button class="btn btn-coral btn-lg">Check your income free →</button>
+        <button class="btn btn-outline-white btn-lg">View pricing</button>
+      </div>
+      <p class="cta-note">No credit card required · Secured by Plaid · Cancel anytime</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- FOOTER -->
+<footer role="contentinfo">
+  <div class="container">
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand">Krost<span>io</span></div>
+        <p class="footer-tagline">The income clarity platform for gig workers. See what you earn, understand your trends, and own the proof.</p>
+        <div class="footer-plaid">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="5.5" stroke="rgba(255,255,255,0.3)"/><path d="M4 6l1.5 1.5L8 4" stroke="rgba(255,255,255,0.3)" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Secured by Plaid
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-title">Product</div>
+        <ul class="footer-links" role="list">
+          <li><a href="#how-it-works">How it works</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Company</div>
+        <ul class="footer-links" role="list">
+          <li><a href="#">About</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Press</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Legal</div>
+        <ul class="footer-links" role="list">
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+          <li><a href="#">Data Deletion</a></li>
+          <li><a href="#">Security</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Krostio Inc. All rights reserved.</span>
+      <span class="footer-bottom-right">Income Clarity For Gig Workers</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* Scroll reveal */
+(function(){
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.08 });
+  els.forEach(el => io.observe(el));
+})();
+
+/* Mobile nav */
+(function(){
+  const toggle = document.getElementById('navToggle');
+  const menu   = document.getElementById('mobileMenu');
+  let open = false;
+
+  toggle.addEventListener('click', function(){
+    open = !open;
+    menu.classList.toggle('open', open);
+    toggle.setAttribute('aria-expanded', open);
+    document.body.style.overflow = open ? 'hidden' : '';
+  });
+
+  menu.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      open = false;
+      menu.classList.remove('open');
+      toggle.setAttribute('aria-expanded', false);
+      document.body.style.overflow = '';
+    });
+  });
+})();
+
+/* Smooth scroll for nav links */
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', function(e){
+    const id = this.getAttribute('href').slice(1);
+    const target = document.getElementById(id);
+    if(target){ e.preventDefault(); target.scrollIntoView({ behavior:'smooth', block:'start' }); }
+  });
+});
+</script>
+
+</body>
+</html>

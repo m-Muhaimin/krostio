@@ -1,553 +1,314 @@
 import { requireRole } from '@/lib/auth-guard'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { createServiceSupabaseClient } from '@/lib/supabase-service'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { GenerateReportButton } from './generate-report-button'
 
-type RecentReport = {
-  id: string
-  created_at: string
-  expires_at: string
-  viewer_count: number | null
+type DashboardData = {
+  displayName: string
+  annualizedIncome: number | null
+  monthlyAverage: number | null
+  consistencyScore: number | null
+  trajectoryLabel: string | null
+  platformCount: number
+  connections: { platform: string; last_sync_at: string | null }[]
+  reports: { id: string; created_at: string }[]
+  hasScore: boolean
+  hasReports: boolean
 }
 
-function freshnessLabel(lastSyncAt: string | null): { label: string; tone: 'fresh' | 'stale' | 'old' | 'none' } {
-  if (!lastSyncAt) return { label: 'Never synced', tone: 'none' }
-  const last = new Date(lastSyncAt).getTime()
-  const hours = (Date.now() - last) / (1000 * 60 * 60)
-  if (hours < 24) return { label: 'Fresh', tone: 'fresh' }
-  if (hours < 24 * 7) return { label: 'Recent', tone: 'fresh' }
-  if (hours < 24 * 30) return { label: 'Stale', tone: 'stale' }
-  return { label: 'Outdated', tone: 'old' }
+const PLATFORM_NAMES: Record<string, string> = {
+  uber: 'Uber',
+  ubereats: 'Uber Eats',
+  lyft: 'Lyft',
+  doordash: 'DoorDash',
+  grubhub: 'Grubhub',
+  instacart: 'Instacart',
+  fiverr: 'Fiverr',
+  upwork: 'Upwork',
+  freelancer: 'Freelancer',
+  turo: 'Turo',
+  airbnb: 'Airbnb',
+  amazon_flex: 'Amazon Flex',
+  other: 'Other deposits',
 }
 
-function formatRelative(iso: string | null): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  const diff = Date.now() - d.getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins} min ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  if (days < 30) return `${days}d ago`
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
+function fmt(n: number | null): string {
+  if (n === null || n === undefined) return '—'
+  return '$' + Math.round(n).toLocaleString()
 }
 
 export default async function WorkerDashboard() {
-  await requireRole(['gig_worker'])
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { userId } = await requireRole(['gig_worker'])
+  const supabase = createServerSupabaseClient()
 
-  // Fetch real data — existing + Krost Score v2
-  const [{ data: platformRows }, { data: verification }, { data: krostRecord }] = await Promise.all([
-    supabase
-      .from('platform_connections')
-      .select('id, last_sync_at, is_active')
-      .eq('user_id', user!.id)
-      .eq('is_active', true),
-    supabase.from('income_verifications').select('*').eq('user_id', user!.id).maybeSingle(),
-    supabase.from('krost_scores').select('score, tier, breakdown, factors').eq('user_id', user!.id).maybeSingle(),
+  const [connResult, reportResult, profileResult, verifyResult] = await Promise.all([
+    supabase.from('platform_connections').select('platform, last_sync_at, is_active').eq('user_id', userId).eq('is_active', true),
+    supabase.from('reports').select('id, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
+    supabase.from('profiles').select('full_name').eq('id', userId).single(),
+    supabase.from('income_verifications').select('consistency_score, annualized_income, monthly_avg_income, trajectory_label').eq('user_id', userId).maybeSingle(),
   ])
 
-  const connections = platformRows?.length ?? 0
-  const latestSync = (platformRows ?? [])
-    .map((p) => p.last_sync_at)
-    .filter(Boolean)
-    .sort()
-    .pop() as string | null
+  const connections = (connResult.data || []) as { platform: string; last_sync_at: string | null }[]
+  const hasConnections = connections.length > 0
+  const reports = (reportResult.data || []) as { id: string; created_at: string }[]
+  const hasReports = reports.length > 0
+  const fullName = profileResult.data?.full_name || ''
+  const displayName = fullName || 'Worker'
 
-  const { count: reportCount } = await supabase
-    .from('reports')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user!.id)
+  const verification = verifyResult.data
 
-  // Recent reports — use service client so we get the latest list bypassing RLS edge cases
-  let recentReports: RecentReport[] = []
-  try {
-    const service = createServiceSupabaseClient()
-    const { data } = await service
-      .from('reports')
-      .select('id, created_at, expires_at, viewer_count')
-      .eq('user_id', user!.id)
-      .order('created_at', { ascending: false })
-      .limit(5)
-    recentReports = data ?? []
-  } catch {
-    // Service client not configured in this environment — fall back silently.
-    recentReports = []
+  const dashboardData: DashboardData = {
+    displayName,
+    annualizedIncome: verification?.annualized_income ? Number(verification.annualized_income) : null,
+    monthlyAverage: verification?.monthly_avg_income ? Number(verification.monthly_avg_income) : null,
+    consistencyScore: verification?.consistency_score ?? null,
+    trajectoryLabel: verification?.trajectory_label ?? null,
+    platformCount: connections.length,
+    connections,
+    reports,
+    hasScore: verification !== null,
+    hasReports,
   }
 
-  const hasScore = !!verification
-  const score = verification?.consistency_score ?? null
-  const annualizedIncome = verification?.annualized_income ?? null
-  const monthlyAvg = verification?.monthly_avg_income ?? null
-  const platformCount = verification?.platform_diversity ?? 0
-  const trajectory = verification?.trajectory_label ?? null
-  const status = verification?.lender_ready_status ?? null
+  if (!hasConnections) {
+    return <OnboardingDashboard displayName={displayName} />
+  }
 
-  // Krost Score (300–850) — Pillar 1
-  const hasKrost = !!krostRecord
-  const krostScore = krostRecord?.score ?? null
-  const krostTier = krostRecord?.tier ?? null
-  const krostBreakdown = krostRecord?.breakdown ?? null
+  return <ConnectedDashboard data={dashboardData} />
+}
 
-  const krostTierColor =
-    krostTier === 'elite'
-      ? { bg: '#0A4D3B', text: '#fff' }    // deep green for elite
-      : krostTier === 'strong'
-        ? { bg: 'var(--color-deep-green)', text: '#fff' }
-        : krostTier === 'building'
-          ? { bg: '#B8860B', text: '#fff' }  // amber for building
-          : { bg: 'var(--color-slate-gray)', text: '#fff' }
-
-  const krostTierLabel =
-    krostTier === 'elite' ? 'Elite' 
-    : krostTier === 'strong' ? 'Strong'
-    : krostTier === 'building' ? 'Building'
-    : krostTier === 'emerging' ? 'Emerging'
-    : null
-
-  const krostTierMeaning =
-    krostTier === 'elite' ? 'Prime borrower — auto-approve most alt-doc loans'
-    : krostTier === 'strong' ? 'Non-QM eligible — suitable for personal, auto, business loans'
-    : krostTier === 'building' ? 'Partial income history — secured / smaller loans'
-    : krostTier === 'emerging' ? 'Early stage — microloans, credit-builder products'
-    : null
-
-  const connectedCount = Math.max(platformCount, connections)
-  const freshness = freshnessLabel(latestSync)
-  const dotColor =
-    freshness.tone === 'fresh'
-      ? 'bg-emerald-400'
-      : freshness.tone === 'stale'
-        ? 'bg-amber-400'
-        : freshness.tone === 'old'
-          ? 'bg-coral'
-          : 'bg-white/30'
-
+function OnboardingDashboard({ displayName }: { displayName: string }) {
   return (
-    <div className="space-y-14">
-      {/* Header */}
-      <div>
-        <p className="text-mono-label text-slate">Worker dashboard</p>
-        <h1 className="mt-3 font-display text-[44px] leading-none tracking-tight text-ink-black">
-          Income overview.
-        </h1>
-        <p className="mt-3 text-body text-slate">
-          Connect your gig platforms to verify your income and generate lender-ready reports.
-        </p>
+    <div>
+      <div className="pg-header fade-in d0">
+        <div>
+          <div className="pg-title">Good morning, {displayName} 👋</div>
+          <div className="pg-sub">Connect your first platform to start tracking your income</div>
+        </div>
       </div>
 
-      {/* Score overview */}
-      <section
-        className="rounded-md p-10"
-        style={{ backgroundColor: 'var(--color-deep-green)', color: '#fff' }}
-      >
-        <div className="grid gap-12 md:grid-cols-[2fr_1fr] md:items-end">
-          <div>
-            <p className="text-mono-label text-white/50">Income consistency score</p>
-            <div className="mt-6 flex items-end gap-6">
-              <span className="font-display text-[96px] leading-none tracking-tight text-white">
-                {score !== null ? score : '—'}
-              </span>
-              <div className="mb-3">
-                <p className="text-sm text-white/65">
-                  {hasScore ? `Out of 100 — ${status === 'green' ? 'Lender-ready' : status === 'yellow' ? 'Needs improvement' : 'Insufficient data'}` : 'Connect platforms to calculate'}
-                </p>
-                <p className="text-xs text-white/40">
-                  {hasScore
-                    ? `Annualized: $${annualizedIncome?.toLocaleString() ?? '?'} · Avg/mo: $${monthlyAvg?.toLocaleString() ?? '?'}`
-                    : 'Income consistency score (0–100) — not a credit score'}
-                </p>
-              </div>
-            </div>
-            <div className="mt-8 h-1 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full bg-coral transition-all"
-                style={{ width: score !== null ? `${Math.max(4, score)}%` : '4%' }}
-              />
+      <div className="fade-in d1">
+        <div className="card empty-state" style={{ border: '1px solid var(--color-hairline)', borderRadius: 'var(--radius-md)' }}>
+          <div className="hero-icon-wrap">
+            <div className="hero-icon hi-coral">
+              <svg viewBox="0 0 64 64" fill="none" style={{ color: 'var(--color-coral)', width: 56, height: 56 }}>
+                <circle cx="16" cy="32" r="10" stroke="currentColor" strokeWidth="2.5" />
+                <circle cx="48" cy="32" r="10" stroke="currentColor" strokeWidth="2.5" />
+                <path d="M26 32h12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                <path d="M32 22v-8M32 50v-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="3,3" />
+              </svg>
             </div>
           </div>
-
-          <div className="space-y-4 border-l border-white/10 pl-8">
-            <div>
-              <p className="text-mono-label text-white/40">Connected platforms</p>
-              <p className="mt-2 text-3xl font-normal text-white">{connectedCount}</p>
-              <div className="mt-2 flex items-center gap-2">
-                <span className={`inline-block h-1.5 w-1.5 rounded-full ${dotColor}`} aria-hidden />
-                <span className="text-xs text-white/65">{freshness.label}</span>
-              </div>
-              <p className="mt-1 text-xs text-white/40">
-                Last sync: {latestSync ? formatRelative(latestSync) : '—'}
-              </p>
-            </div>
-            <div>
-              <p className="text-mono-label text-white/40">Trajectory</p>
-              <p className="mt-2 text-sm text-white/65">
-                {trajectory
-                  ? trajectory.charAt(0).toUpperCase() + trajectory.slice(1)
-                  : 'Not yet calculated'}
-              </p>
-            </div>
-            <div>
-              <p className="text-mono-label text-white/40">Reports generated</p>
-              <p className="mt-2 text-sm text-white/65">{reportCount ?? 0}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Krost Score (300–850) — Pillar 1 */}
-      <section
-        className="rounded-md p-10"
-        style={{ backgroundColor: krostTierColor.bg, color: '#fff' }}
-      >
-        <div className="grid gap-8 md:grid-cols-[2fr_1fr] md:items-center">
-          <div>
-            <p className="text-mono-label text-white/50">
-              Krost Score
-              <span className="ml-2 text-xs opacity-40">Income verification metric</span>
-            </p>
-            <div className="mt-6 flex items-end gap-6">
-              <span className="font-display text-[96px] leading-none tracking-tight text-white">
-                {hasKrost ? krostScore : '—'}
-              </span>
-              <div className="mb-3">
-                {hasKrost ? (
-                  <>
-                    <span className="inline-block rounded-full bg-white/20 px-3 py-1 text-sm font-semibold tracking-wide">
-                      {krostTierLabel}
-                    </span>
-                    <p className="mt-2 text-sm text-white/65">{krostTierMeaning}</p>
-                  </>
-                ) : (
-                  <p className="text-sm text-white/65">
-                    Connect platforms to generate your Krost Score
-                  </p>
-                )}
-              </div>
-            </div>
-            {hasKrost && krostBreakdown && (
-              <div className="mt-6 flex flex-wrap gap-4 text-sm text-white/55">
-                {krostBreakdown.incomeScore > 0 && (
-                  <span>Income: +{krostBreakdown.incomeScore}</span>
-                )}
-                {krostBreakdown.tenureScore > 0 && (
-                  <span>Tenure: +{krostBreakdown.tenureScore}</span>
-                )}
-                {krostBreakdown.diversityScore > 0 && (
-                  <span>Diversity: +{krostBreakdown.diversityScore}</span>
-                )}
-                {krostBreakdown.consistencyScore > 0 && (
-                  <span>Consistency: +{krostBreakdown.consistencyScore}</span>
-                )}
-                {krostBreakdown.trajectoryScore > 0 && (
-                  <span>Trajectory: +{krostBreakdown.trajectoryScore}</span>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="space-y-4 border-l border-white/10 pl-8">
-            <div>
-              <p className="text-mono-label text-white/40">Score range</p>
-              <p className="mt-2 text-2xl font-normal text-white">0 – 100</p>
-            </div>
-            <div>
-              <p className="text-mono-label text-white/40">Tiers</p>
-              <div className="mt-2 space-y-1 text-xs text-white/55">
-                <p>750–850 Elite · 680–749 Strong</p>
-                <p>580–679 Building · 300–579 Emerging</p>
-              </div>
-            </div>
-            <div>
-              <Link
-                href="/dashboard/worker/score"
-                className="inline-flex items-center gap-1 rounded-full bg-white/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/25"
-              >
-                Factor breakdown →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Score improvement recommendations */}
-      {hasKrost && krostBreakdown && (
-        <section>
-          <h2 className="mb-6 text-heading-feature text-ink-black">Improve your score</h2>
-          <div className="space-y-3">
-            {(() => {
-              const tips: { icon: string; title: string; desc: string; action: string; href: string }[] = []
-
-              const b = krostBreakdown as Record<string, any>
-              const incomeScore = b.incomeScore ?? 0
-              const diversityScore = b.diversityScore ?? 0
-              const tenureScore = b.tenureScore ?? 0
-              const volatilityScore = b.volatilityScore ?? 0
-              const consistencyScore = b.consistencyScore ?? 0
-              const trajectoryScore = b.trajectoryScore ?? 0
-
-              if (diversityScore < 25) {
-                tips.push({
-                  icon: '⊕',
-                  title: 'Add another platform',
-                  desc: `Platform diversity contributes up to +50 pts. You have ${Math.round(diversityScore / 12.5) || 1} platform${Math.round(diversityScore / 12.5) || 1 !== 1 ? 's' : ''} contributing.`,
-                  action: 'Connect platform →',
-                  href: '/dashboard/worker/connections',
-                })
-              }
-              if (incomeScore < 40) {
-                tips.push({
-                  icon: '↑',
-                  title: 'Increase monthly earnings',
-                  desc: 'Higher average monthly income relative to $5K/mo benchmark adds up to +80 pts. More trips or higher-value work improve this factor.',
-                  action: 'View ledger →',
-                  href: '/dashboard/worker/ledger',
-                })
-              }
-              if (tenureScore < 40) {
-                tips.push({
-                  icon: '⏱',
-                  title: 'Build career tenure',
-                  desc: 'Score rewards months of consistent gig activity (up to +70 pts). Time on platform is the only factor that increases naturally.',
-                  action: 'See score breakdown →',
-                  href: '/dashboard/worker/score',
-                })
-              }
-              if (volatilityScore < 30) {
-                tips.push({
-                  icon: '📊',
-                  title: 'Reduce income volatility',
-                  desc: 'Steady earnings improve your volatility score (up to +60 pts). Consider diversifying into more consistent platforms.',
-                  action: 'View ledger →',
-                  href: '/dashboard/worker/ledger',
-                })
-              }
-              if (consistencyScore < 25) {
-                tips.push({
-                  icon: '◉',
-                  title: 'Improve earning consistency',
-                  desc: 'Positive earnings in more months boosts consistency (up to +50 pts). Aim for earnings every month across your connected platforms.',
-                  action: 'View ledger →',
-                  href: '/dashboard/worker/ledger',
-                })
-              }
-              if (trajectoryScore < 15) {
-                tips.push({
-                  icon: '↗',
-                  title: 'Grow your income trajectory',
-                  desc: 'An upward trend adds up to +40 pts. Focus on increasing earnings month-over-month to demonstrate growth.',
-                  action: 'View ledger →',
-                  href: '/dashboard/worker/ledger',
-                })
-              }
-
-              return tips.slice(0, 3).map((tip) => (
-                <Link
-                  key={tip.title}
-                  href={tip.href}
-                  className="card-bordered flex items-start gap-4 px-6 py-5 transition hover:border-ink-black"
-                >
-                  <span className="mt-0.5 text-xl">{tip.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-ink-black">{tip.title}</p>
-                    <p className="mt-1 text-xs text-slate leading-relaxed">{tip.desc}</p>
-                  </div>
-                  <span className="mt-1 shrink-0 text-sm text-slate">{tip.action}</span>
-                </Link>
-              ))
-            })()}
+          <div className="empty-title">Connect your gig platforms to get started</div>
+          <div className="empty-sub">
+            Link your DoorDash, Uber, Upwork, and more via Plaid. We turn your earnings into professional income statements — ready for landlords, lenders, and loans.
           </div>
           <Link
-            href="/dashboard/worker/score"
-            className="mt-4 link-editorial text-sm inline-flex"
+            href="/dashboard/worker/connections"
+            className="btn-primary"
+            style={{ fontSize: 14, padding: '12px 28px', display: 'inline-flex', alignItems: 'center', gap: 8 }}
           >
-            Full factor breakdown →
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M8 5v6M5 8h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            Connect your first platform
           </Link>
-        </section>
-      )}
-      {/* Current score improvement tips when no krost score yet */}
-      {!hasKrost && (
-        <section>
-          <h2 className="mb-6 text-heading-feature text-ink-black">Build your score</h2>
-          <div className="space-y-3">
-            {[
-              {
-                icon: '⊞',
-                title: 'Connect your first platform',
-                desc: 'Link a gig platform via Plaid to start building your income history. Earnings from every trip and delivery count toward your score.',
-                action: 'Connect →',
-                href: '/dashboard/worker/connections',
-              },
-              {
-                icon: '📋',
-                title: 'Generate a report',
-                desc: 'Once connected, generate a Consistency Score and create a professional PDF report in minutes.',
-                action: 'Learn more →',
-                href: '/dashboard/worker/score',
-              },
-              {
-                icon: '📎',
-                title: 'Download your report',
-                desc: 'Generate and download a professional income statement. Share via expiring link or send directly to a lender.',
-                action: 'Generate →',
-                href: '/dashboard/worker/reports',
-              },
-            ].map((tip) => (
-              <Link
-                key={tip.title}
-                href={tip.href}
-                className="card-bordered flex items-start gap-4 px-6 py-5 transition hover:border-ink-black"
-              >
-                <span className="mt-0.5 text-xl">{tip.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink-black">{tip.title}</p>
-                  <p className="mt-1 text-xs text-slate leading-relaxed">{tip.desc}</p>
-                </div>
-                <span className="mt-1 shrink-0 text-sm text-slate">{tip.action}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
 
-      {/* CTAs */}
-      <section className="grid gap-4 md:grid-cols-2">
-        <Link
-          href="/dashboard/worker/connections"
-          className="card-stone flex items-center justify-between p-6 transition hover:border-ink-black"
-        >
-          <div>
-            <p className="font-display text-xl text-ink-black">Connect platforms</p>
-            <p className="mt-1 text-sm text-slate">Link your gig accounts via Plaid</p>
-          </div>
-          <span className="text-2xl text-slate">→</span>
-        </Link>
-        <Link
-          href="/dashboard/worker/ledger"
-          className="card-stone flex items-center justify-between p-6 transition hover:border-ink-black"
-        >
-          <div>
-            <p className="font-display text-xl text-ink-black">Earnings ledger</p>
-            <p className="mt-1 text-sm text-slate">Unified timeline of all platform earnings</p>
-          </div>
-          <span className="text-2xl text-slate">→</span>
-        </Link>
-      </section>
-
-      {/* Platform buttons — now links to connections page */}
-      <section>
-        <div className="mb-6 flex items-baseline justify-between">
-          <h2 className="text-heading-feature text-ink-black">Quick connect</h2>
-          <Link href="/dashboard/worker/connections" className="link-editorial text-sm">
-            View all connections →
-          </Link>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {['Uber', 'Lyft', 'DoorDash', 'Fiverr', 'Upwork', 'Instacart'].map((name) => (
-            <Link
-              key={name}
-              href="/dashboard/worker/connections"
-              className="card-bordered flex items-center gap-4 p-5 text-left transition hover:border-ink-black"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-ink-black text-sm font-medium text-white">
-                {name[0]}
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-ink-black">{name}</p>
-                <p className="text-xs text-slate">Connect via Plaid →</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Generate report CTA */}
-      {hasScore && (
-        <section>
-          <div className="card-stone p-8">
-            <div className="flex items-start justify-between gap-6">
-              <div>
-                <p className="font-display text-2xl text-ink-black">Generate income report</p>
-                <p className="mt-2 text-sm text-slate">
-                  Create a lender-ready PDF with your income summary, consistency score, and platform profile.
-                  {!reportCount ? ' Your first report is free.' : ''}
-                </p>
-              </div>
-              <GenerateReportButton hasReports={!!reportCount} />
+          <div style={{ display: 'flex', gap: 24, marginTop: 40, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--color-muted-slate)' }}>
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="5.5" stroke="var(--color-coral)" strokeWidth="1.3" /><path d="M5 7.5l2 2 3-3" stroke="var(--color-coral)" strokeWidth="1.3" strokeLinecap="round" /></svg>
+              Bank-grade security via Plaid
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--color-muted-slate)' }}>
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="5.5" stroke="var(--color-coral)" strokeWidth="1.3" /><path d="M5 7.5l2 2 3-3" stroke="var(--color-coral)" strokeWidth="1.3" strokeLinecap="round" /></svg>
+              12,000+ supported platforms
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--color-muted-slate)' }}>
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="5.5" stroke="var(--color-coral)" strokeWidth="1.3" /><path d="M5 7.5l2 2 3-3" stroke="var(--color-coral)" strokeWidth="1.3" strokeLinecap="round" /></svg>
+              Professional PDF statements
             </div>
           </div>
-        </section>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ConnectedDashboard({ data }: { data: DashboardData }) {
+  const hasMetrics = data.hasScore && data.annualizedIncome !== null
+
+  const trajectoryLabel = data.trajectoryLabel || 'stable'
+  const trajColor = trajectoryLabel === 'growing' ? 'var(--color-success)' : trajectoryLabel === 'declining' ? 'var(--color-error-red)' : 'var(--color-muted-slate)'
+  const trajArrow = trajectoryLabel === 'growing' ? '↑' : trajectoryLabel === 'declining' ? '↓' : '→'
+  const trajText = trajectoryLabel === 'growing' ? 'Growing' : trajectoryLabel === 'declining' ? 'Declining' : 'Stable'
+
+  const latestReport = data.reports[0]
+  const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const monthShort = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+
+  return (
+    <div>
+      <div className="pg-header fade-in d0">
+        <div>
+          <div className="pg-title">Good morning, {data.displayName} 👋</div>
+          <div className="pg-sub">
+            {hasMetrics
+              ? `Trailing 12-month income summary · ${monthShort}`
+              : `${data.platformCount} platform${data.platformCount === 1 ? '' : 's'} connected — syncing your earnings`
+            }
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: 'var(--color-muted-slate)', background: 'var(--color-canvas)', border: '1px solid var(--color-hairline)', borderRadius: 'var(--radius-pill)', padding: '6px 14px' }}>{monthShort}</div>
+          <GenerateReportButton hasReports={data.hasReports} />
+        </div>
+      </div>
+
+      {/* Statement ready banner — only if there's a report */}
+      {latestReport && (
+        <div className="stmt-banner fade-in d1">
+          <div className="sb-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="2" width="16" height="18" rx="2.5" stroke="white" strokeWidth="1.6" /><path d="M7 8h8M7 12h5" stroke="white" strokeWidth="1.6" strokeLinecap="round" /></svg>
+          </div>
+          <div className="stmt-banner-body">
+            <div className="stmt-banner-title">Your {currentMonth} statement is ready</div>
+            <div className="stmt-banner-sub">Professional PDF · Download or share</div>
+          </div>
+          <div className="stmt-banner-actions">
+            <button className="btn-white-pill"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 6l3 3 3-3" stroke="#17171c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M1 10h10" stroke="#17171c" strokeWidth="1.5" strokeLinecap="round" /></svg>Download PDF</button>
+            <button className="btn-ghost-pill"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 1l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M1 6v1a4 4 0 004 4h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>Share Link</button>
+          </div>
+        </div>
       )}
 
-      {/* Recent reports */}
-      {recentReports.length > 0 && (
-        <section>
-          <div className="mb-6 flex items-baseline justify-between">
-            <h2 className="text-heading-feature text-ink-black">Recent reports</h2>
-            <p className="text-mono-label text-slate">{recentReports.length} of {reportCount ?? recentReports.length}</p>
+      {/* No data yet banner */}
+      {!hasMetrics && (
+        <div className="fade-in d1" style={{ padding: '24px 0' }}>
+          <div style={{ background: 'var(--color-pale-blue)', border: '1px solid rgba(24,99,220,0.15)', borderRadius: 'var(--radius-md)', padding: '24px 28px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--color-action-blue)" strokeWidth="1.5" /><path d="M12 8v4M12 16v.5" stroke="var(--color-action-blue)" strokeWidth="1.5" strokeLinecap="round" /></svg>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-action-blue)' }}>Syncing your income data</div>
+              <div style={{ fontSize: 13, color: 'var(--color-muted-slate)', marginTop: 2 }}>
+                Your connected {data.platformCount} platform{data.platformCount === 1 ? '' : 's'} are being analyzed. Income metrics will appear once Plaid finishes syncing your transactions.
+              </div>
+            </div>
+            <Link href="/dashboard/worker/connections" className="btn-sm-outline" style={{ flexShrink: 0 }}>Manage connections</Link>
           </div>
-          <div className="space-y-3">
-            {recentReports.map((report) => {
-              const expiresAt = new Date(report.expires_at).getTime()
-              const now = new Date().getTime()
-              const expired = expiresAt < now
-              return (
-                <div
-                  key={report.id}
-                  className="card-bordered flex items-center justify-between gap-4 p-5"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink-black">
-                      Report · {formatDate(report.created_at)}
-                    </p>
-                    <p className="mt-1 text-xs text-slate">
-                      {expired
-                        ? 'Link expired'
-                        : `Expires ${formatDate(report.expires_at)}`}
-                      {' · '}
-                      {report.viewer_count ?? 0} view{(report.viewer_count ?? 0) === 1 ? '' : 's'}
-                    </p>
+        </div>
+      )}
+
+      {/* Metric cards */}
+      <div className="metrics-4 fade-in d2" style={!hasMetrics ? { opacity: 0.5, pointerEvents: 'none' } : undefined}>
+        <div className="mc">
+          <div className="mc-label">Annualized Income<div className="mc-icon" style={{ background: 'var(--color-coral-pale)' }}><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M3 4l3.5-3L10 4M3 10l3.5 2.5L10 10" stroke="var(--color-coral)" strokeWidth="1.4" strokeLinecap="round" /></svg></div></div>
+          <div className="mc-val">{fmt(data.annualizedIncome)}</div>
+          {hasMetrics && <div className="mc-delta up">{trajArrow} {trajText}</div>}
+        </div>
+        <div className="mc">
+          <div className="mc-label">Monthly Average<div className="mc-icon" style={{ background: 'var(--color-success-bg)' }}><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 10l4-5 3 3 5-7" stroke="var(--color-success)" strokeWidth="1.4" strokeLinecap="round" /></svg></div></div>
+          <div className="mc-val">{fmt(data.monthlyAverage)}</div>
+        </div>
+        <div className="mc">
+          <div className="mc-label">Consistency Score<div className="mc-icon" style={{ background: 'var(--color-pale-blue)' }}><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="var(--color-action-blue)" strokeWidth="1.4" /><path d="M4 6.5l2 2 3-3" stroke="var(--color-action-blue)" strokeWidth="1.4" strokeLinecap="round" /></svg></div></div>
+          <div className="mc-val">
+            {data.consistencyScore !== null ? data.consistencyScore : '—'}
+            {data.consistencyScore !== null && <span style={{ fontSize: 13, color: 'var(--color-muted-slate)', fontWeight: 400 }}>/100</span>}
+          </div>
+        </div>
+        <div className="mc">
+          <div className="mc-label">Active Platforms<div className="mc-icon" style={{ background: 'var(--color-warning-bg)' }}><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="3.5" cy="3.5" r="2" stroke="var(--color-warning)" strokeWidth="1.4" /><circle cx="9.5" cy="3.5" r="2" stroke="var(--color-warning)" strokeWidth="1.4" /><circle cx="3.5" cy="9.5" r="2" stroke="var(--color-warning)" strokeWidth="1.4" /><circle cx="9.5" cy="9.5" r="2" stroke="var(--color-warning)" strokeWidth="1.4" /></svg></div></div>
+          <div className="mc-val">{data.platformCount}</div>
+          {data.platformCount > 1 && <div className="mc-delta flat">Well diversified</div>}
+        </div>
+      </div>
+
+      {/* Connected platforms + Recent reports — only show when metrics exist */}
+      {hasMetrics && (
+        <div className="grid-3-r fade-in d3">
+          <div className="card">
+            <div className="card-head">
+              <div>
+                <div className="card-title">Connected Platforms</div>
+                <div className="card-sub">{data.platformCount} active</div>
+              </div>
+            </div>
+            {data.connections.map((c, i) => (
+              <div key={c.platform} className="plat-row">
+                <div className="plat-logo" style={{ background: i % 2 === 0 ? '#fff0ee' : '#f0fdf4' }}>
+                  <span style={{ fontSize: 14 }}>{PLATFORM_NAMES[c.platform]?.[0] || c.platform[0]}</span>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div className="plat-name">{PLATFORM_NAMES[c.platform] || c.platform}</div>
+                  <div className="plat-meta">{c.last_sync_at ? `Synced ${formatRelative(c.last_sync_at)}` : 'Not synced'}</div>
+                </div>
+                <div className="status-pip on"></div>
+              </div>
+            ))}
+          </div>
+          <div className="card">
+            <div className="card-head">
+              <div>
+                <div className="card-title">Statement History</div>
+                <div className="card-sub">Download or share</div>
+              </div>
+            </div>
+            {data.reports.length === 0 ? (
+              <div style={{ padding: '24px 20px', textAlign: 'center', fontSize: 13, color: 'var(--color-muted-slate)' }}>
+                No statements yet. Hit Generate Report to create your first PDF.
+              </div>
+            ) : (
+              data.reports.slice(0, 3).map((r) => (
+                <div key={r.id} className="stmt-row">
+                  <div className="stmt-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="var(--color-coral)" strokeWidth="1.4" /><path d="M5 6h6M5 9h4" stroke="var(--color-coral)" strokeWidth="1.4" strokeLinecap="round" /></svg></div>
+                  <div>
+                    <div className="stmt-name">{new Date(r.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</div>
+                    <div className="stmt-date">{formatRelative(r.created_at)}</div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`text-mono-label ${
-                        expired ? 'text-slate' : 'text-ink-black'
-                      }`}
-                    >
-                      {expired ? 'Expired' : 'Active'}
-                    </span>
-                    {expired ? (
-                      <span className="text-sm text-slate">—</span>
-                    ) : (
-                      <a
-                        href={`/api/report/share/${report.id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="link-editorial text-sm"
-                      >
-                        Download →
-                      </a>
-                    )}
+                  <div className="stmt-btns">
+                    <button className="act-btn pri">↓ PDF</button>
+                    <button className="act-btn">Share</button>
                   </div>
                 </div>
-              )
-            })}
+              ))
+            )}
           </div>
-        </section>
+          <div className="card">
+            <div className="card-head">
+              <div>
+                <div className="card-title">Income Overview</div>
+                <div className="card-sub">At a glance</div>
+              </div>
+            </div>
+            <div style={{ padding: '20px' }}>
+              <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-.03em', color: 'var(--color-ink-black)' }}>
+                {fmt(data.annualizedIncome)}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--color-muted-slate)', marginTop: 4 }}>Annualized income (trailing 12 months)</div>
+              <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--color-soft-stone)', borderRadius: 9999, padding: '4px 12px', fontSize: 11, color: 'var(--color-muted-slate)', fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ color: trajColor }}>{trajArrow}</span> {trajText}
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--color-soft-stone)', borderRadius: 9999, padding: '4px 12px', fontSize: 11, color: 'var(--color-muted-slate)', fontFamily: 'var(--font-mono)' }}>
+                  {data.consistencyScore}/100 consistency
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
 }
 
-// Client component for report generation with loading state
-import { GenerateReportButton } from './generate-report-button'
+function formatRelative(iso: string | null): string {
+  if (!iso) return 'Never'
+  const d = new Date(iso)
+  const mins = Math.floor((Date.now() - d.getTime()) / 60000)
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  if (mins < 60 * 24) return `${Math.floor(mins / 60)}h ago`
+  if (mins < 60 * 24 * 7) return `${Math.floor(mins / (60 * 24))}d ago`
+  return d.toLocaleDateString()
+}

@@ -133,7 +133,7 @@ function ScoreRing({ score }: { score: number }) {
           fontSize="12"
           fill="#75758a"
         >
-          Krost Score
+          Krostio Score
         </text>
         <text
           x="90" y="122"
@@ -275,7 +275,7 @@ export default function CheckScorePage() {
               See your gig worker income consistency score — for free
             </h1>
             <p className="text-body-lg text-slate max-w-xl mx-auto">
-              Pick a platform you work on. We&apos;ll estimate your Krost Score
+              Pick a platform you work on. We&apos;ll estimate your Krostio Score
               based on how real gig workers with similar profiles score.
             </p>
           </div>
@@ -350,7 +350,7 @@ export default function CheckScorePage() {
             <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
               <ScoreRing score={result.score} />
               <div className="flex-1 text-center md:text-left">
-                <p className="text-mono-label text-slate mb-1">Your estimated Krost Score</p>
+                <p className="text-mono-label text-slate mb-1">Your estimated Krostio Score</p>
                 <p className="text-body-lg text-ink mt-2 leading-relaxed">
                   Based on earnings patterns from {result.platforms} platform{result.platforms > 1 ? 's' : ''} over {result.tenureMonths} months, your estimated income consistency score is <strong>{result.score}</strong>.
                 </p>

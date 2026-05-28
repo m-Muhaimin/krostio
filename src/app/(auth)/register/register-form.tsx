@@ -1,126 +1,114 @@
 'use client'
 
-import { createClient } from '@/lib/supabase-browser'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Suspense, useState, FormEvent } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
-export default function RegisterForm() {
-  const router = useRouter()
+function RegisterContent() {
   const searchParams = useSearchParams()
-  const message = searchParams.get('message')
+  const error = searchParams.get('error')
 
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
-  const [error, setError] = useState('')
+  const [formError, setFormError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const supabase = createClient()
+  const handleGoogleSignup = () => {
+    window.location.href = '/api/auth/google?redirect=/dashboard'
+  }
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleEmailRegister = async (e: FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setError('')
+    setFormError('')
 
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name, role: 'gig_worker' } },
-    })
-
-    if (signUpError) {
-      setError(signUpError.message)
-      setLoading(false)
+    if (password.length < 8) {
+      setFormError('Password must be at least 8 characters')
       return
     }
 
-    const loginParams = new URLSearchParams({
-      message: 'Check your email to confirm your account',
-    })
-    router.push(`/login?${loginParams.toString()}`)
-    router.refresh()
-  }
+    setLoading(true)
 
-  const handleGoogleSignup = async () => {
-    const supabase = createClient()
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard&role=gig_worker`,
-      },
-    })
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      })
+
+      if (res.redirected) {
+        window.location.href = res.url
+        return
+      }
+
+      const data = await res.json()
+      setFormError(data.error || 'Failed to create account')
+    } catch {
+      setFormError('Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 py-16">
-      <div className="w-full max-w-md">
-        <div className="mb-10">
-          <p className="text-mono-label text-slate">Sign up</p>
-          <h1 className="mt-3 font-display text-[44px] leading-none tracking-tight text-ink-black">
-            Create your account.
-          </h1>
-          <p className="mt-4 text-body text-slate">
-            See all your gig income in one place. Download professional statements for loans, apartments, and financial planning.
-          </p>
+    <div className="w-full max-w-sm">
+      {(error || formError) && (
+        <div className="mb-5 rounded-xl border border-card-border bg-soft-stone px-4 py-3.5 text-sm text-ink-black">
+          {error === 'google_denied' && 'Google sign-in was denied.'}
+          {error === 'state_mismatch' && 'Session expired. Please try again.'}
+          {error === 'token_exchange_failed' && 'Failed to sign up with Google. Please try again.'}
+          {error === 'userinfo_failed' && 'Could not retrieve your account details.'}
+          {error === 'email_not_verified' && 'Your Google account email is not verified.'}
+          {error === 'user_creation_failed' && 'Could not create your account. Please try again.'}
+          {error === 'session_failed' && 'Could not start your session. Please try again.'}
+          {error === 'invalid_request' && 'Invalid sign-up request.'}
+          {formError}
+        </div>
+      )}
+
+      <form className="rounded-2xl border border-hairline bg-white p-8 shadow-sm">
+        <div className="mb-8 text-center">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink-black">Create account</h1>
+          <p className="mt-1.5 text-sm text-slate">See all your gig income in one place</p>
         </div>
 
-        {message && (
-          <div className="mb-6 rounded-sm border border-card-border bg-soft-stone px-4 py-3 text-sm text-ink-black">
-            {message}
-          </div>
-        )}
+        <div className="space-y-3.5">
+          <input
+            type="text"
+            placeholder="Full name"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            required
+            className="input-pill"
+          />
+          <input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            className="input-pill"
+          />
+          <input
+            type="password"
+            placeholder="Password (min. 8 characters)"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            minLength={8}
+            className="input-pill"
+          />
+        </div>
 
-        <form onSubmit={handleRegister} className="space-y-5">
-          <div>
-            <label className="mb-2 block text-mono-label text-slate">Full name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="input-rect"
-              placeholder="Jane Doe"
-              required
-            />
-          </div>
-          <div>
-            <label className="mb-2 block text-mono-label text-slate">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input-rect"
-              placeholder="you@example.com"
-              required
-            />
-          </div>
-          <div>
-            <label className="mb-2 block text-mono-label text-slate">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input-rect"
-              placeholder="At least 8 characters"
-              minLength={8}
-              required
-            />
-          </div>
+        <Button type="submit" variant="ink" disabled={loading} className="mt-5 w-full" onClick={handleEmailRegister}>
+          {loading ? 'Creating account\u2026' : 'Create account'}
+        </Button>
 
-          {error && (
-            <p className="text-sm" style={{ color: 'var(--color-error-red)' }}>{error}</p>
-          )}
-
-          <Button variant="primary" disabled={loading} className="w-full" type="submit">
-            {loading ? 'Creating account…' : 'Create account'}
-          </Button>
-        </form>
-
-        <div className="my-8 flex items-center gap-4">
-          <div className="h-px flex-1 bg-hairline" />
-          <span className="text-mono-label text-slate">or continue with</span>
-          <div className="h-px flex-1 bg-hairline" />
+        <div className="my-6 flex items-center gap-4">
+          <span className="h-px flex-1 bg-hairline" />
+          <span className="text-xs text-muted-slate">or</span>
+          <span className="h-px flex-1 bg-hairline" />
         </div>
 
         <Button variant="outline" onClick={handleGoogleSignup} className="w-full">
@@ -130,16 +118,28 @@ export default function RegisterForm() {
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
           </svg>
-          Google
+          Continue with Google
         </Button>
 
-        <p className="mt-10 text-sm text-slate">
+        <p className="mt-7 text-center text-sm text-slate">
           Already have an account?{' '}
-          <Link href="/login" className="link-editorial">
+          <Link href="/login" className="font-medium text-coral transition-colors hover:text-soft-coral">
             Sign in
           </Link>
         </p>
-      </div>
+      </form>
     </div>
+  )
+}
+
+export default function RegisterForm() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink-black border-t-transparent" />
+      </div>
+    }>
+      <RegisterContent />
+    </Suspense>
   )
 }

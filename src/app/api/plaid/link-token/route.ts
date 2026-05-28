@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getCurrentUser } from '@/lib/auth-utils'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { verifyMfaStepupToken } from '@/lib/mfa'
 import {
   plaid,
   PLAID_PRODUCTS,
@@ -8,16 +10,28 @@ import {
   PLAID_REDIRECT_URI,
 } from '@/lib/plaid'
 
-/**
- * POST /api/plaid/link-token
- * Creates a Plaid Link token for the current user.
- * Returns { link_token } that the client passes to <PlaidLink>.
- */
-export async function POST(_request: NextRequest) {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+export async function POST(request: NextRequest) {
+  const currentUser = await getCurrentUser()
+  if (!currentUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = currentUser.user
+  const supabase = createServerSupabaseClient()
+
+  // Check MFA: if enabled, require a valid step-up token
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('mfa_enabled')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.mfa_enabled) {
+    const stepupToken = request.headers.get('x-mfa-stepup')
+    if (!stepupToken) {
+      return NextResponse.json({ error: 'MFA required', mfa_required: true }, { status: 403 })
+    }
+    const verified = await verifyMfaStepupToken(stepupToken)
+    if (!verified || verified.sub !== user.id) {
+      return NextResponse.json({ error: 'MFA verification expired. Please re-verify.', mfa_required: true }, { status: 403 })
+    }
   }
 
   try {
@@ -27,8 +41,6 @@ export async function POST(_request: NextRequest) {
       products: PLAID_PRODUCTS,
       country_codes: PLAID_COUNTRY_CODES,
       language: 'en',
-      // Only set redirect_uri when running in a real env (Plaid sandbox accepts localhost
-      // but only if it's registered on the dashboard).
       ...(process.env.PLAID_REDIRECT_URI ? { redirect_uri: PLAID_REDIRECT_URI } : {}),
     })
 

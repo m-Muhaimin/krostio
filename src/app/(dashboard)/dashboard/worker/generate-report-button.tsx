@@ -54,8 +54,8 @@ export function GenerateReportButton({ hasReports }: { hasReports: boolean }) {
 
   if (result) {
     return (
-      <div className="space-y-3">
-        <p className="text-sm text-green-800">Report generated!</p>
+      <div className="space-y-4">
+        <p className="text-sm font-medium" style={{ color: 'var(--color-deep-green)' }}>Report generated!</p>
         <div className="flex flex-wrap items-center gap-3">
           <a
             href={result.downloadUrl}
@@ -67,15 +67,15 @@ export function GenerateReportButton({ hasReports }: { hasReports: boolean }) {
           </a>
           <button
             onClick={handleCopyShare}
-            className={`btn-outline text-sm ${copied ? '!bg-emerald-50 !text-emerald-700 !border-emerald-300' : ''}`}
+            className={`btn-outline text-sm ${copied ? '!bg-soft-stone !text-ink-black !border-ink-black' : ''}`}
           >
             {copied ? '✓ Link copied!' : 'Copy share link'}
           </button>
         </div>
-        <p className="text-xs text-slate break-all">
-          Share: <span className="font-mono text-slate/70">{result.shareUrl}</span>
-        </p>
-        <p className="text-xs text-slate">
+        <div className="rounded-lg bg-soft-stone/50 px-4 py-3">
+          <p className="text-xs text-slate break-all font-mono">{result.shareUrl}</p>
+        </div>
+        <p className="text-xs text-muted-slate">
           Recipients will be asked for their email before viewing the report.
         </p>
       </div>
@@ -87,11 +87,11 @@ export function GenerateReportButton({ hasReports }: { hasReports: boolean }) {
       <button
         onClick={handleGenerate}
         disabled={loading}
-        className="btn-signal text-sm disabled:opacity-50"
+        className="btn-ink text-sm disabled:opacity-50"
       >
         {loading ? 'Generating…' : hasReports ? 'Generate new report' : 'Generate report'}
       </button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs" style={{ color: 'var(--color-error-red)' }}>{error}</p>}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceSupabaseClient } from '@/lib/supabase-service'
+import { getCurrentUser } from '@/lib/auth-utils'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 /**
@@ -52,9 +53,8 @@ export async function GET(
     // serve the PDF directly without requiring an email gate token.
     let isOwner = false
     try {
-      const authSupabase = await createServerSupabaseClient()
-      const { data: { user } } = await authSupabase.auth.getUser()
-      isOwner = !!(user && report.user_id === user.id)
+      const currentUser = await getCurrentUser()
+      isOwner = !!(currentUser?.user && report.user_id === currentUser.user.id)
     } catch {
       // Not authenticated or error — proceed with gate check
     }

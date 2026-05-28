@@ -1,22 +1,14 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 
-export async function createServerSupabaseClient() {
-  const cookieStore = await cookies()
-
-  return createServerClient(
+/** Server-side Supabase client using the service-role key.
+ *  Bypasses RLS — access control is handled by our JWT auth layer.
+ *  This keeps the app agnostic to the Postgres provider. */
+export function createServerSupabaseClient() {
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll() {
-          // No-op: server components cannot write cookies via cookieStore.set().
-          // Token refresh is handled by middleware on the next request.
-        },
-      },
+      auth: { autoRefreshToken: false, persistSession: false },
     }
   )
 }

@@ -140,9 +140,9 @@ export default function Page() {
       </section>
 
       <section>
-        <H2>The Krost approach</H2>
+        <H2>The Krostio approach</H2>
         <P>
-          Krost builds the consolidated income story for you. We link directly to your gig platforms,
+          Krostio builds the consolidated income story for you. We link directly to your gig platforms,
           pull 12–24 months of earnings, and produce a single signed PDF and shareable link that
           shows total income, platform-by-platform breakdown, deposit consistency, and tenure. An
           income consistency score (0–100) summarizes the whole thing at a glance.

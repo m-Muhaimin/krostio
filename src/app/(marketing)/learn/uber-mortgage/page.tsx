@@ -126,9 +126,9 @@ export default function Page() {
       </section>
 
       <section>
-        <H2>Where Krost fits in</H2>
+        <H2>Where Krostio fits in</H2>
         <P>
-          Krost was built for this exact problem. We connect to Uber, Lyft, DoorDash, Instacart, and
+          Krostio was built for this exact problem. We connect to Uber, Lyft, DoorDash, Instacart, and
           your bank, then produce a single signed verification report covering up to 24 months of
           earnings — with stability, diversity, tenure, and trajectory broken out the way underwriters
           read them.

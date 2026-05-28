@@ -15,7 +15,7 @@ export default async function ReportGatePage({
   const { shareToken } = await params
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas-cream p-6">
+    <div className="flex min-h-screen items-center justify-center bg-canvas p-6">
       <div className="w-full max-w-md">
         {/* Krostio branding */}
         <div className="mb-8 text-center">

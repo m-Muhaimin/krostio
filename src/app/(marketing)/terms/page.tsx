@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — Krost',
+  title: 'Terms of Service — Krostio',
   description:
-    'The terms that govern your use of Krost: account terms, payments, acceptable use, disclaimers, and termination.',
+    'The terms that govern your use of Krostio: account terms, payments, acceptable use, disclaimers, and termination.',
 }
 
 export default function TermsOfServicePage() {
@@ -15,7 +15,7 @@ export default function TermsOfServicePage() {
           Terms of Service.
         </h1>
         <p className="mt-4 text-body text-slate">
-          These terms govern your access to and use of Krost. By creating an account you agree to
+          These terms govern your access to and use of Krostio (operated by <strong>SuprBuild, LLC</strong>, DBA Krostio). By creating an account you agree to
           them. If you do not agree, please do not use the service.
         </p>
       </header>
@@ -25,7 +25,7 @@ export default function TermsOfServicePage() {
           <h2 className="font-display text-2xl text-ink-black">1. Account terms</h2>
           <p className="mt-3 text-body text-slate">
             You must be at least 18 years old and able to enter into a binding contract to use
-            Krost. You are responsible for keeping your credentials secure and for all activity
+            Krostio. You are responsible for keeping your credentials secure and for all activity
             that happens under your account. Notify us immediately at{' '}
             <a className="link-editorial" href="mailto:support@krost.app">
               support@krost.app
@@ -42,11 +42,11 @@ export default function TermsOfServicePage() {
           <h2 className="font-display text-2xl text-ink-black">2. Payment terms</h2>
           <p className="mt-3 text-body text-slate">
             Paid plans are billed in advance on a recurring basis (monthly or annual depending on
-            the plan you select). All payments are processed by Stripe; by subscribing you also
-            agree to Stripe&rsquo;s terms.
+            the plan you select).             All payments are processed by Paddle; by subscribing you also
+            agree to Paddle&rsquo;s terms.
           </p>
           <ul className="mt-4 list-disc space-y-2 pl-6 text-body text-slate">
-            <li>Fees are non-refundable except where required by law.</li>
+            <li>You may request a full refund within 14 days of purchase. After 14 days, all fees are non-refundable except where required by law. Refunds are processed by Paddle in accordance with their merchant terms.</li>
             <li>
               We may change pricing with at least 30 days&rsquo; notice. Changes do not apply
               retroactively to a billing period you have already paid for.
@@ -67,7 +67,7 @@ export default function TermsOfServicePage() {
               Submit false, fabricated, or misleading earnings data, or attempt to misrepresent
               your income.
             </li>
-            <li>Use Krost to commit, facilitate, or further any form of fraud.</li>
+            <li>Use Krostio to commit, facilitate, or further any form of fraud.</li>
             <li>Access another person&rsquo;s account or platform connection without authorization.</li>
             <li>
               Reverse engineer, scrape, or interfere with the security or operation of the service.
@@ -82,7 +82,7 @@ export default function TermsOfServicePage() {
         <section>
           <h2 className="font-display text-2xl text-ink-black">4. Disclaimer</h2>
           <p className="mt-3 text-body text-slate">
-            Krost is an income verification tool. We are not a consumer reporting agency under the
+            Krostio is an income verification tool. We are not a consumer reporting agency under the
             Fair Credit Reporting Act (FCRA), we are not a credit bureau, and we do not produce
             credit scores. The income consistency score we generate is an informational signal
             based on data you have chosen to connect; lenders and other recipients should treat it
@@ -98,7 +98,7 @@ export default function TermsOfServicePage() {
         <section>
           <h2 className="font-display text-2xl text-ink-black">5. Limitation of liability</h2>
           <p className="mt-3 text-body text-slate">
-            To the maximum extent permitted by law, Krost and its affiliates, officers, employees,
+            To the maximum extent permitted by law, Krostio and its affiliates, officers, employees,
             and agents will not be liable for any indirect, incidental, special, consequential, or
             punitive damages, or any loss of profits or revenues, arising out of or related to your
             use of the service. Our aggregate liability for any claim relating to the service will
@@ -143,7 +143,7 @@ export default function TermsOfServicePage() {
         <section>
           <h2 className="font-display text-2xl text-ink-black">9. Contact</h2>
           <p className="mt-3 text-body text-slate">
-            Questions about these terms? Reach us at{' '}
+            Krostio is operated by <strong>SuprBuild, LLC</strong> (DBA Krostio). Questions about these terms? Reach us at{' '}
             <a className="link-editorial" href="mailto:support@krost.app">
               support@krost.app
             </a>

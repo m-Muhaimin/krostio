@@ -1,123 +1,106 @@
 'use client'
 
-import { createClient } from '@/lib/supabase-browser'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Suspense, useState, FormEvent } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 function LoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
-  const message = searchParams.get('message')
-  const redirect = searchParams.get('redirect')
+  const error = searchParams.get('error')
   const planParam = searchParams.get('plan')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [formError, setFormError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const supabase = createClient()
-
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (signInError) {
-      setError(signInError.message)
-      setLoading(false)
-      return
-    }
-
-    // If user came here from a plan CTA, route them straight to billing checkout
-    const fallback = planParam ? `/dashboard?plan=${planParam}` : '/dashboard'
-    router.push(redirect || fallback)
-    router.refresh()
+  const handleGoogleLogin = () => {
+    const next = planParam ? `/dashboard?plan=${planParam}` : '/dashboard'
+    window.location.href = `/api/auth/google?redirect=${encodeURIComponent(next)}`
   }
 
-  const handleGoogleLogin = async () => {
-    const next = planParam ? `/dashboard?plan=${planParam}` : '/dashboard'
-    // Store redirect destination in a cookie before OAuth redirect.
-    // Don't pass query params in redirectTo — Supabase's redirect URL
-    // validation uses glob matching and ?next= breaks exact/wildcard matches.
-    document.cookie = `oauth_next=${next}; Path=/; Max-Age=300; SameSite=Lax; Secure`
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-    const { error: oAuthError } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${baseUrl}/api/auth/callback`,
-      },
-    })
+  const handleEmailLogin = async (e: FormEvent) => {
+    e.preventDefault()
+    setFormError('')
+    setLoading(true)
 
-    if (oAuthError) {
-      setError(oAuthError.message)
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (res.redirected) {
+        window.location.href = res.url
+        return
+      }
+
+      const data = await res.json()
+      setFormError(data.error || 'Invalid email or password')
+    } catch {
+      setFormError('Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 py-16">
-      <div className="w-full max-w-md">
-        <div className="mb-10">
-          <p className="text-mono-label text-slate">Sign in</p>
-          <h1 className="mt-3 font-display text-[44px] leading-none tracking-tight text-ink-black">
-            Welcome back.
-          </h1>
-          <p className="mt-4 text-body text-slate">
-            Sign in to your Krost account to manage your score and share it with lenders.
-          </p>
+    <div className="w-full max-w-sm">
+      {(error || formError) && (
+        <div className="mb-5 rounded-xl border border-card-border bg-soft-stone px-4 py-3.5 text-sm text-ink-black">
+          {error === 'google_denied' && 'Google sign-in was denied.'}
+          {error === 'state_mismatch' && 'Session expired. Please try again.'}
+          {error === 'token_exchange_failed' && 'Failed to sign in with Google. Please try again.'}
+          {error === 'userinfo_failed' && 'Could not retrieve your account details.'}
+          {error === 'email_not_verified' && 'Your Google account email is not verified.'}
+          {error === 'user_creation_failed' && 'Could not create your account. Please try again.'}
+          {error === 'session_failed' && 'Could not start your session. Please try again.'}
+          {error === 'invalid_request' && 'Invalid sign-in request.'}
+          {formError}
+        </div>
+      )}
+
+      <form onSubmit={handleEmailLogin} className="rounded-2xl border border-hairline bg-white p-8 shadow-sm">
+        <div className="mb-8 text-center">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink-black">Sign in</h1>
+          <p className="mt-1.5 text-sm text-slate">Welcome back to Krostio</p>
         </div>
 
-        {message && (
-          <div className="mb-6 rounded-sm border border-card-border bg-soft-stone px-4 py-3 text-sm text-ink-black">
-            {message}
-          </div>
-        )}
+        <div className="space-y-3.5">
+          <input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            className="input-pill"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            className="input-pill"
+          />
+        </div>
 
-        <form onSubmit={handleEmailLogin} className="space-y-5">
-          <div>
-            <label className="mb-2 block text-mono-label text-slate">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input-rect"
-              placeholder="you@example.com"
-              required
-            />
-          </div>
+        <div className="mt-2 text-right">
+          <Link href="/forgot-password" className="text-xs font-medium text-coral transition-colors hover:text-soft-coral">
+            Forgot password?
+          </Link>
+        </div>
 
-          <div>
-            <label className="mb-2 block text-mono-label text-slate">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input-rect"
-              placeholder="••••••••"
-              required
-            />
-          </div>
+        <Button type="submit" variant="ink" disabled={loading} className="mt-5 w-full">
+          {loading ? 'Signing in\u2026' : 'Sign in'}
+        </Button>
 
-          {error && (
-            <p className="text-sm" style={{ color: 'var(--color-error-red)' }}>{error}</p>
-          )}
-
-          <Button variant="primary" disabled={loading} className="w-full" type="submit">
-            {loading ? 'Signing in…' : 'Sign in'}
-          </Button>
-        </form>
-
-        <div className="my-8 flex items-center gap-4">
-          <div className="h-px flex-1 bg-hairline" />
-          <span className="text-mono-label text-slate">or continue with</span>
-          <div className="h-px flex-1 bg-hairline" />
+        <div className="my-6 flex items-center gap-4">
+          <span className="h-px flex-1 bg-hairline" />
+          <span className="text-xs text-muted-slate">or</span>
+          <span className="h-px flex-1 bg-hairline" />
         </div>
 
         <Button variant="outline" onClick={handleGoogleLogin} className="w-full">
@@ -127,16 +110,16 @@ function LoginForm() {
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
           </svg>
-          Google
+          Continue with Google
         </Button>
 
-        <p className="mt-10 text-sm text-slate">
+        <p className="mt-7 text-center text-sm text-slate">
           Don&apos;t have an account?{' '}
-          <Link href="/register" className="link-editorial">
+          <Link href="/register" className="font-medium text-coral transition-colors hover:text-soft-coral">
             Sign up
           </Link>
         </p>
-      </div>
+      </form>
     </div>
   )
 }

@@ -14,7 +14,7 @@ export default function MarketingLayout({
           <Link href="/" className="flex items-center gap-2">
             <BrandLogo size="default" />
             <span className="font-display text-[17px] font-medium tracking-tight text-ink-black">
-              Krost
+              Krostio
             </span>
           </Link>
           <div className="flex items-center gap-5">
@@ -36,7 +36,7 @@ export default function MarketingLayout({
       {/* Footer */}
       <footer className="border-t border-hairline bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-8 text-xs text-slate md:flex-row md:items-center md:justify-between">
-          <p>© {new Date().getFullYear()} Krost. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Krostio. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="/lenders" className="hover:text-ink-black">
               Lenders

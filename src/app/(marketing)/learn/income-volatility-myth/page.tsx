@@ -249,7 +249,7 @@ export default function Page() {
         </P>
         <P>
           <strong>See how your income stacks up.</strong>{' '}
-          <a href="/check-score" className="link-editorial">Check your Krost Score for free &rarr;</a>
+          <a href="/check-score" className="link-editorial">Check your Krostio Score for free &rarr;</a>
         </P>
       </section>
     </ArticleShell>

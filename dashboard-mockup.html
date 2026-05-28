@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Krostio — Income Clarity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   RESET
+═══════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+:root{
+  --near-black:#17171c;--ink:#212121;--muted:#93939f;--slate:#75758a;
+  --hairline:#d9d9dd;--border-light:#e5e7eb;--stone:#eeece7;
+  --pale-green:#edfce9;--pale-blue:#f1f5ff;--canvas:#ffffff;--cream:#faf9f7;
+  --coral:#ff7759;--coral-soft:#ffad9b;--coral-pale:#fff1ee;
+  --green-deep:#003c33;--action-blue:#1863dc;
+  --success:#16a34a;--success-bg:#f0fdf4;
+  --warning:#d97706;--warning-bg:#fffbeb;
+  --danger:#dc2626;--danger-bg:#fef2f2;
+  --sidebar-w:240px;--topbar-h:60px;
+  --r-xs:4px;--r-sm:8px;--r-md:16px;--r-lg:22px;--r-xl:30px;--r-pill:9999px;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+body{font-family:'Space Grotesk','ui-sans-serif',system-ui,sans-serif;background:var(--canvas);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--hairline);border-radius:3px}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none}
+ul,ol{list-style:none}
+img{display:block;max-width:100%}
+
+/* ═══════════════════════════════════════════
+   SHELL
+═══════════════════════════════════════════ */
+.shell{display:grid;grid-template-columns:var(--sidebar-w) 1fr;grid-template-rows:var(--topbar-h) 1fr;min-height:100vh}
+
+/* ═══════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════ */
+.sidebar{grid-row:1/-1;background:var(--canvas);border-right:1px solid var(--hairline);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-logo{display:flex;align-items:center;gap:10px;padding:0 20px;height:var(--topbar-h);border-bottom:1px solid var(--hairline);flex-shrink:0}
+.logo-wm{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;letter-spacing:-.045em;color:var(--near-black)}
+.logo-wm span{color:var(--coral)}
+.sb-section{padding:20px 12px 6px}
+.sb-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0 10px;margin-bottom:6px}
+.nav-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r-sm);font-size:14px;font-weight:400;color:var(--muted);cursor:pointer;transition:background .18s,color .18s;margin-bottom:1px;user-select:none}
+.nav-link:hover{background:var(--stone);color:var(--ink)}
+.nav-link.active{background:var(--coral-pale);color:var(--coral);font-weight:500}
+.nav-link .ico{width:18px;height:18px;flex-shrink:0;opacity:.65}
+.nav-link.active .ico{opacity:1}
+.nav-badge{font-family:'DM Mono',monospace;font-size:10px;background:var(--coral);color:#fff;border-radius:var(--r-pill);padding:2px 7px;line-height:1.5;margin-left:auto}
+.sb-divider{border:none;border-top:1px solid var(--hairline);margin:8px 12px}
+.sb-spacer{flex:1}
+.sb-pro-card{margin:12px;background:var(--green-deep);border-radius:var(--r-md);padding:16px;color:#fff}
+.spc-eyebrow{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:5px}
+.spc-title{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;letter-spacing:-.02em;margin-bottom:3px}
+.spc-sub{font-size:12px;color:rgba(255,255,255,.45);line-height:1.4;margin-bottom:12px}
+.spc-btn{width:100%;background:var(--coral);color:#fff;border-radius:var(--r-pill);padding:8px;font-size:12px;font-weight:500;transition:opacity .18s}
+.spc-btn:hover{opacity:.88}
+.sb-user{display:flex;align-items:center;gap:10px;padding:14px 16px;border-top:1px solid var(--hairline);cursor:pointer;transition:background .18s}
+.sb-user:hover{background:var(--stone)}
+.u-avatar{width:32px;height:32px;border-radius:50%;background:var(--coral);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.u-name{font-size:13px;font-weight:500;color:var(--ink)}
+.u-plan{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:1px}
+
+/* ═══════════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════════ */
+.topbar{grid-column:2;height:var(--topbar-h);background:var(--canvas);border-bottom:1px solid var(--hairline);display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:50}
+.tb-crumb{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
+.tb-crumb .cur{color:var(--ink);font-weight:500}
+.tb-crumb .sep{color:var(--hairline)}
+.tb-right{display:flex;align-items:center;gap:10px}
+.sync-pill{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:11px;color:var(--success);background:var(--success-bg);border:1px solid rgba(22,163,74,.15);border-radius:var(--r-pill);padding:5px 12px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--success);animation:blink 2.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.tb-icon{width:34px;height:34px;border-radius:var(--r-sm);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .18s;color:var(--muted);background:var(--canvas);position:relative}
+.tb-icon:hover{background:var(--stone);color:var(--ink)}
+.notif-pip{position:absolute;top:7px;right:7px;width:5px;height:5px;border-radius:50%;background:var(--coral);border:1.5px solid var(--canvas)}
+.btn-primary{display:flex;align-items:center;gap:7px;background:var(--near-black);color:#fff;border-radius:var(--r-pill);padding:9px 20px;font-size:13px;font-weight:500;letter-spacing:-.01em;transition:opacity .18s,transform .18s var(--ease)}
+.btn-primary:hover{opacity:.85;transform:translateY(-1px)}
+.btn-coral{display:flex;align-items:center;gap:7px;background:var(--coral);color:#fff;border-radius:var(--r-pill);padding:9px 20px;font-size:13px;font-weight:500;transition:opacity .18s,transform .18s var(--ease)}
+.btn-coral:hover{opacity:.88;transform:translateY(-1px)}
+
+/* ═══════════════════════════════════════════
+   MAIN + PAGES
+═══════════════════════════════════════════ */
+.main{grid-column:2;background:var(--cream);padding:28px 32px;min-height:calc(100vh - var(--topbar-h));overflow-y:auto}
+.page{display:none}
+.page.active{display:block}
+
+/* ═══════════════════════════════════════════
+   SHARED COMPONENTS
+═══════════════════════════════════════════ */
+.pg-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.pg-title{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.03em;color:var(--near-black);margin-bottom:3px}
+.pg-sub{font-size:14px;color:var(--muted)}
+.eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+
+.card{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-md);overflow:hidden;transition:border-color .25s,box-shadow .25s}
+.card:hover{border-color:var(--border-light)}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--hairline)}
+.card-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;letter-spacing:-.02em;color:var(--near-black)}
+.card-sub{font-size:12px;color:var(--muted);margin-top:1px}
+
+.badge{display:inline-flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:var(--r-pill);border-width:1px;border-style:solid}
+.badge-green{background:var(--success-bg);color:var(--success);border-color:rgba(22,163,74,.2)}
+.badge-coral{background:var(--coral-pale);color:var(--coral);border-color:rgba(255,119,89,.2)}
+.badge-amber{background:var(--warning-bg);color:var(--warning);border-color:rgba(217,119,6,.2)}
+.badge-blue{background:var(--pale-blue);color:var(--action-blue);border-color:rgba(24,99,220,.15)}
+.badge-slate{background:var(--stone);color:var(--slate);border-color:var(--hairline)}
+
+.status-pip{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.pip-on{background:var(--success)}
+.pip-off{background:var(--muted)}
+.pip-warn{background:var(--warning)}
+
+.btn-sm-outline{background:var(--canvas);border:1px solid var(--hairline);color:var(--muted);border-radius:var(--r-pill);padding:6px 14px;font-size:12px;font-weight:500;transition:border-color .18s,color .18s,background .18s}
+.btn-sm-outline:hover{border-color:var(--slate);color:var(--ink);background:var(--stone)}
+.btn-sm-primary{background:var(--near-black);color:#fff;border-radius:var(--r-pill);padding:6px 14px;font-size:12px;font-weight:500;transition:opacity .18s}
+.btn-sm-primary:hover{opacity:.85}
+.btn-sm-coral{background:var(--coral-pale);color:var(--coral);border:1px solid rgba(255,119,89,.25);border-radius:var(--r-pill);padding:6px 14px;font-size:12px;font-weight:500;transition:background .18s}
+.btn-sm-coral:hover{background:rgba(255,119,89,.18)}
+
+.fade-in{opacity:0;transform:translateY(14px);animation:fu .45s var(--ease) forwards}
+@keyframes fu{to{opacity:1;transform:none}}
+.d0{animation-delay:.04s}.d1{animation-delay:.1s}.d2{animation-delay:.16s}
+.d3{animation-delay:.22s}.d4{animation-delay:.28s}.d5{animation-delay:.34s}
+.d6{animation-delay:.4s}.d7{animation-delay:.46s}
+
+/* ═══════════════════════════════════════════
+   HUGE ICON HERO SECTIONS
+═══════════════════════════════════════════ */
+.hero-icon-wrap{display:flex;align-items:center;justify-content:center;margin-bottom:28px}
+.hero-icon{width:120px;height:120px;border-radius:32px;display:flex;align-items:center;justify-content:center;position:relative}
+.hero-icon svg{width:64px;height:64px}
+.hi-coral{background:var(--coral-pale);border:1.5px solid rgba(255,119,89,.18)}
+.hi-green{background:var(--pale-green);border:1.5px solid rgba(22,163,74,.18)}
+.hi-blue{background:var(--pale-blue);border:1.5px solid rgba(24,99,220,.15)}
+.hi-stone{background:var(--stone);border:1.5px solid var(--hairline)}
+.hi-amber{background:var(--warning-bg);border:1.5px solid rgba(217,119,6,.18)}
+.hi-dark{background:var(--green-deep);border:none}
+.hi-dark svg{color:#fff!important}
+
+/* Empty states */
+.empty-state{text-align:center;padding:64px 32px}
+.empty-title{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.025em;color:var(--near-black);margin-bottom:10px}
+.empty-sub{font-size:14px;color:var(--muted);line-height:1.65;max-width:400px;margin:0 auto 24px}
+
+/* Section icon rows */
+.section-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.section-icon svg{width:28px;height:28px}
+.si-coral{background:var(--coral-pale)}
+.si-green{background:var(--pale-green)}
+.si-blue{background:var(--pale-blue)}
+.si-amber{background:var(--warning-bg)}
+.si-dark{background:var(--green-deep)}
+
+/* ═══════════════════════════════════════════
+   DASHBOARD PAGE
+═══════════════════════════════════════════ */
+.metrics-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.mc{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-md);padding:20px;transition:border-color .25s,transform .25s var(--ease),box-shadow .25s}
+.mc:hover{border-color:var(--border-light);transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.05)}
+.mc-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.mc-icon{width:28px;height:28px;border-radius:var(--r-xs);display:flex;align-items:center;justify-content:center}
+.mc-val{font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:500;color:var(--near-black);line-height:1;margin-bottom:8px}
+.mc-val sup{font-size:16px;vertical-align:.3em}
+.mc-delta{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:3px 9px;border-radius:var(--r-pill)}
+.delta-up{background:var(--success-bg);color:var(--success)}
+.delta-dn{background:var(--danger-bg);color:var(--danger)}
+.delta-fl{background:var(--warning-bg);color:var(--warning)}
+
+.grid-2-r{display:grid;grid-template-columns:1fr 300px;gap:14px;margin-bottom:14px}
+.grid-3-r{display:grid;grid-template-columns:1fr 1fr 300px;gap:14px}
+
+/* chart */
+.chart-area{padding:20px 20px 8px}
+.chart-svg{width:100%;height:160px;display:block;overflow:visible}
+.chart-months{display:flex;padding:8px 20px 4px}
+.cm{flex:1;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-align:center}
+.chart-legend{display:flex;gap:16px;padding:4px 20px 16px}
+.leg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.leg-dot{width:8px;height:8px;border-radius:50%}
+.tab-row{display:flex;gap:2px;background:var(--stone);border-radius:var(--r-sm);padding:3px}
+.tab-btn{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--muted);background:none;border:none;border-radius:5px;padding:5px 11px;cursor:pointer;transition:background .18s,color .18s}
+.tab-btn.active{background:var(--canvas);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+/* score card */
+.score-body{padding:20px}
+.score-num{font-family:'Space Grotesk',sans-serif;font-size:64px;font-weight:400;letter-spacing:;color:var(--near-black);line-height:1;margin-bottom:4px}
+.score-num sup{font-size:24px;color:var(--muted);font-weight:400}
+.score-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--hairline)}
+.arc-wrap{display:flex;justify-content:center;margin-bottom:16px}
+.pb-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pb-name{font-size:12px;color:var(--muted);width:72px;flex-shrink:0}
+.pb-track{flex:1;height:4px;background:var(--stone);border-radius:var(--r-pill);overflow:hidden}
+.pb-fill{height:100%;border-radius:var(--r-pill)}
+.pb-pct{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:32px;text-align:right;flex-shrink:0}
+.traj-strip{margin-top:14px;background:var(--pale-green);border:1px solid rgba(22,163,74,.12);border-radius:var(--r-sm);padding:10px 14px;display:flex;align-items:center;gap:8px}
+.traj-dot{width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0}
+.traj-txt{font-size:13px;color:var(--ink);font-weight:500}
+
+/* stmt banner */
+.stmt-banner{background:var(--green-deep);border-radius:var(--r-lg);padding:20px 24px;display:flex;align-items:center;gap:18px;margin-bottom:20px;position:relative;overflow:hidden}
+.stmt-banner::after{content:'';position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,119,89,.15) 0%,transparent 70%);pointer-events:none}
+.sb-icon{width:42px;height:42px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-title{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;letter-spacing:;color:#fff;margin-bottom:2px}
+.sb-sub{font-size:13px;color:rgba(255,255,255,.5)}
+.sb-acts{display:flex;gap:8px;flex-shrink:0}
+.btn-white{background:#fff;color:var(--near-black);border-radius:var(--r-pill);padding:9px 18px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px;transition:opacity .18s}
+.btn-white:hover{opacity:.88}
+.btn-ghost-white{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.14);border-radius:var(--r-pill);padding:9px 18px;font-size:13px;font-weight:400;display:flex;align-items:center;gap:6px;transition:background .18s}
+.btn-ghost-white:hover{background:rgba(255,255,255,.14);color:#fff}
+
+/* platform rows */
+.plat-row{display:flex;align-items:center;gap:13px;padding:13px 20px;border-bottom:1px solid var(--hairline);transition:background .18s}
+.plat-row:last-child{border-bottom:none}
+.plat-row:hover{background:var(--cream)}
+.plat-logo{width:36px;height:36px;border-radius:var(--r-sm);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.plat-name{font-size:13px;font-weight:500;color:var(--ink)}
+.plat-meta{font-size:11px;color:var(--muted);margin-top:1px}
+.plat-amt{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;letter-spacing:-.02em;color:var(--near-black);text-align:right}
+.plat-chg{font-size:11px;font-weight:500;text-align:right;margin-top:2px}
+.chg-up{color:var(--success)}.chg-dn{color:var(--danger)}
+
+/* stmt rows */
+.stmt-row{display:flex;align-items:center;gap:13px;padding:13px 20px;border-bottom:1px solid var(--hairline);transition:background .18s;cursor:pointer}
+.stmt-row:last-child{border-bottom:none}
+.stmt-row:hover{background:var(--cream)}
+.stmt-ico{width:36px;height:36px;border-radius:var(--r-sm);background:var(--coral-pale);border:1px solid rgba(255,119,89,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stmt-name{font-size:13px;font-weight:500;color:var(--ink)}
+.stmt-date{font-size:11px;color:var(--muted);margin-top:1px}
+.stmt-btns{margin-left:auto;display:flex;gap:6px}
+.act-btn{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.04em;background:var(--canvas);border:1px solid var(--hairline);color:var(--muted);border-radius:var(--r-xs);padding:5px 10px;cursor:pointer;transition:border-color .18s,color .18s,background .18s}
+.act-btn:hover{border-color:var(--slate);color:var(--ink);background:var(--stone)}
+.act-btn.pri{background:var(--coral-pale);border-color:rgba(255,119,89,.25);color:var(--coral)}
+.act-btn.pri:hover{background:rgba(255,119,89,.18)}
+
+/* alerts */
+.alert-list{padding:6px 12px}
+.alert-item{display:flex;gap:11px;padding:10px;border-radius:var(--r-sm);margin-bottom:4px;transition:background .18s;cursor:default}
+.alert-item:hover{background:var(--stone)}
+.alert-ico{width:32px;height:32px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.aico-green{background:var(--success-bg)}.aico-amber{background:var(--warning-bg)}.aico-blue{background:var(--pale-blue)}.aico-coral{background:var(--coral-pale)}
+.alert-title{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:2px}
+.alert-desc{font-size:11px;color:var(--muted);line-height:1.45}
+.alert-time{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:5px}
+.chip-new{display:inline-block;background:var(--coral-pale);color:var(--coral);border:1px solid rgba(255,119,89,.2);border-radius:var(--r-pill);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;margin-bottom:4px}
+
+/* ═══════════════════════════════════════════
+   EARNINGS PAGE
+═══════════════════════════════════════════ */
+.earnings-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+.earn-stat-card{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-md);padding:24px;transition:border-color .25s,transform .25s var(--ease)}
+.earn-stat-card:hover{border-color:var(--border-light);transform:translateY(-2px)}
+.esc-icon{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.esc-icon svg{width:26px;height:26px}
+.esc-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.esc-value{font-family:'Space Grotesk',sans-serif;font-size:36px;font-weight:500;letter-spacing:;color:var(--near-black);line-height:1;margin-bottom:6px}
+.esc-value sup{font-size:18px;vertical-align:.3em}
+
+.monthly-table-wrap{overflow-x:auto}
+.monthly-table{width:100%;border-collapse:collapse;font-size:13px}
+.monthly-table thead tr{border-bottom:1px solid var(--hairline)}
+.monthly-table thead th{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:10px 20px;text-align:left;font-weight:400}
+.monthly-table thead th:last-child{text-align:right}
+.monthly-table tbody tr{border-bottom:1px solid var(--hairline);transition:background .18s;cursor:default}
+.monthly-table tbody tr:last-child{border-bottom:none}
+.monthly-table tbody tr:hover{background:var(--cream)}
+.monthly-table td{padding:12px 20px;color:var(--ink)}
+.monthly-table td:last-child{text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:600;letter-spacing:-.02em;color:var(--near-black)}
+.month-bar-cell{width:120px}
+.month-bar-bg{height:4px;background:var(--stone);border-radius:var(--r-pill);overflow:hidden}
+.month-bar{height:100%;border-radius:var(--r-pill);background:var(--coral)}
+.month-badge-col{width:80px}
+
+.plat-breakdown-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.pbd-card{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-md);padding:18px;transition:border-color .25s,transform .25s var(--ease)}
+.pbd-card:hover{border-color:var(--border-light);transform:translateY(-2px)}
+.pbd-logo{width:44px;height:44px;border-radius:12px;border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
+.pbd-name{font-size:13px;font-weight:500;color:var(--ink);margin-bottom:2px}
+.pbd-meta{font-size:11px;color:var(--muted);margin-bottom:12px}
+.pbd-amount{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-.03em;color:var(--near-black);margin-bottom:4px}
+.pbd-amount sup{font-size:12px;vertical-align:.3em}
+.pbd-pct{font-size:12px;color:var(--muted)}
+.pbd-bar-bg{height:3px;background:var(--stone);border-radius:var(--r-pill);overflow:hidden;margin-top:10px}
+.pbd-bar{height:100%;border-radius:var(--r-pill)}
+
+/* ═══════════════════════════════════════════
+   STATEMENTS PAGE
+═══════════════════════════════════════════ */
+.stmt-page-hero{text-align:center;padding:48px 32px 40px}
+.stmt-hero-title{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;letter-spacing: ;color:var(--near-black);margin-bottom:10px}
+.stmt-hero-sub{font-size:16px;color:var(--muted);max-width:480px;margin:0 auto 28px;line-height:1.65}
+
+.stmt-cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.stmt-card{background:var(--canvas);border:1.5px solid var(--hairline);border-radius:var(--r-lg);padding:24px;transition:border-color .25s,transform .3s var(--ease),box-shadow .3s;cursor:pointer}
+.stmt-card:hover{border-color:var(--border-light);transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.07)}
+.stmt-card.featured{border-color:var(--near-black)}
+.sc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20pxa}
+.sc-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center}
+.sc-icon svg{width:28px;height:28px}
+.sc-period{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.sc-title{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600;letter-spacing:-.025em;color:var(--near-black);margin-bottom:4px}
+.sc-sub{font-size:12px;color:var(--muted)}
+.sc-divider{border:none;border-top:1px solid var(--hairline);margin:16px 0}
+.sc-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.sc-stat-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.sc-stat-val{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;letter-spacing:-.02em;color:var(--near-black)}
+.sc-actions{display:flex;gap:8px}
+.sc-btn{flex:1;text-align:center;padding:9px;border-radius:var(--r-pill);font-size:12px;font-weight:500;transition:background .18s,color .18s,border-color .18s}
+.sc-btn-primary{background:var(--near-black);color:#fff}
+.sc-btn-primary:hover{opacity:.85}
+.sc-btn-outline{background:var(--canvas);border:1px solid var(--hairline);color:var(--muted)}
+.sc-btn-outline:hover{border-color:var(--slate);color:var(--ink);background:var(--stone)}
+
+.share-link-card{background:var(--green-deep);border-radius:var(--r-lg);padding:28px 32px;display:flex;align-items:center;gap:24px;margin-bottom:24px}
+.slc-icon{width:64px;height:64px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.slc-icon svg{width:32px;height:32px;color:#fff}
+.slc-title{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;letter-spacing:-.025em;color:#fff;margin-bottom:4px}
+.slc-sub{font-size:13px;color:rgba(255,255,255,.5);line-height:1.5;margin-bottom:0}
+.slc-actions{margin-left:auto;display:flex;gap:8px;flex-shrink:0}
+
+.history-table thead th,.history-table tbody td{padding:12px 20px}
+.history-table thead th{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:400;text-align:left;border-bottom:1px solid var(--hairline)}
+.history-table tbody tr{border-bottom:1px solid var(--hairline);transition:background .18s;cursor:pointer}
+.history-table tbody tr:last-child{border-bottom:none}
+.history-table tbody tr:hover{background:var(--cream)}
+.history-table{width:100%;border-collapse:collapse;font-size:13px}
+
+/* ═══════════════════════════════════════════
+   CONNECTIONS PAGE
+═══════════════════════════════════════════ */
+.conn-hero{text-align:center;padding:48px 32px 40px}
+.conn-hero-title{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;letter-spacing: ;color:var(--near-black);margin-bottom:10px}
+.conn-hero-sub{font-size:16px;color:var(--muted);max-width:440px;margin:0 auto 28px;line-height:1.65}
+
+.conn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.conn-card{background:var(--canvas);border:1.5px solid var(--hairline);border-radius:var(--r-lg);padding:24px;transition:border-color .25s,transform .3s var(--ease)}
+.conn-card:hover{border-color:var(--border-light);transform:translateY(-3px)}
+.conn-card.connected{border-color:rgba(22,163,74,.3);background:linear-gradient(to bottom,var(--pale-green),var(--canvas))}
+.cc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.cc-logo{width:56px;height:56px;border-radius:16px;border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;font-size:28px}
+.cc-name{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;letter-spacing:-.02em;color:var(--near-black);margin-bottom:3px}
+.cc-cat{font-size:12px;color:var(--muted);margin-bottom:12px}
+.cc-stat-row{display:flex;gap:16px;margin-bottom:16px}
+.cc-stat-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.cc-stat-val{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;letter-spacing:-.02em;color:var(--near-black)}
+.cc-btn{width:100%;padding:10px;border-radius:var(--r-pill);font-size:13px;font-weight:500;transition:opacity .18s,background .18s}
+.cc-btn-connect{background:var(--near-black);color:#fff}
+.cc-btn-connect:hover{opacity:.85}
+.cc-btn-connected{background:var(--success-bg);color:var(--success);border:1px solid rgba(22,163,74,.2)}
+.cc-btn-connected:hover{background:var(--danger-bg);color:var(--danger);border-color:rgba(220,38,38,.2)}
+
+.plaid-trust{background:var(--stone);border-radius:var(--r-md);padding:20px 24px;display:flex;align-items:center;gap:16px;margin-bottom:24px}
+.pt-icon{width:52px;height:52px;background:var(--canvas);border:1px solid var(--hairline);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pt-icon svg{width:26px;height:26px}
+.pt-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;letter-spacing:-.02em;color:var(--near-black);margin-bottom:3px}
+.pt-sub{font-size:13px;color:var(--muted);line-height:1.5}
+
+
+
+/* ═══════════════════════════════════════════
+   SETTINGS PAGE
+═══════════════════════════════════════════ */
+.settings-layout{display:grid;grid-template-columns:200px 1fr;gap:24px}
+.settings-nav{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-md);padding:8px;align-self:start;position:sticky;top:24px}
+.set-nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-sm);font-size:14px;color:var(--muted);cursor:pointer;transition:background .18s,color .18s;margin-bottom:2px}
+.set-nav-item:hover{background:var(--stone);color:var(--ink)}
+.set-nav-item.active{background:var(--coral-pale);color:var(--coral);font-weight:500}
+.set-nav-item svg{width:16px;height:16px;flex-shrink:0}
+
+.settings-panel-title{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.03em;color:var(--near-black);margin-bottom:4px}
+.settings-panel-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+
+.settings-section{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-md);overflow:hidden;margin-bottom:14px}
+.ss-head{padding:16px 20px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:14px}
+.ss-head-icon{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ss-head-icon svg{width:22px;height:22px}
+.ss-head-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;letter-spacing:-.02em;color:var(--near-black)}
+.ss-head-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.settings-row{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid var(--hairline)}
+.settings-row:last-child{border-bottom:none}
+.sr-label{font-size:14px;font-weight:500;color:var(--ink);flex:1}
+.sr-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.sr-right{flex-shrink:0;margin-left:16px;display:flex;align-items:center;gap:10px}
+.sr-val{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)}
+
+.input-field{width:200px;border:1px solid var(--hairline);border-radius:var(--r-sm);padding:7px 12px;font-family:'Space Grotesk',sans-serif;font-size:13px;color:var(--ink);background:var(--canvas);outline:none;transition:border-color .18s}
+.input-field:focus{border-color:var(--action-blue)}
+
+.danger-zone{background:var(--canvas);border:1.5px solid rgba(220,38,38,.2);border-radius:var(--r-md);overflow:hidden;margin-bottom:14px}
+.dz-head{padding:16px 20px;border-bottom:1px solid rgba(220,38,38,.12);background:var(--danger-bg)}
+.dz-head-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:var(--danger)}
+.dz-head-sub{font-size:12px;color:rgba(220,38,38,.65);margin-top:2px}
+.btn-danger{background:var(--danger);color:#fff;border-radius:var(--r-pill);padding:8px 16px;font-size:13px;font-weight:500;transition:opacity .18s}
+.btn-danger:hover{opacity:.85}
+.btn-danger-outline{background:var(--canvas);border:1px solid rgba(220,38,38,.3);color:var(--danger);border-radius:var(--r-pill);padding:8px 16px;font-size:13px;font-weight:500;transition:background .18s}
+.btn-danger-outline:hover{background:var(--danger-bg)}
+
+/* ═══════════════════════════════════════════
+   PRIVACY PAGE
+═══════════════════════════════════════════ */
+.privacy-hero{text-align:center;padding:48px 32px 36px}
+.privacy-hero-title{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;letter-spacing: ;color:var(--near-black);margin-bottom:10px}
+.privacy-hero-sub{font-size:16px;color:var(--muted);max-width:480px;margin:0 auto;line-height:1.65}
+
+.privacy-pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.pillar-card{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:28px 24px;text-align:center;transition:border-color .25s,transform .3s var(--ease)}
+.pillar-card:hover{border-color:var(--border-light);transform:translateY(-3px)}
+.pillar-icon{width:72px;height:72px;border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.pillar-icon svg{width:36px;height:36px}
+.pillar-title{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;letter-spacing:-.025em;color:var(--near-black);margin-bottom:8px}
+.pillar-desc{font-size:13px;color:var(--muted);line-height:1.65}
+
+.data-export-card{background:var(--green-deep);border-radius:var(--r-lg);padding:28px 32px;display:flex;align-items:center;gap:24px;margin-bottom:20px}
+.dec-icon{width:64px;height:64px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dec-icon svg{width:32px;height:32px;color:#fff}
+.dec-title{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;letter-spacing:-.025em;color:#fff;margin-bottom:4px}
+.dec-sub{font-size:13px;color:rgba(255,255,255,.5);line-height:1.5}
+.dec-actions{margin-left:auto;display:flex;gap:8px;flex-shrink:0}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+@media(max-width:1200px){
+  .metrics-4{grid-template-columns:1fr 1fr}
+  .grid-2-r{grid-template-columns:1fr}
+  .grid-3-r{grid-template-columns:1fr 1fr}
+  .grid-3-r>*:last-child{grid-column:1/-1}
+  .earnings-grid{grid-template-columns:1fr 1fr}
+  .plat-breakdown-grid{grid-template-columns:1fr 1fr}
+  .analytics-grid-3{grid-template-columns:1fr 1fr}
+  .conn-grid{grid-template-columns:1fr 1fr}
+  .privacy-pillars{grid-template-columns:1fr 1fr}
+}
+@media(max-width:900px){
+  :root{--sidebar-w:58px}
+  .logo-wm,.sb-label,.nav-link span:not(.ico),.nav-badge,
+  .u-name,.u-plan,.sb-pro-card{display:none}
+  .nav-link{justify-content:center;padding:10px}
+  .sb-user{justify-content:center;padding:14px 0}
+  .nav-link .ico{opacity:1;width:20px;height:20px}
+}
+@media(max-width:700px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .topbar,.main{grid-column:1}
+  .main{padding:16px}
+  .stmt-cards-grid,.conn-grid,.alert-prefs-grid{grid-template-columns:1fr}
+  .plat-breakdown-grid,.earnings-grid,.analytics-grid-3,.analytics-grid-2{grid-template-columns:1fr}
+  .privacy-pillars{grid-template-columns:1fr}
+  .settings-layout{grid-template-columns:1fr}
+  .settings-nav{position:static}
+  .stmt-hero-sub,.conn-hero-sub,.analytics-hero-sub,.privacy-hero-sub{max-width:100%}
+  .share-link-card,.data-export-card{flex-direction:column}
+  .slc-actions,.dec-actions{width:100%;flex-direction:column}
+  .metrics-4{grid-template-columns:1fr}
+  .grid-3-r{grid-template-columns:1fr}
+  .sb-acts{flex-direction:column}
+  .stmt-banner{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ══════════════════ SIDEBAR ══════════════════ -->
+<aside class="sidebar" aria-label="Navigation">
+  <div class="sidebar-logo">
+    <span class="logo-wm">Krost<span>io</span></span>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-label">Overview</div>
+    <a class="nav-link active" href="#" data-page="dashboard">
+      <svg class="ico" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="2" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="2" y="10" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="10" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a class="nav-link" href="#" data-page="earnings">
+      <svg class="ico" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M2 14l4-8 4 5 2-3 4 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Earnings</span>
+    </a>
+    <a class="nav-link" href="#" data-page="statements">
+      <svg class="ico" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="3" y="2" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M6 7h6M6 10h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <span>Statements</span>
+      <span class="nav-badge">3</span>
+    </a>
+  </div>
+
+  <hr class="sb-divider">
+
+  <div class="sb-section">
+    <div class="sb-label">Platforms</div>
+    <a class="nav-link" href="#" data-page="connections">
+      <svg class="ico" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="5" cy="9" r="3" stroke="currentColor" stroke-width="1.4"/><circle cx="13" cy="9" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M8 9h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <span>Connections</span>
+    </a>
+       <a class="nav-link" href="#" data-page="analytics">
+      <svg class="ico" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M2 12l5-5 4 4 5-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Analytics</span>
+    </a>
+  </div>
+
+  <hr class="sb-divider">
+
+  <div class="sb-section">
+    <div class="sb-label">Account</div>
+    <a class="nav-link" href="#" data-page="settings">
+      <svg class="ico" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M9 2v2M9 14v2M2 9h2M14 9h2M4 4l1.5 1.5M12.5 12.5 14 14M4 14l1.5-1.5M12.5 5.5 14 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <span>Settings</span>
+    </a>
+    <a class="nav-link" href="#" data-page="privacy">
+      <svg class="ico" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="3" y="8" width="12" height="8" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M6 8V6a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <span>Privacy</span>
+    </a>
+  </div>
+
+  <div class="sb-spacer"></div>
+
+  <div class="sb-pro-card">
+    <div class="spc-eyebrow">Active Plan</div>
+    <div class="spc-title">Pro · $14.99/mo</div>
+    <div class="spc-sub">5 platforms · Unlimited PDFs · Weekly digest</div>
+    <button class="spc-btn">Manage</button>
+  </div>
+
+  <div class="sb-user">
+    <div class="u-avatar">MR</div>
+    <div>
+      <div class="u-name">Maria Rivera</div>
+      <div class="u-plan">Pro · maria@email.com</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ══════════════════ TOPBAR ══════════════════ -->
+<header class="topbar" role="banner">
+  <div class="tb-crumb">
+    <span>Krostio</span><span class="sep">/</span>
+    <span class="cur" id="topbarTitle">Dashboard</span>
+  </div>
+  <div class="tb-right">
+    <div class="sync-pill">
+      <div class="sync-dot"></div>Live · synced 2 min ago
+    </div>
+    <div class="tb-icon" aria-label="Search">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </div>
+    <div class="tb-icon" aria-label="Notifications">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 2a4 4 0 014 4v2.5l1 2H3l1-2V6a4 4 0 014-4z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6 12a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.4"/></svg>
+      <div class="notif-pip"></div>
+    </div>
+    <button class="btn-primary" id="topCta">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v8M3 6l3.5 3.5L10 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 11h11" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span id="topCtaLabel">Generate Statement</span>
+    </button>
+  </div>
+</header>
+
+<!-- ══════════════════ PAGES ══════════════════ -->
+<main class="main">
+
+<!-- ▸▸ DASHBOARD ◂◂ -->
+<div class="page active" id="page-dashboard">
+  <div class="pg-header fade-in d0">
+    <div><div class="pg-title">Good morning, Maria 👋</div><div class="pg-sub">Trailing 12-month income summary · May 27, 2026</div></div>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-pill);padding:6px 14px;">May 2026</div>
+  </div>
+
+  <div class="stmt-banner fade-in d1">
+    <div class="sb-icon">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="2" width="16" height="18" rx="2.5" stroke="white" stroke-width="1.6"/><path d="M7 8h8M7 12h5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </div>
+    <div style="flex:1">
+      <div class="sb-title">Your May 2026 statement is ready</div>
+      <div class="sb-sub">24 months of data · Updated today · Professional PDF</div>
+    </div>
+    <div class="sb-acts">
+      <button class="btn-white"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 6l3 3 3-3" stroke="#17171c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 10h10" stroke="#17171c" stroke-width="1.5" stroke-linecap="round"/></svg>Download PDF</button>
+      <button class="btn-ghost-white"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 1l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 6v1a4 4 0 004 4h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Share Link</button>
+    </div>
+  </div>
+
+  <div class="metrics-4 fade-in d2">
+    <div class="mc"><div class="mc-label">Annualized Income<div class="mc-icon" style="background:var(--coral-pale)"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M3 4l3.5-3L10 4M3 10l3.5 2.5L10 10" stroke="var(--coral)" stroke-width="1.4" stroke-linecap="round"/></svg></div></div><div class="mc-val"><sup>$</sup>78,240</div><div class="mc-delta delta-up">↑ 14% vs last year</div></div>
+    <div class="mc"><div class="mc-label">Monthly Average<div class="mc-icon" style="background:var(--success-bg)"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 10l4-5 3 3 5-7" stroke="var(--success)" stroke-width="1.4" stroke-linecap="round"/></svg></div></div><div class="mc-val"><sup>$</sup>6,520</div><div class="mc-delta delta-up">↑ 8% vs last month</div></div>
+    <div class="mc"><div class="mc-label">Consistency Score<div class="mc-icon" style="background:var(--pale-blue)"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="var(--action-blue)" stroke-width="1.4"/><path d="M4 6.5l2 2 3-3" stroke="var(--action-blue)" stroke-width="1.4" stroke-linecap="round"/></svg></div></div><div class="mc-val">84<span style="font-size:16px;color:var(--muted);font-weight:400">/100</span></div><div class="mc-delta delta-up">Highly consistent</div></div>
+    <div class="mc"><div class="mc-label">Active Platforms<div class="mc-icon" style="background:var(--warning-bg)"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="3.5" cy="3.5" r="2" stroke="var(--warning)" stroke-width="1.4"/><circle cx="9.5" cy="3.5" r="2" stroke="var(--warning)" stroke-width="1.4"/><circle cx="3.5" cy="9.5" r="2" stroke="var(--warning)" stroke-width="1.4"/><circle cx="9.5" cy="9.5" r="2" stroke="var(--warning)" stroke-width="1.4"/></svg></div></div><div class="mc-val">4</div><div class="mc-delta delta-fl">Well diversified</div></div>
+  </div>
+
+  <div class="grid-2-r fade-in d3">
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">Earnings Over Time</div><div class="card-sub">Monthly across all platforms</div></div><div class="tab-row"><button class="tab-btn">3M</button><button class="tab-btn">6M</button><button class="tab-btn active">12M</button><button class="tab-btn">24M</button></div></div>
+      <div class="chart-area">
+        <svg class="chart-svg" viewBox="0 0 640 160" preserveAspectRatio="none">
+          <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff7759" stop-opacity=".14"/><stop offset="100%" stop-color="#ff7759" stop-opacity="0"/></linearGradient></defs>
+          <line x1="0" y1="10" x2="640" y2="10" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="3,4"/>
+          <line x1="0" y1="50" x2="640" y2="50" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="3,4"/>
+          <line x1="0" y1="90" x2="640" y2="90" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="3,4"/>
+          <line x1="0" y1="130" x2="640" y2="130" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="3,4"/>
+          <text x="4" y="9" font-family="DM Mono,monospace" font-size="9" fill="#93939f">$9K</text>
+          <text x="4" y="49" font-family="DM Mono,monospace" font-size="9" fill="#93939f">$7K</text>
+          <text x="4" y="89" font-family="DM Mono,monospace" font-size="9" fill="#93939f">$5K</text>
+          <text x="4" y="129" font-family="DM Mono,monospace" font-size="9" fill="#93939f">$3K</text>
+          <path d="M32,140 C75,135 108,128 148,130 C188,132 215,115 258,108 C301,101 335,90 375,82 C415,74 448,80 490,64 C532,48 568,35 608,20 L608,160 L32,160 Z" fill="url(#ag)"/>
+          <path d="M32,140 C75,135 108,128 148,130 C188,132 215,115 258,108 C301,101 335,90 375,82 C415,74 448,80 490,64 C532,48 568,35 608,20" fill="none" stroke="#ff7759" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="32" cy="140" r="3.5" fill="#ff7759" stroke="white" stroke-width="2"/>
+          <circle cx="85" cy="132" r="3.5" fill="#ff7759" stroke="white" stroke-width="2"/>
+          <circle cx="138" cy="128" r="3.5" fill="#ff7759" stroke="white" stroke-width="2"/>
+          <circle cx="191" cy="133" r="3.5" fill="#ff7759" stroke="white" stroke-width="2"/>
+          <circle cx="244" cy="115" r="3.5" fill="#ff7759" stroke="white" stroke-width="2"/>
+          <circle cx="297" cy="108" r="3.5" fill="#ff7759" stroke="white" stroke-width="2"/>
+          <circle cx="350" cy="90" r="3.5" fill="#ff7759" stroke="white" stroke-width="2"/>
+          <circle cx="403" cy="83" r="3.5" fill="#ff7759" stroke="white" stroke-width="2"/>
+          <circle cx="456" cy="68" r="3.5" fill="#ff7759" stroke="white" stroke-width="2"/>
+          <circle cx="509" cy="72" r="3.5" fill="#ff7759" stroke="white" stroke-width="2"/>
+          <circle cx="562" cy="42" r="3.5" fill="#ff7759" stroke="white" stroke-width="2"/>
+          <circle cx="608" cy="20" r="4.5" fill="#ff7759" stroke="white" stroke-width="2.5"/>
+          <rect x="556" y="2" width="80" height="22" rx="5" fill="white" stroke="#d9d9dd" stroke-width="1"/>
+          <text x="596" y="17" font-family="DM Mono,monospace" font-size="10" fill="#17171c" text-anchor="middle" font-weight="500">$7,840</text>
+        </svg>
+      </div>
+      <div class="chart-months"><span class="cm">Jun</span><span class="cm">Jul</span><span class="cm">Aug</span><span class="cm">Sep</span><span class="cm">Oct</span><span class="cm">Nov</span><span class="cm">Dec</span><span class="cm">Jan</span><span class="cm">Feb</span><span class="cm">Mar</span><span class="cm">Apr</span><span class="cm">May</span></div>
+      <div class="chart-legend"><div class="leg"><div class="leg-dot" style="background:var(--coral)"></div>Total income</div><div class="leg"><div class="leg-dot" style="background:var(--hairline)"></div>Peak: May $7,840</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">Consistency Score</div><div class="card-sub">Income stability index</div></div></div>
+      <div class="score-body">
+        <div class="score-num">84<sup>/100</sup></div>
+        <div class="badge badge-green" style="margin-bottom:12px"><span>●</span> Highly Consistent</div>
+        <div class="score-desc">Your income varies ±$480/month — ideal range for loan applications.</div>
+        <div class="arc-wrap">
+          <svg width="130" height="70" viewBox="0 0 130 70">
+            <defs><linearGradient id="arcg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#16a34a" stop-opacity=".35"/><stop offset="100%" stop-color="#16a34a"/></linearGradient></defs>
+            <path d="M10 68 A55 55 0 0 1 120 68" fill="none" stroke="#eeece7" stroke-width="9" stroke-linecap="round"/>
+            <path d="M10 68 A55 55 0 0 1 120 68" fill="none" stroke="url(#arcg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="172" stroke-dashoffset="28"/>
+            <text x="65" y="54" text-anchor="middle" font-family="DM Mono,monospace" font-size="8" fill="#93939f">STABLE INCOME</text>
+          </svg>
+        </div>
+        <div class="pb-row"><span class="pb-name">DoorDash</span><div class="pb-track"><div class="pb-fill" style="width:42%;background:#ff3008"></div></div><span class="pb-pct">42%</span></div>
+        <div class="pb-row"><span class="pb-name">Upwork</span><div class="pb-track"><div class="pb-fill" style="width:31%;background:#14a800"></div></div><span class="pb-pct">31%</span></div>
+        <div class="pb-row"><span class="pb-name">Uber Eats</span><div class="pb-track"><div class="pb-fill" style="width:18%;background:#00b4d8"></div></div><span class="pb-pct">18%</span></div>
+        <div class="pb-row"><span class="pb-name">Fiverr</span><div class="pb-track"><div class="pb-fill" style="width:9%;background:#1dbf73"></div></div><span class="pb-pct">9%</span></div>
+        <div class="traj-strip"><div class="traj-dot"></div><span class="traj-txt">Growing — ↑ 14% year-over-year</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-3-r fade-in d4">
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">Connected Platforms</div><div class="card-sub">4 active · 2 min ago</div></div><button class="btn-sm-coral">+ Add</button></div>
+      <div class="plat-row"><div class="plat-logo" style="background:#fff0ee">🍔</div><div style="flex:1"><div class="plat-name">DoorDash</div><div class="plat-meta">Last payout May 24</div></div><div><div class="plat-amt">$3,280</div><div class="plat-chg chg-up">+6% this month</div></div><div class="status-pip pip-on"></div></div>
+      <div class="plat-row"><div class="plat-logo" style="background:#f0fdf4">💻</div><div style="flex:1"><div class="plat-name">Upwork</div><div class="plat-meta">Last payout May 22</div></div><div><div class="plat-amt">$2,415</div><div class="plat-chg chg-up">+12% this month</div></div><div class="status-pip pip-on"></div></div>
+      <div class="plat-row"><div class="plat-logo" style="background:#eff6ff">🚗</div><div style="flex:1"><div class="plat-name">Uber Eats</div><div class="plat-meta">Last payout May 21</div></div><div><div class="plat-amt">$1,405</div><div class="plat-chg chg-dn">−3% this month</div></div><div class="status-pip pip-on"></div></div>
+      <div class="plat-row"><div class="plat-logo" style="background:#f0fdf4">🎨</div><div style="flex:1"><div class="plat-name">Fiverr</div><div class="plat-meta">Last payout May 18</div></div><div><div class="plat-amt">$700</div><div class="plat-chg chg-up">+4% this month</div></div><div class="status-pip pip-on"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">Statement History</div><div class="card-sub">Download or share</div></div></div>
+      <div class="stmt-row"><div class="stmt-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="var(--coral)" stroke-width="1.4"/><path d="M5 6h6M5 9h4" stroke="var(--coral)" stroke-width="1.4" stroke-linecap="round"/></svg></div><div><div class="stmt-name">May 2026</div><div class="stmt-date">Today · 24 months</div></div><div class="stmt-btns"><button class="act-btn pri">↓ PDF</button><button class="act-btn">Share</button></div></div>
+      <div class="stmt-row"><div class="stmt-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="var(--coral)" stroke-width="1.4"/><path d="M5 6h6M5 9h4" stroke="var(--coral)" stroke-width="1.4" stroke-linecap="round"/></svg></div><div><div class="stmt-name">April 2026</div><div class="stmt-date">Apr 30 · 24 months</div></div><div class="stmt-btns"><button class="act-btn">↓ PDF</button><button class="act-btn">Share</button></div></div>
+      <div class="stmt-row"><div class="stmt-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="var(--coral)" stroke-width="1.4"/><path d="M5 6h6M5 9h4" stroke="var(--coral)" stroke-width="1.4" stroke-linecap="round"/></svg></div><div><div class="stmt-name">March 2026</div><div class="stmt-date">Mar 31 · 22 months</div></div><div class="stmt-btns"><button class="act-btn">↓ PDF</button><button class="act-btn">Share</button></div></div>
+      <div class="stmt-row"><div class="stmt-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="var(--coral)" stroke-width="1.4"/><path d="M5 6h6M5 9h4" stroke="var(--coral)" stroke-width="1.4" stroke-linecap="round"/></svg></div><div><div class="stmt-name">Q4 2025 Annual</div><div class="stmt-date">Jan 5 · Full year</div></div><div class="stmt-btns"><button class="act-btn">↓ PDF</button><button class="act-btn">Share</button></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">Income Alerts</div><div class="card-sub">Insights</div></div><div class="badge badge-coral">2 new</div></div>
+      <div class="alert-list">
+        <div class="alert-item"><div class="alert-ico aico-green"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 8l3-4 3 4 4-6" stroke="var(--success)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div><div class="chip-new">New</div><div class="alert-title">Income growing</div><div class="alert-desc">Up 14% YoY. On track for $84K.</div><div class="alert-time">Today, 9:14 AM</div></div></div>
+        <div class="alert-item"><div class="alert-ico aico-amber"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2l5.5 10H1.5L7 2z" stroke="var(--warning)" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 6v3M7 10.5v.5" stroke="var(--warning)" stroke-width="1.4" stroke-linecap="round"/></svg></div><div><div class="chip-new">New</div><div class="alert-title">DoorDash concentration</div><div class="alert-desc">42% in one platform.</div><div class="alert-time">Yesterday, 6PM</div></div></div>
+        <div class="alert-item"><div class="alert-ico aico-blue"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="var(--action-blue)" stroke-width="1.4"/><path d="M5 3V2M9 3V2M2 7h10" stroke="var(--action-blue)" stroke-width="1.4" stroke-linecap="round"/></svg></div><div><div class="alert-title">Best week ever</div><div class="alert-desc">Week of May 19 — $1,920</div><div class="alert-time">May 25</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ▸▸ EARNINGS ◂◂ -->
+<div class="page" id="page-earnings">
+  <div class="pg-header fade-in d0">
+    <div><div class="pg-title">Earnings</div><div class="pg-sub">Full income history across all connected platforms</div></div>
+    <div style="display:flex;gap:8px"><button class="btn-sm-outline">Export CSV</button><button class="btn-primary" style="padding:9px 18px;font-size:13px">↓ Download PDF</button></div>
+  </div>
+
+  <div class="hero-icon-wrap fade-in d0">
+    <div class="hero-icon hi-coral">
+      <svg viewBox="0 0 64 64" fill="none" style="color:var(--coral)">
+        <rect x="8" y="8" width="48" height="48" rx="12" stroke="currentColor" stroke-width="2.5"/>
+        <path d="M16 40l10-14 10 10 6-8 6 12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="16" cy="40" r="3" fill="currentColor"/>
+        <circle cx="48" cy="40" r="3" fill="currentColor"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="earnings-grid fade-in d1">
+    <div class="earn-stat-card">
+      <div class="esc-icon" style="background:var(--coral-pale)"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M13 2v22M7 7l6-5 6 5M7 20l6 4 6-4" stroke="var(--coral)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="esc-label">Annualized Income</div>
+      <div class="esc-value"><sup>$</sup>78,240</div>
+      <div class="badge badge-green">↑ 14% YoY</div>
+    </div>
+    <div class="earn-stat-card">
+      <div class="esc-icon" style="background:var(--success-bg)"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="3" y="5" width="20" height="18" rx="3" stroke="var(--success)" stroke-width="2"/><path d="M3 11h20M9 5V3M17 5V3" stroke="var(--success)" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="esc-label">Monthly Average</div>
+      <div class="esc-value"><sup>$</sup>6,520</div>
+      <div class="badge badge-green">↑ 8% vs last month</div>
+    </div>
+    <div class="earn-stat-card">
+      <div class="esc-icon" style="background:var(--pale-blue)"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M3 20l7-10 6 7 4-5 3 8" stroke="var(--action-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="esc-label">Best Single Month</div>
+      <div class="esc-value"><sup>$</sup>7,840</div>
+      <div class="badge badge-blue">May 2026</div>
+    </div>
+  </div>
+
+  <div class="plat-breakdown-grid fade-in d2">
+    <div class="pbd-card"><div class="pbd-logo" style="background:#fff0ee">🍔</div><div class="pbd-name">DoorDash</div><div class="pbd-meta">Food delivery · Connected</div><div class="pbd-amount"><sup>$</sup>32,860</div><div class="pbd-pct">42% of total · 12 months</div><div class="pbd-bar-bg"><div class="pbd-bar" style="width:42%;background:#ff3008"></div></div></div>
+    <div class="pbd-card"><div class="pbd-logo" style="background:#f0fdf4">💻</div><div class="pbd-name">Upwork</div><div class="pbd-meta">Freelance · Connected</div><div class="pbd-amount"><sup>$</sup>24,254</div><div class="pbd-pct">31% of total · 12 months</div><div class="pbd-bar-bg"><div class="pbd-bar" style="width:31%;background:#14a800"></div></div></div>
+    <div class="pbd-card"><div class="pbd-logo" style="background:#eff6ff">🚗</div><div class="pbd-name">Uber Eats</div><div class="pbd-meta">Food delivery · Connected</div><div class="pbd-amount"><sup>$</sup>14,083</div><div class="pbd-pct">18% of total · 12 months</div><div class="pbd-bar-bg"><div class="pbd-bar" style="width:18%;background:#00b4d8"></div></div></div>
+    <div class="pbd-card"><div class="pbd-logo" style="background:#f0fdf4">🎨</div><div class="pbd-name">Fiverr</div><div class="pbd-meta">Freelance · Connected</div><div class="pbd-amount"><sup>$</sup>7,042</div><div class="pbd-pct">9% of total · 12 months</div><div class="pbd-bar-bg"><div class="pbd-bar" style="width:9%;background:#1dbf73"></div></div></div>
+  </div>
+
+  <div class="card fade-in d3">
+    <div class="card-head"><div><div class="card-title">Monthly Breakdown</div><div class="card-sub">Last 12 months across all platforms</div></div><button class="btn-sm-outline">Export</button></div>
+    <div class="monthly-table-wrap">
+      <table class="monthly-table">
+        <thead><tr><th>Month</th><th>DoorDash</th><th>Upwork</th><th>Uber Eats</th><th>Fiverr</th><th class="month-bar-cell">Trend</th><th class="month-badge-col">Growth</th><th>Total</th></tr></thead>
+        <tbody>
+          <tr><td>May 2026</td><td>$3,280</td><td>$2,415</td><td>$1,405</td><td>$740</td><td class="month-bar-cell"><div class="month-bar-bg"><div class="month-bar" style="width:89%"></div></div></td><td><span class="badge badge-green" style="font-size:9px">↑ 8%</span></td><td>$7,840</td></tr>
+          <tr><td>Apr 2026</td><td>$3,090</td><td>$2,200</td><td>$1,320</td><td>$650</td><td class="month-bar-cell"><div class="month-bar-bg"><div class="month-bar" style="width:82%"></div></div></td><td><span class="badge badge-green" style="font-size:9px">↑ 5%</span></td><td>$7,260</td></tr>
+          <tr><td>Mar 2026</td><td>$2,950</td><td>$2,100</td><td>$1,250</td><td>$610</td><td class="month-bar-cell"><div class="month-bar-bg"><div class="month-bar" style="width:78%"></div></div></td><td><span class="badge badge-green" style="font-size:9px">↑ 3%</span></td><td>$6,910</td></tr>
+          <tr><td>Feb 2026</td><td>$2,800</td><td>$2,050</td><td>$1,180</td><td>$680</td><td class="month-bar-cell"><div class="month-bar-bg"><div class="month-bar" style="width:76%"></div></div></td><td><span class="badge badge-slate" style="font-size:9px">Stable</span></td><td>$6,710</td></tr>
+          <tr><td>Jan 2026</td><td>$2,780</td><td>$1,980</td><td>$1,200</td><td>$660</td><td class="month-bar-cell"><div class="month-bar-bg"><div class="month-bar" style="width:75%"></div></div></td><td><span class="badge badge-slate" style="font-size:9px">Stable</span></td><td>$6,620</td></tr>
+          <tr><td>Dec 2025</td><td>$3,100</td><td>$1,850</td><td>$1,380</td><td>$580</td><td class="month-bar-cell"><div class="month-bar-bg"><div class="month-bar" style="width:78%"></div></div></td><td><span class="badge badge-green" style="font-size:9px">↑ 4%</span></td><td>$6,910</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ▸▸ STATEMENTS ◂◂ -->
+<div class="page" id="page-statements">
+  <div class="stmt-page-hero fade-in d0">
+    <div class="hero-icon-wrap"><div class="hero-icon hi-coral"><svg viewBox="0 0 64 64" fill="none" style="color:var(--coral)"><rect x="10" y="6" width="44" height="52" rx="6" stroke="currentColor" stroke-width="2.5"/><path d="M20 22h24M20 30h24M20 38h16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M38 50l5 5 9-9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+    <div class="eyebrow">Your documents</div>
+    <div class="stmt-hero-title">Professional Income Statements</div>
+    <div class="stmt-hero-sub">Every statement is a 24-month professional PDF — ready for landlords, lenders, or your personal records. You own it, you control it.</div>
+    <button class="btn-primary" style="margin:0 auto;padding:12px 28px;font-size:14px">↓ Generate May 2026 Statement</button>
+  </div>
+
+  <div class="share-link-card fade-in d1">
+    <div class="slc-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M20 4l8 8-8 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v2a8 8 0 008 8h8" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="8" cy="16" r="4" stroke="white" stroke-width="2"/></svg></div>
+    <div>
+      <div class="slc-title">Share your income link</div>
+      <div class="slc-sub">Generate a secure, expiring link to your income summary. Set 7-day, 30-day, or one-time view. Revoke anytime. No viewer tracking.</div>
+    </div>
+    <div class="slc-actions">
+      <button class="btn-white">Create Share Link</button>
+      <button class="btn-ghost-white">View Active Links</button>
+    </div>
+  </div>
+
+  <div class="stmt-cards-grid fade-in d2">
+    <div class="stmt-card featured">
+      <div class="sc-header">
+        <div class="sc-icon" style="background:var(--coral-pale)"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="4" y="3" width="20" height="22" rx="3" stroke="var(--coral)" stroke-width="2"/><path d="M9 10h10M9 14h10M9 18h7" stroke="var(--coral)" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="badge badge-coral">Latest</div>
+      </div>
+      <div class="sc-period">May 2026</div>
+      <div class="sc-title">May 2026 Income Statement</div>
+      <div class="sc-sub">24 months · All 4 platforms · Generated today</div>
+      <hr class="sc-divider">
+      <div class="sc-stats">
+        <div><div class="sc-stat-label">Annualized</div><div class="sc-stat-val">$78,240</div></div>
+        <div><div class="sc-stat-label">Consistency</div><div class="sc-stat-val">84/100</div></div>
+        <div><div class="sc-stat-label">Trend</div><div class="sc-stat-val">↑ Growing</div></div>
+        <div><div class="sc-stat-label">Platforms</div><div class="sc-stat-val">4</div></div>
+      </div>
+      <div class="sc-actions"><button class="sc-btn sc-btn-primary">↓ Download PDF</button><button class="sc-btn sc-btn-outline">Share Link</button></div>
+    </div>
+    <div class="stmt-card">
+      <div class="sc-header"><div class="sc-icon" style="background:var(--stone)"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="4" y="3" width="20" height="22" rx="3" stroke="var(--slate)" stroke-width="2"/><path d="M9 10h10M9 14h10M9 18h7" stroke="var(--slate)" stroke-width="2" stroke-linecap="round"/></svg></div></div>
+      <div class="sc-period">April 2026</div>
+      <div class="sc-title">April 2026 Income Statement</div>
+      <div class="sc-sub">24 months · All 4 platforms · Apr 30</div>
+      <hr class="sc-divider">
+      <div class="sc-stats">
+        <div><div class="sc-stat-label">Annualized</div><div class="sc-stat-val">$74,200</div></div>
+        <div><div class="sc-stat-label">Consistency</div><div class="sc-stat-val">82/100</div></div>
+        <div><div class="sc-stat-label">Trend</div><div class="sc-stat-val">↑ Growing</div></div>
+        <div><div class="sc-stat-label">Platforms</div><div class="sc-stat-val">4</div></div>
+      </div>
+      <div class="sc-actions"><button class="sc-btn sc-btn-primary">↓ Download PDF</button><button class="sc-btn sc-btn-outline">Share Link</button></div>
+    </div>
+    <div class="stmt-card">
+      <div class="sc-header"><div class="sc-icon" style="background:var(--pale-green)"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="4" y="3" width="20" height="22" rx="3" stroke="var(--success)" stroke-width="2"/><path d="M9 10h10M9 14h10M9 18h7" stroke="var(--success)" stroke-width="2" stroke-linecap="round"/></svg></div><div class="badge badge-green">Annual</div></div>
+      <div class="sc-period">Q4 2025</div>
+      <div class="sc-title">2025 Annual Report</div>
+      <div class="sc-sub">Full year · 3 platforms · Jan 5, 2026</div>
+      <hr class="sc-divider">
+      <div class="sc-stats">
+        <div><div class="sc-stat-label">Annual Total</div><div class="sc-stat-val">$68,400</div></div>
+        <div><div class="sc-stat-label">Consistency</div><div class="sc-stat-val">79/100</div></div>
+        <div><div class="sc-stat-label">Trend</div><div class="sc-stat-val">↑ Growing</div></div>
+        <div><div class="sc-stat-label">Platforms</div><div class="sc-stat-val">3</div></div>
+      </div>
+      <div class="sc-actions"><button class="sc-btn sc-btn-primary">↓ Download PDF</button><button class="sc-btn sc-btn-outline">Share Link</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ▸▸ CONNECTIONS ◂◂ -->
+<div class="page" id="page-connections">
+  <div class="conn-hero fade-in d0">
+    <div class="hero-icon-wrap"><div class="hero-icon hi-blue"><svg viewBox="0 0 64 64" fill="none" style="color:var(--action-blue)"><circle cx="16" cy="32" r="10" stroke="currentColor" stroke-width="2.5"/><circle cx="48" cy="32" r="10" stroke="currentColor" stroke-width="2.5"/><path d="M26 32h12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M32 20V12M32 52v-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="3,3"/></svg></div></div>
+    <div class="eyebrow">Plaid-powered connections</div>
+    <div class="conn-hero-title">Connect Your Platforms</div>
+    <div class="conn-hero-sub">Link your gig accounts via Plaid. We never see your login credentials — only the earnings data you authorize us to read.</div>
+  </div>
+
+  <div class="plaid-trust fade-in d1">
+    <div class="pt-icon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="3" y="11" width="20" height="13" rx="3" stroke="var(--action-blue)" stroke-width="2"/><path d="M8 11V8a5 5 0 0110 0v3" stroke="var(--action-blue)" stroke-width="2" stroke-linecap="round"/><circle cx="13" cy="17" r="2" fill="var(--action-blue)"/></svg></div>
+    <div>
+      <div class="pt-title">Secured by Plaid — the same standard banks use</div>
+      <div class="pt-sub">Your login credentials are never stored or seen by Krostio. Plaid uses OAuth to connect securely to 12,000+ financial institutions. Disconnect any account instantly.</div>
+    </div>
+    <div class="badge badge-blue" style="flex-shrink:0">Bank-grade security</div>
+  </div>
+
+  <div class="conn-grid fade-in d2">
+    <div class="conn-card connected">
+      <div class="cc-top"><div class="cc-logo" style="background:#fff0ee">🍔</div><div class="badge badge-green"><span>●</span> Connected</div></div>
+      <div class="cc-name">DoorDash</div><div class="cc-cat">Food delivery · Gig</div>
+      <div class="cc-stat-row"><div><div class="cc-stat-label">This month</div><div class="cc-stat-val">$3,280</div></div><div><div class="cc-stat-label">Last sync</div><div class="cc-stat-val">2 min ago</div></div></div>
+      <button class="cc-btn cc-btn-connected">✓ Connected — Click to disconnect</button>
+    </div>
+    <div class="conn-card connected">
+      <div class="cc-top"><div class="cc-logo" style="background:#f0fdf4">💻</div><div class="badge badge-green"><span>●</span> Connected</div></div>
+      <div class="cc-name">Upwork</div><div class="cc-cat">Freelance platform</div>
+      <div class="cc-stat-row"><div><div class="cc-stat-label">This month</div><div class="cc-stat-val">$2,415</div></div><div><div class="cc-stat-label">Last sync</div><div class="cc-stat-val">2 min ago</div></div></div>
+      <button class="cc-btn cc-btn-connected">✓ Connected — Click to disconnect</button>
+    </div>
+    <div class="conn-card connected">
+      <div class="cc-top"><div class="cc-logo" style="background:#eff6ff">🚗</div><div class="badge badge-green"><span>●</span> Connected</div></div>
+      <div class="cc-name">Uber Eats</div><div class="cc-cat">Food delivery · Rideshare</div>
+      <div class="cc-stat-row"><div><div class="cc-stat-label">This month</div><div class="cc-stat-val">$1,405</div></div><div><div class="cc-stat-label">Last sync</div><div class="cc-stat-val">2 min ago</div></div></div>
+      <button class="cc-btn cc-btn-connected">✓ Connected — Click to disconnect</button>
+    </div>
+    <div class="conn-card connected">
+      <div class="cc-top"><div class="cc-logo" style="background:#f0fdf4">🎨</div><div class="badge badge-green"><span>●</span> Connected</div></div>
+      <div class="cc-name">Fiverr</div><div class="cc-cat">Creative freelance</div>
+      <div class="cc-stat-row"><div><div class="cc-stat-label">This month</div><div class="cc-stat-val">$700</div></div><div><div class="cc-stat-label">Last sync</div><div class="cc-stat-val">2 min ago</div></div></div>
+      <button class="cc-btn cc-btn-connected">✓ Connected — Click to disconnect</button>
+    </div>
+    <div class="conn-card">
+      <div class="cc-top"><div class="cc-logo">🛒</div><div class="badge badge-slate">Not connected</div></div>
+      <div class="cc-name">Instacart</div><div class="cc-cat">Grocery delivery</div>
+      <div class="cc-stat-row"><div><div class="cc-stat-label">Avg earner</div><div class="cc-stat-val">$18/hr</div></div><div><div class="cc-stat-label">Workers</div><div class="cc-stat-val">600K+</div></div></div>
+      <button class="cc-btn cc-btn-connect">+ Connect via Plaid</button>
+    </div>
+    <div class="conn-card">
+      <div class="cc-top"><div class="cc-logo">🚕</div><div class="badge badge-slate">Not connected</div></div>
+      <div class="cc-name">Lyft</div><div class="cc-cat">Rideshare platform</div>
+      <div class="cc-stat-row"><div><div class="cc-stat-label">Avg earner</div><div class="cc-stat-val">$22/hr</div></div><div><div class="cc-stat-label">Workers</div><div class="cc-stat-val">1.4M+</div></div></div>
+      <button class="cc-btn cc-btn-connect">+ Connect via Plaid</button>
+    </div>
+  </div>
+</div>
+
+<!-- ▸▸ ALERTS ◂◂ -->
+<div class="page" id="page-alerts">
+  <div class="alerts-hero fade-in d0">
+    <div class="hero-icon-wrap"><div class="hero-icon hi-amber"><svg viewBox="0 0 64 64" fill="none" style="color:var(--warning)"><path d="M32 8v6M32 50v6M8 32H2M62 32h-6M14.1 14.1l-4.2-4.2M54.1 54.1l-4.2-4.2M14.1 49.9l-4.2 4.2M54.1 9.9l-4.2 4.2" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="32" cy="32" r="14" stroke="currentColor" stroke-width="2.5"/><path d="M32 26v7M32 37v1" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div></div>
+    <div class="eyebrow">Income intelligence</div>
+    <div class="alerts-hero-title">Income Alerts</div>
+    <div class="alerts-hero-sub">Real-time insights on your earnings — trend changes, platform drops, record weeks, and actionable recommendations.</div>
+  </div>
+
+  <div class="alert-full-list fade-in d1">
+    <div class="alert-full-item">
+      <div class="afi-icon" style="background:var(--success-bg)"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M3 18l6-9 6 7 4-5 4 7" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div style="flex:1"><div class="chip-new">New</div><div class="afi-title">Income growing steadily</div><div class="afi-desc">You're up 14% year-over-year across all platforms. At this pace, you're on track to hit $84,000 annualized by August 2026. Your consistency score of 84/100 puts you in the top 20% of gig workers we track.</div></div>
+      <div class="afi-meta"><div class="afi-time">Today, 9:14 AM</div><span class="badge badge-green">↑ Growing</span></div>
+    </div>
+    <div class="alert-full-item">
+      <div class="afi-icon" style="background:var(--warning-bg)"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M13 3l11 19H2L13 3z" stroke="var(--warning)" stroke-width="2" stroke-linejoin="round"/><path d="M13 11v5M13 19v1" stroke="var(--warning)" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div style="flex:1"><div class="chip-new">New</div><div class="afi-title">DoorDash concentration is high</div><div class="afi-desc">42% of your total income comes from DoorDash. When one platform exceeds 40%, you're exposed to rate changes or deactivation risk. Consider adding Instacart (avg $18/hr) or Lyft to your rotation for better stability.</div></div>
+      <div class="afi-meta"><div class="afi-time">Yesterday, 6:00 PM</div><span class="badge badge-amber">⚠ Action suggested</span></div>
+    </div>
+    <div class="alert-full-item">
+      <div class="afi-icon" style="background:var(--pale-blue)"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="3" y="5" width="20" height="18" rx="3" stroke="var(--action-blue)" stroke-width="2"/><path d="M3 11h20M9 5V3M17 5V3" stroke="var(--action-blue)" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div style="flex:1"><div class="afi-title">Best earning week on record</div><div class="afi-desc">Week of May 19–25 was your highest-ever earning week at $1,920 across all platforms. You worked across all 4 platforms consistently. Friday May 23 was your single strongest day at $380.</div></div>
+      <div class="afi-meta"><div class="afi-time">May 25, 8:00 AM</div><span class="badge badge-blue">🏆 Record</span></div>
+    </div>
+    <div class="alert-full-item">
+      <div class="afi-icon" style="background:var(--coral-pale)"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="4" y="3" width="18" height="20" rx="3" stroke="var(--coral)" stroke-width="2"/><path d="M8 9h10M8 13h10M8 17h7" stroke="var(--coral)" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div style="flex:1"><div class="afi-title">May statement is ready to share</div><div class="afi-desc">Your May 2026 income statement has been generated and is ready to download or share. Use the shareable link feature to send it directly to a landlord or lender — no printing required.</div></div>
+      <div class="afi-meta"><div class="afi-time">May 27, 7:30 AM</div><button class="btn-sm-coral" style="font-size:12px;padding:6px 14px">Download PDF</button></div>
+    </div>
+  </div>
+
+  <div class="card fade-in d3">
+    <div class="card-head"><div><div class="card-title">Alert Preferences</div><div class="card-sub">Choose what Krostio notifies you about</div></div></div>
+    <div class="alert-prefs-grid" style="padding:16px">
+      <div class="pref-card"><div class="pref-icon" style="background:var(--success-bg)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M2 15l5-7 5 6 3-4 4 5" stroke="var(--success)" stroke-width="1.8" stroke-linecap="round"/></svg></div><div style="flex:1"><div class="pref-title">Weekly income digest</div><div class="pref-desc">Every Monday — last week's total, top platform, and trend</div></div><div class="toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off')"></div></div>
+      <div class="pref-card"><div class="pref-icon" style="background:var(--warning-bg)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 3l9 16H2L11 3z" stroke="var(--warning)" stroke-width="1.8" stroke-linejoin="round"/><path d="M11 9v4M11 16v.5" stroke="var(--warning)" stroke-width="1.8" stroke-linecap="round"/></svg></div><div style="flex:1"><div class="pref-title">Income drop alert</div><div class="pref-desc">Notify when income drops more than 20% month-over-month</div></div><div class="toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off')"></div></div>
+      <div class="pref-card"><div class="pref-icon" style="background:var(--pale-blue)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8" stroke="var(--action-blue)" stroke-width="1.8"/><path d="M11 7v5l3 2" stroke="var(--action-blue)" stroke-width="1.8" stroke-linecap="round"/></svg></div><div style="flex:1"><div class="pref-title">Best day/week insights</div><div class="pref-desc">Highlight your peak earning periods and seasonal patterns</div></div><div class="toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off')"></div></div>
+      <div class="pref-card"><div class="pref-icon" style="background:var(--coral-pale)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="4" y="3" width="14" height="16" rx="2" stroke="var(--coral)" stroke-width="1.8"/><path d="M7 8h8M7 12h5" stroke="var(--coral)" stroke-width="1.8" stroke-linecap="round"/></svg></div><div style="flex:1"><div class="pref-title">Statement ready</div><div class="pref-desc">Notify when your monthly PDF statement is generated</div></div><div class="toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off')"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ▸▸ ANALYTICS ◂◂ -->
+<div class="page" id="page-analytics">
+  <div class="analytics-hero fade-in d0">
+    <div class="hero-icon-wrap"><div class="hero-icon hi-green"><svg viewBox="0 0 64 64" fill="none" style="color:var(--success)"><path d="M8 48l14-20 12 14 8-12 14 18" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="48" r="4" fill="currentColor"/><circle cx="22" cy="28" r="4" fill="currentColor"/><circle cx="34" cy="42" r="4" fill="currentColor"/><circle cx="42" cy="30" r="4" fill="currentColor"/><circle cx="56" cy="48" r="4" fill="currentColor"/></svg></div></div>
+    <div class="eyebrow">Income intelligence</div>
+    <div class="analytics-hero-title">Deep Analytics</div>
+    <div class="analytics-hero-sub">Understand your income at a deeper level — by hour, by day, by season, and by platform. Data you've never had before.</div>
+  </div>
+
+  <div class="analytics-grid-3 fade-in d1">
+    <div class="insight-card"><div class="ic-icon" style="background:var(--coral-pale)"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M13 2v22M5 7l8-5 8 5M5 20l8 4 8-4" stroke="var(--coral)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="ic-label">Effective Hourly Rate</div><div class="ic-value">$<span>34</span></div><div class="ic-desc">Across all platforms. Upwork pays $52/hr — 53% above your average.</div></div>
+    <div class="insight-card"><div class="ic-icon" style="background:var(--success-bg)"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M3 19l7-9 6 7 4-5 3 7" stroke="var(--success)" stroke-width="2" stroke-linecap="round"/></svg></div><div class="ic-label">Income Volatility</div><div class="ic-value">±<span style="font-size:26px">$480</span></div><div class="ic-desc">Month-to-month variance. Puts you in the "highly stable" range.</div></div>
+    <div class="insight-card"><div class="ic-icon" style="background:var(--pale-blue)"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="3" y="5" width="20" height="18" rx="3" stroke="var(--action-blue)" stroke-width="2"/><path d="M3 11h20M9 5V3M17 5V3" stroke="var(--action-blue)" stroke-width="2" stroke-linecap="round"/></svg></div><div class="ic-label">Best Earning Day</div><div class="ic-value">Fri</div><div class="ic-desc">Fridays average $210/day — 38% above your daily average of $152.</div></div>
+  </div>
+
+  <div class="analytics-grid-2 fade-in d2">
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">Earnings by Platform</div><div class="card-sub">This month vs last month</div></div></div>
+      <div class="bar-chart-wrap">
+        <div class="bar-row"><span class="bar-label">DoorDash</span><div class="bar-track"><div class="bar-fill" style="width:78%;background:#ff3008"><span class="bar-val">$3,280</span></div></div><span class="bar-amt">$3,090</span></div>
+        <div class="bar-row"><span class="bar-label">Upwork</span><div class="bar-track"><div class="bar-fill" style="width:58%;background:#14a800"><span class="bar-val">$2,415</span></div></div><span class="bar-amt">$2,200</span></div>
+        <div class="bar-row"><span class="bar-label">Uber Eats</span><div class="bar-track"><div class="bar-fill" style="width:34%;background:#00b4d8"><span class="bar-val">$1,405</span></div></div><span class="bar-amt">$1,320</span></div>
+        <div class="bar-row"><span class="bar-label">Fiverr</span><div class="bar-track"><div class="bar-fill" style="width:17%;background:#1dbf73"><span class="bar-val">$700</span></div></div><span class="bar-amt">$650</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">Monthly Activity Heatmap</div><div class="card-sub">Earning intensity by month (last 2 years)</div></div></div>
+      <div style="padding:16px 20px">
+        <div style="display:flex;gap:8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:8px;letter-spacing:.06em"><span>2025</span><span style="margin-left:auto">2026</span></div>
+        <div class="heatmap-grid">
+          <div class="hm-cell hm-2"></div><div class="hm-cell hm-2"></div><div class="hm-cell hm-1"></div><div class="hm-cell hm-3"></div><div class="hm-cell hm-2"></div><div class="hm-cell hm-3"></div><div class="hm-cell hm-2"></div><div class="hm-cell hm-3"></div><div class="hm-cell hm-3"></div><div class="hm-cell hm-4"></div><div class="hm-cell hm-3"></div><div class="hm-cell hm-4"></div>
+          <div class="hm-cell hm-1"></div><div class="hm-cell hm-2"></div><div class="hm-cell hm-2"></div><div class="hm-cell hm-2"></div><div class="hm-cell hm-3"></div><div class="hm-cell hm-3"></div><div class="hm-cell hm-2"></div><div class="hm-cell hm-3"></div><div class="hm-cell hm-3"></div><div class="hm-cell hm-3"></div><div class="hm-cell hm-4"></div><div class="hm-cell hm-4"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:var(--muted)">
+          <span>Less</span>
+          <div class="hm-cell hm-0" style="width:12px;height:12px;border-radius:2px;flex-shrink:0"></div>
+          <div class="hm-cell hm-1" style="width:12px;height:12px;border-radius:2px;flex-shrink:0"></div>
+          <div class="hm-cell hm-2" style="width:12px;height:12px;border-radius:2px;flex-shrink:0"></div>
+          <div class="hm-cell hm-3" style="width:12px;height:12px;border-radius:2px;flex-shrink:0"></div>
+          <div class="hm-cell hm-4" style="width:12px;height:12px;border-radius:2px;flex-shrink:0"></div>
+          <span>More</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ▸▸ SETTINGS ◂◂ -->
+<div class="page" id="page-settings">
+  <div class="pg-header fade-in d0">
+    <div><div class="pg-title">Settings</div><div class="pg-sub">Manage your account, billing, and preferences</div></div>
+    <div class="hero-icon-wrap" style="margin:0"><div class="hero-icon hi-stone" style="width:64px;height:64px;border-radius:18px"><svg viewBox="0 0 36 36" fill="none" style="width:36px;height:36px;color:var(--slate)"><circle cx="18" cy="18" r="5" stroke="currentColor" stroke-width="2"/><path d="M18 4v4M18 28v4M4 18h4M28 18h4M7.8 7.8l2.8 2.8M25.4 25.4l2.8 2.8M7.8 28.2l2.8-2.8M25.4 10.6l2.8-2.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div></div>
+  </div>
+
+  <div class="settings-layout fade-in d1">
+    <div class="settings-nav">
+      <div class="set-nav-item active" onclick="document.querySelectorAll('.set-nav-item').forEach(x=>x.classList.remove('active'));this.classList.add('active')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Profile</div>
+      <div class="set-nav-item" onclick="document.querySelectorAll('.set-nav-item').forEach(x=>x.classList.remove('active'));this.classList.add('active')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5 4V3a3 3 0 016 0v1" stroke="currentColor" stroke-width="1.4"/></svg>Billing</div>
+      <div class="set-nav-item" onclick="document.querySelectorAll('.set-nav-item').forEach(x=>x.classList.remove('active'));this.classList.add('active')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v2M8 12v2M2 8H0M16 8h-2M3.5 3.5 2 2M14 14l-1.5-1.5M3.5 12.5 2 14M14 2l-1.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/></svg>Notifications</div>
+      <div class="set-nav-item" onclick="document.querySelectorAll('.set-nav-item').forEach(x=>x.classList.remove('active'));this.classList.add('active')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="7" width="12" height="8" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.4"/></svg>Security</div>
+    </div>
+
+    <div>
+      <div class="settings-section fade-in d2">
+        <div class="ss-head">
+          <div class="ss-head-icon" style="background:var(--coral-pale)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="8" r="4" stroke="var(--coral)" stroke-width="1.8"/><path d="M3 20c0-4 3.6-7 8-7s8 3 8 7" stroke="var(--coral)" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+          <div><div class="ss-head-title">Profile</div><div class="ss-head-sub">Your personal information</div></div>
+        </div>
+        <div class="settings-row"><div><div class="sr-label">Full name</div><div class="sr-sub">Displayed on income statements</div></div><div class="sr-right"><input class="input-field" value="Maria Rivera" type="text"></div></div>
+        <div class="settings-row"><div><div class="sr-label">Email address</div><div class="sr-sub">Used for login and notifications</div></div><div class="sr-right"><input class="input-field" value="maria@email.com" type="email"></div></div>
+        <div class="settings-row"><div><div class="sr-label">Statement name</div><div class="sr-sub">Name printed on your PDF statements</div></div><div class="sr-right"><input class="input-field" value="Maria Rivera" type="text"></div></div>
+        <div class="settings-row"><div><div class="sr-label">Time zone</div><div class="sr-sub">For income digest scheduling</div></div><div class="sr-right"><span class="sr-val">America/Chicago</span><button class="btn-sm-outline">Change</button></div></div>
+      </div>
+
+      <div class="settings-section fade-in d3">
+        <div class="ss-head">
+          <div class="ss-head-icon" style="background:var(--pale-green)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="7" width="16" height="12" rx="3" stroke="var(--success)" stroke-width="1.8"/><path d="M7 7V5a4 4 0 018 0v2" stroke="var(--success)" stroke-width="1.8" stroke-linecap="round"/><path d="M11 13v2" stroke="var(--success)" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+          <div><div class="ss-head-title">Billing & Plan</div><div class="ss-head-sub">Your Krostio Pro subscription</div></div>
+        </div>
+        <div class="settings-row"><div><div class="sr-label">Current plan</div><div class="sr-sub">Renews June 27, 2026</div></div><div class="sr-right"><span class="badge badge-green">Pro · $14.99/mo</span><button class="btn-sm-outline">Manage</button></div></div>
+        <div class="settings-row"><div><div class="sr-label">Payment method</div><div class="sr-sub">Visa ending in 4242</div></div><div class="sr-right"><span class="sr-val">Visa ···· 4242</span><button class="btn-sm-outline">Update</button></div></div>
+        <div class="settings-row"><div><div class="sr-label">Billing history</div><div class="sr-sub">Download past invoices</div></div><div class="sr-right"><button class="btn-sm-outline">View invoices</button></div></div>
+      </div>
+
+      <div class="danger-zone fade-in d4">
+        <div class="dz-head"><div class="dz-head-title">Danger zone</div><div class="dz-head-sub">These actions are permanent and cannot be undone</div></div>
+        <div class="settings-row"><div><div class="sr-label" style="color:var(--danger)">Delete all data</div><div class="sr-sub">Permanently remove all earnings data and statements</div></div><div class="sr-right"><button class="btn-danger-outline">Delete data</button></div></div>
+        <div class="settings-row"><div><div class="sr-label" style="color:var(--danger)">Close account</div><div class="sr-sub">Cancel subscription and permanently delete your account</div></div><div class="sr-right"><button class="btn-danger">Close account</button></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ▸▸ PRIVACY ◂◂ -->
+<div class="page" id="page-privacy">
+  <div class="privacy-hero fade-in d0">
+    <div class="hero-icon-wrap"><div class="hero-icon hi-dark"><svg viewBox="0 0 64 64" fill="none"><rect x="12" y="26" width="40" height="32" rx="6" stroke="white" stroke-width="2.5"/><path d="M20 26V20a12 12 0 0124 0v6" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="32" cy="42" r="5" fill="white"/><path d="M32 44v4" stroke="#003c33" stroke-width="2" stroke-linecap="round"/></svg></div></div>
+    <div class="eyebrow">Privacy first</div>
+    <div class="privacy-hero-title">Your Data, Your Control</div>
+    <div class="privacy-hero-sub">Krostio is built on a simple principle: your income data belongs to you. We aggregate it, you own it, and you can delete it anytime.</div>
+  </div>
+
+  <div class="privacy-pillars fade-in d1">
+    <div class="pillar-card">
+      <div class="pillar-icon" style="background:var(--pale-blue)"><svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="6" y="17" width="24" height="16" rx="4" stroke="var(--action-blue)" stroke-width="2.5"/><path d="M11 17V12a7 7 0 0114 0v5" stroke="var(--action-blue)" stroke-width="2.5" stroke-linecap="round"/><circle cx="18" cy="25" r="3" fill="var(--action-blue)"/></svg></div>
+      <div class="pillar-title">Zero credential storage</div>
+      <div class="pillar-desc">We never store your passwords. Plaid OAuth tokens are encrypted at rest. You can disconnect any platform with one click — access is immediately revoked.</div>
+    </div>
+    <div class="pillar-card">
+      <div class="pillar-icon" style="background:var(--pale-green)"><svg width="36" height="36" viewBox="0 0 36 36" fill="none"><path d="M6 18l8-8 6 6 10-10" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="4" width="28" height="28" rx="6" stroke="var(--success)" stroke-width="2" opacity=".3"/></svg></div>
+      <div class="pillar-title">You own your statements</div>
+      <div class="pillar-desc">Every PDF is self-generated and self-owned. Krostio doesn't share your statements with lenders, landlords, or any third party. Only you decide who sees your income.</div>
+    </div>
+    <div class="pillar-card">
+      <div class="pillar-icon" style="background:var(--coral-pale)"><svg width="36" height="36" viewBox="0 0 36 36" fill="none"><path d="M18 4l12 6v10c0 7-5.4 13.6-12 16-6.6-2.4-12-9-12-16V10l12-6z" stroke="var(--coral)" stroke-width="2.5" stroke-linejoin="round"/><path d="M13 18l3 3 7-7" stroke="var(--coral)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pillar-title">Right to deletion</div>
+      <div class="pillar-desc">Request deletion of all your data at any time. We permanently remove your earnings history, statements, and account data within 24 hours — no questions asked.</div>
+    </div>
+  </div>
+
+  <div class="data-export-card fade-in d2">
+    <div class="dec-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 4v16M10 14l6 6 6-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 24v2a2 2 0 002 2h20a2 2 0 002-2v-2" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div>
+      <div class="dec-title">Export all your data</div>
+      <div class="dec-sub">Download a complete export of your earnings history, statements, and account data in JSON or CSV format. GDPR and CCPA compliant.</div>
+    </div>
+    <div class="dec-actions">
+      <button class="btn-white">Export as CSV</button>
+      <button class="btn-ghost-white">Export as JSON</button>
+    </div>
+  </div>
+
+  <div class="card fade-in d3">
+    <div class="card-head"><div><div class="card-title">Data we collect</div><div class="card-sub">Transparent breakdown of what Krostio stores</div></div></div>
+    <div class="settings-row"><div style="display:flex;gap:14px;align-items:flex-start"><div class="pref-icon" style="background:var(--pale-green);width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 18l5-7 5 6 3-4 3 5" stroke="var(--success)" stroke-width="1.8" stroke-linecap="round"/></svg></div><div><div class="sr-label">Earnings transactions</div><div class="sr-sub">Merchant-level transaction data from Plaid — amounts, dates, platform names. Not your full bank statement.</div></div></div><span class="badge badge-green">Collected</span></div>
+    <div class="settings-row"><div style="display:flex;gap:14px;align-items:flex-start"><div class="pref-icon" style="background:var(--stone);width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="9" r="4" stroke="var(--slate)" stroke-width="1.8"/><path d="M3 20c0-4 3.6-7 8-7s8 3 8 7" stroke="var(--slate)" stroke-width="1.8" stroke-linecap="round"/></svg></div><div><div class="sr-label">Account credentials</div><div class="sr-sub">We never see or store your bank or gig platform passwords. Plaid handles all authentication independently.</div></div></div><span class="badge badge-slate">Never collected</span></div>
+    <div class="settings-row"><div style="display:flex;gap:14px;align-items:flex-start"><div class="pref-icon" style="background:var(--stone);width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 11h16M11 3l8 8-8 8" stroke="var(--slate)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><div class="sr-label">Data sold to third parties</div><div class="sr-sub">Your income data is never sold, shared with advertisers, or provided to lenders without your explicit action.</div></div></div><span class="badge badge-slate">Never</span></div>
+  </div>
+</div>
+
+</main><!-- end main -->
+</div><!-- end shell -->
+
+<script>
+// ── PAGE ROUTING ──
+const pages = {
+  dashboard:   { label:'Dashboard',   cta:'Generate Statement' },
+  earnings:    { label:'Earnings',    cta:'Export CSV' },
+  statements:  { label:'Statements',  cta:'New Statement' },
+  connections: { label:'Connections', cta:'+ Connect Platform' },
+  alerts:      { label:'Alerts',      cta:'Mark All Read' },
+  analytics:   { label:'Analytics',   cta:'Export Report' },
+  settings:    { label:'Settings',    cta:'Save Changes' },
+  privacy:     { label:'Privacy',     cta:'Export Data' },
+};
+
+function navigate(pageId) {
+  // Hide all pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  // Show target page
+  const target = document.getElementById('page-' + pageId);
+  if (target) {
+    target.classList.add('active');
+    // Re-trigger animations
+    target.querySelectorAll('.fade-in').forEach(el => {
+      el.style.animation = 'none';
+      el.offsetHeight; // reflow
+      el.style.animation = '';
+    });
+  }
+  // Update nav
+  document.querySelectorAll('.nav-link').forEach(l => {
+    l.classList.toggle('active', l.dataset.page === pageId);
+  });
+  // Update topbar
+  const info = pages[pageId] || {};
+  document.getElementById('topbarTitle').textContent = info.label || pageId;
+  document.getElementById('topCtaLabel').textContent = info.cta || 'Action';
+  // Scroll to top
+  document.querySelector('.main').scrollTop = 0;
+}
+
+document.querySelectorAll('.nav-link[data-page]').forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    navigate(link.dataset.page);
+  });
+  link.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(link.dataset.page); }
+  });
+});
+
+// ── TAB SWITCHING ──
+document.querySelectorAll('.tab-row').forEach(row => {
+  row.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      row.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+});
+
+// ── SETTINGS NAV ──
+document.querySelectorAll('.set-nav-item').forEach(item => {
+  item.addEventListener('click', function() {
+    document.querySelectorAll('.set-nav-item').forEach(i => i.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

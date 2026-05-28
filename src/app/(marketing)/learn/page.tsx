@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     'Practical guides on proving gig income for mortgages, car loans, rentals, and credit. Written for DoorDash drivers, Uber drivers, Instacart shoppers, and 1099 contractors.',
   alternates: { canonical: '/learn' },
   openGraph: {
-    title: 'Learn — Krost guides for gig workers',
+    title: 'Learn — Krostio guides for gig workers',
     description:
       'Practical guides on proving income when you don\'t get a W-2. From DoorDash to Uber to Instacart, written for the 76 million Americans in the gig economy.',
     type: 'website',
@@ -96,7 +96,7 @@ export default function LearnIndexPage() {
       <header className="border-b border-hairline pb-12">
         <p className="text-mono-label text-slate">
           <span className="eyebrow-dot" />
-          Krost Learn
+          Krostio Learn
         </p>
         <h1 className="text-display-hero mt-6 max-w-4xl">
           Field guides for the 76 million Americans who don&rsquo;t get a W-2.
